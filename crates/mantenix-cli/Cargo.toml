@@ -1,0 +1,17 @@
+[package]
+name = "mantenix-cli"
+description = "Línea de comandos de Mantenix"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "mantenix"
+path = "src/main.rs"
+
+[dependencies]
+mantenix-core = { path = "../mantenix-core" }
+mantenix-informes = { path = "../mantenix-informes" }
+anyhow = "1"
+clap = { version = "4", features = ["derive", "env"] }
+serde_json = "1"
