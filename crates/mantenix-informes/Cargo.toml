@@ -1,0 +1,16 @@
+[package]
+name = "mantenix-informes"
+description = "Generación de documentos PDF (hoja de costes, tarifa, contrato) con Typst"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+mantenix-core = { path = "../mantenix-core" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+typst = "0.15"
+typst-pdf = "0.15"
+typst-layout = "0.15"
+typst-as-lib = "0.17"
