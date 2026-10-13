@@ -204,6 +204,8 @@ pub fn abrir(ruta: &Path) -> Result<Connection, Error> {
     for (t, cols) in AUDITADAS {
         c.execute_batch(&disparadores(t, cols)).map_err(e)?;
     }
+    // El usuario se identifica en cada sesión: no se hereda el de una sesión anterior.
+    c.execute("DELETE FROM sesion", []).map_err(e)?;
     Ok(c)
 }
 
@@ -356,6 +358,7 @@ pub fn inicializar(c: &mut Connection, normativa: &Path, empresa: &Path) -> Resu
             .map_err(e)?;
     }
     tx.commit().map_err(e)?;
+    c.execute("DELETE FROM sesion", []).map_err(e)?;
     Ok(true)
 }
 

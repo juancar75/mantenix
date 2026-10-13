@@ -4,6 +4,14 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ## [Sin publicar]
 
+### Añadido
+- Operación de empresa `FAB-FILTRO-SUST`: sustitución trimestral de filtros de unidades terminales (la comprobación mensual sigue siendo RITE-T33-19). Tiempo para fancoils en el ejemplo.
+- Orden `mantenix empresa` para cargar los datos de la empresa en la base.
+
+### Cambiado
+- El usuario de la auditoría se identifica en cada sesión; ya no se hereda de una sesión anterior.
+- Tabla de inventario de la app con anchos fijos.
+
 ## [0.1.0] - 2026-10-13
 
 ### Añadido

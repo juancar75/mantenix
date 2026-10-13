@@ -43,6 +43,8 @@ enum Orden {
     Importar { inventario: PathBuf },
     /// Lista los contratos.
     Contratos,
+    /// Carga los datos de la empresa (razón social, habilitaciones, horario) desde un JSON.
+    Empresa { json: PathBuf },
     /// Fija un parámetro de un año (coste hora, margen…).
     Parametro { anio: u32, nombre: String, valor: f64 },
     /// Fija el tiempo estándar de una operación sobre un tipo de equipo.
@@ -105,6 +107,10 @@ fn main() -> Result<()> {
             let k: Contrato = serde_json::from_value(leer_json(&inventario)?)?;
             let id = db::guardar_contrato(&mut c, &k)?;
             println!("Contrato «{}» guardado ({id}).", k.nombre);
+        }
+        Orden::Empresa { json } => {
+            db::fijar_empresa(&c, &leer_json(&json)?)?;
+            println!("Datos de empresa actualizados.");
         }
         Orden::Contratos => {
             for (n, a, p) in db::listar_contratos(&c)? {
