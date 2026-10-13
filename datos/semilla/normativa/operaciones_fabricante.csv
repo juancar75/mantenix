@@ -1,2 +1,3 @@
 id;sistema;periodicidad;operacion
 CO-REV;CO;visita;Comprobación de detectores y central de CO con gas de ensayo, puesta en marcha de ventiladores por nivel de CO (fabricante / CTE HS 3)
+FAB-FILTRO-SUST;;3m;Sustitución de los filtros de aire de las unidades terminales (criterio de la empresa / fabricante; el material se valora aparte si no está incluido)
