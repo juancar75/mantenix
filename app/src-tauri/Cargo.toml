@@ -1,0 +1,18 @@
+[package]
+name = "mantenix-app"
+description = "Aplicación de escritorio de Mantenix"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+mantenix-core = { path = "../../crates/mantenix-core" }
+mantenix-informes = { path = "../../crates/mantenix-informes" }
+tauri = { version = "2", features = [] }
+tauri-plugin-dialog = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+rusqlite = { version = "0.37", features = ["bundled"] }

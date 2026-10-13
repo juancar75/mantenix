@@ -1,0 +1,47 @@
+/* Estilos generales de Mantenix. Colores en variables para poder cambiar el tema en un sitio. */
+:root {
+  --azul: #1f3a5f;
+  --azul-claro: #e8eef6;
+  --texto: #1d2329;
+  --gris: #6b7480;
+  --borde: #d9dee4;
+  --fondo: #f6f7f9;
+  --rojo: #b3261e;
+  --verde: #1e7d3a;
+  font-family: Inter, "Segoe UI", system-ui, sans-serif;
+  font-size: 14px;
+  color: var(--texto);
+  background: var(--fondo);
+}
+* { box-sizing: border-box; }
+body { margin: 0; }
+h1 { font-size: 20px; margin: 0 0 12px; color: var(--azul); }
+h2 { font-size: 15px; margin: 18px 0 8px; color: var(--azul); }
+button {
+  font: inherit; border: 1px solid var(--borde); background: white; border-radius: 6px;
+  padding: 6px 12px; cursor: pointer;
+}
+button:hover { border-color: var(--azul); }
+button.primario { background: var(--azul); color: white; border-color: var(--azul); }
+button.peligro { color: var(--rojo); }
+input, select { font: inherit; border: 1px solid var(--borde); border-radius: 5px; padding: 5px 7px; background: white; }
+input:focus, select:focus { outline: 2px solid var(--azul-claro); border-color: var(--azul); }
+input.num { width: 90px; text-align: right; }
+table { border-collapse: collapse; width: 100%; background: white; }
+th { text-align: left; font-size: 12px; color: var(--azul); border-bottom: 2px solid var(--borde); padding: 6px; }
+td { border-bottom: 1px solid var(--borde); padding: 5px 6px; vertical-align: top; }
+td.der, th.der { text-align: right; }
+.panel { background: white; border: 1px solid var(--borde); border-radius: 8px; padding: 14px; }
+.fila { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.campo { display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: var(--gris); }
+.tarjetas { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.tarjeta { background: var(--azul-claro); border-radius: 8px; padding: 10px 12px; }
+.tarjeta .etiqueta { font-size: 11px; color: var(--gris); text-transform: uppercase; }
+.tarjeta .valor { font-size: 20px; font-weight: 700; color: var(--azul); }
+.tarjeta.destacada { background: var(--azul); }
+.tarjeta.destacada .etiqueta, .tarjeta.destacada .valor { color: white; }
+.aviso { background: #fff4e5; border-left: 4px solid #e8a33d; padding: 6px 10px; margin: 4px 0; }
+.malo { color: var(--rojo); font-weight: 600; }
+.bueno { color: var(--verde); font-weight: 600; }
+.pequeño { font-size: 12px; color: var(--gris); }
+.error { background: #fdecea; color: var(--rojo); padding: 8px 12px; border-radius: 6px; margin-bottom: 10px; }
