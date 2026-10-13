@@ -1,0 +1,3 @@
+# Revisores obligatorios por carpeta. Sustituir @responsable-normativa por el usuario de GitHub correspondiente.
+/datos/semilla/normativa/   @responsable-normativa
+/crates/mantenix-core/      @responsable-normativa

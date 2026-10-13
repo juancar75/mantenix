@@ -1,0 +1,29 @@
+name: Error
+description: Algo no funciona o calcula mal
+labels: ["error"]
+body:
+  - type: markdown
+    attributes:
+      value: "**No incluya datos reales de clientes, tarifas ni costes.** Use datos de ejemplo."
+  - type: textarea
+    id: que
+    attributes:
+      label: ¿Qué ocurre?
+      description: Qué hizo, qué esperaba y qué obtuvo.
+    validations: { required: true }
+  - type: textarea
+    id: reproducir
+    attributes:
+      label: Cómo reproducirlo
+      description: Pasos, o el JSON de un contrato de ejemplo que muestre el problema.
+      render: json
+  - type: input
+    id: version
+    attributes:
+      label: Versión de Mantenix
+      placeholder: "0.1.0"
+  - type: dropdown
+    id: sistema
+    attributes:
+      label: Sistema
+      options: [Windows, Linux, macOS]

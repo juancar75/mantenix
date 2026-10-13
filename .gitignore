@@ -1,0 +1,23 @@
+# Compilación
+/target/
+/app/node_modules/
+/app/dist/
+/app/src-tauri/gen/
+/app/src-tauri/target/
+
+# Datos privados de la empresa: NUNCA al repositorio público (ver docs/datos-privados.md)
+/privado/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Documentos generados
+/salida/
+
+# Sistema / editores
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
+.idea/

@@ -1,0 +1,25 @@
+name: Normativa
+description: Un dato normativo es incorrecto, falta o está desactualizado
+labels: ["normativa"]
+body:
+  - type: markdown
+    attributes:
+      value: "Toda corrección normativa debe citar la **fuente oficial**. No pegue texto de normas UNE (derechos de autor)."
+  - type: input
+    id: id
+    attributes:
+      label: Operación o tabla afectada
+      placeholder: "RITE-T31-04, RIPCI-TII-17…"
+    validations: { required: true }
+  - type: textarea
+    id: correccion
+    attributes:
+      label: Qué está mal y cuál es el valor correcto
+    validations: { required: true }
+  - type: input
+    id: fuente
+    attributes:
+      label: Fuente oficial
+      description: Norma, artículo/tabla, BOE y fecha, con enlace.
+      placeholder: "RD 1027/2007, IT 3.3, tabla 3.1 — BOE-A-2007-15820 consolidado 02/08/2022"
+    validations: { required: true }
