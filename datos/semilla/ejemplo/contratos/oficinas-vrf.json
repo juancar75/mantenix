@@ -1,0 +1,36 @@
+{
+  "nombre": "Ejemplo - Oficinas con VRF",
+  "anio": 2026,
+  "uso": "otros",
+  "visitas_contratadas": 4,
+  "desplazamiento": {
+    "km_ida": 15,
+    "minutos_ida": 20
+  },
+  "instalaciones": [
+    {
+      "familia": "RITE",
+      "titulo": "Climatización",
+      "potencia_kw": 28,
+      "temporada_meses": 12,
+      "equipos": [
+        {
+          "codigo": "VRF-INT",
+          "cantidad": 8
+        },
+        {
+          "codigo": "VRF-EXT",
+          "cantidad": 1
+        },
+        {
+          "codigo": "VRF-BS",
+          "cantidad": 2
+        },
+        {
+          "codigo": "PURIF",
+          "cantidad": 4
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+anio;proveedor;partida;elemento;unidad;precio;tipo
+2026;Subcontrata Ejemplo;SUB-PCI-019;Extintor de polvo ABC;ud;5.0;preventivo
+2026;Subcontrata Ejemplo;SUB-PCI-020;Extintor de CO2;ud;5.0;preventivo
+2026;Subcontrata Ejemplo;SUB-PCI-021;Extintor de agua/espuma;ud;5.0;preventivo
+2026;Subcontrata Ejemplo;SUB-PCI-022;Carro extintor;ud;15.0;preventivo
+2026;Subcontrata Ejemplo;SUB-PCI-001;Central de detección analógica;revision;45.0;preventivo
+2026;Subcontrata Ejemplo;SUB-PCI-002;Central de detección convencional;revision;45.0;preventivo
+2026;Subcontrata Ejemplo;SUB-PCI-005;Detector óptico de humos;ud;1.0;preventivo
+2026;Subcontrata Ejemplo;SUB-PCI-006;Detector térmico;ud;1.0;preventivo
+2026;Subcontrata Ejemplo;SUB-PCI-008;Detector multicriterio;ud;1.0;preventivo
+2026;Subcontrata Ejemplo;SUB-PCI-012;Pulsador manual de alarma;ud;1.0;preventivo
+2026;Subcontrata Ejemplo;SUB-PCI-013;Sirena acústica;ud;1.0;preventivo
+2026;Subcontrata Ejemplo;SUB-PCI-014;Sirena óptico-acústica;ud;1.0;preventivo
+2026;Subcontrata Ejemplo;SUB-PCI-018;Fuente de alimentación PCI;ud;8.0;preventivo
+2026;Subcontrata Ejemplo;SUB-PCI-016;Módulo de entrada/salida;ud;1.0;preventivo
+2026;Subcontrata Ejemplo;SUB-PCI-017;Retenedor electromagnético;ud;1.0;preventivo
+2026;Subcontrata Ejemplo;SUB-PCI-027;BIE de 25 mm;ud;7.5;preventivo
+2026;Subcontrata Ejemplo;SUB-PCI-028;BIE de 45 mm;ud;7.5;preventivo
+2026;Subcontrata Ejemplo;SUB-PCI-033;Grupo de presión PCI pequeño;revision;120.0;preventivo
+2026;Subcontrata Ejemplo;SUB-PCI-034;Grupo de presión PCI medio;revision;180.0;preventivo
+2026;Subcontrata Ejemplo;SUB-PCI-035;Grupo de presión PCI grande con diésel;revision;300.0;preventivo
+2026;Subcontrata Ejemplo;SUB-PCI-078;Aljibe / depósito PCI;ud;;incluido
+2026;Subcontrata Ejemplo;SUB-PCI-041;Hidrante exterior;ud;15.0;preventivo
+2026;Subcontrata Ejemplo;SUB-PCI-042;Hidrante de columna;ud;15.0;preventivo
+2026;Subcontrata Ejemplo;SUB-PCI-045;Columna seca pequeña;revision;55.0;preventivo
+2026;Subcontrata Ejemplo;SUB-PCI-046;Columna seca media;revision;75.0;preventivo
+2026;Subcontrata Ejemplo;SUB-PCI-069;Sistema de control de humos (conjunto);revision;150.0;preventivo
+2026;Subcontrata Ejemplo;SUB-PCI-070;Ventilador de extracción de humos;ud;25.0;preventivo
+2026;Subcontrata Ejemplo;SUB-PCI-004;Central de detección de CO;revision;35.0;preventivo
+2026;Subcontrata Ejemplo;SUB-PCI-009;Detector de CO;ud;1.0;preventivo
+2026;Subcontrata Ejemplo;SUB-PCI-072;Alumbrado de emergencia;ud;2.0;preventivo
+2026;Subcontrata Ejemplo;SUB-PCI-073;Señal fotoluminiscente;ud;1.0;preventivo

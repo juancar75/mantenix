@@ -1,0 +1,22 @@
+{
+  "razon_social": "Mantenimientos Ejemplo, S.L.",
+  "cif": "B-00000000",
+  "domicilio": "Calle Ejemplo 1, 28000 Madrid",
+  "telefono": "900 000 000",
+  "habilitaciones": [
+    [
+      "Empresa mantenedora de protección contra incendios (RIPCI)",
+      "00/EMI-0000"
+    ],
+    [
+      "Empresa mantenedora de instalaciones térmicas (RITE)",
+      "00/EMT-0000"
+    ]
+  ],
+  "firmante": {
+    "nombre": "",
+    "dni": "",
+    "cargo": ""
+  },
+  "horario": "de lunes a viernes, de 8:00 a 16:00 horas, excluidos festivos"
+}

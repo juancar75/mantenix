@@ -1,0 +1,9 @@
+anio;parametro;valor;unidad
+2026;coste_hora_oficial;28.72;€/h
+2026;coste_hora_ayudante;19.19;€/h
+2026;coste_km;0.15;€/km
+2026;tiempo_fijo_visita_min;30;min
+2026;indirectos_pct;12;%
+2026;contingencia_pct;5;%
+2026;margen_pct;25;%
+2026;minimo_visita_subcontrata;90;€

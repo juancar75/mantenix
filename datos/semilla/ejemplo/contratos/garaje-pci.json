@@ -1,0 +1,80 @@
+{
+  "nombre": "Ejemplo - Garaje residencial PCI",
+  "anio": 2026,
+  "uso": "viviendas",
+  "visitas_contratadas": 4,
+  "desplazamiento": {
+    "km_ida": 25,
+    "minutos_ida": 30
+  },
+  "instalaciones": [
+    {
+      "familia": "PCI",
+      "titulo": "Protección contra incendios",
+      "equipos": [
+        {
+          "codigo": "EXT-POLVO",
+          "cantidad": 12
+        },
+        {
+          "codigo": "EXT-CO2",
+          "cantidad": 2
+        },
+        {
+          "codigo": "DET-CENTRAL-ANA",
+          "cantidad": 1
+        },
+        {
+          "codigo": "DET-OPT",
+          "cantidad": 40
+        },
+        {
+          "codigo": "DET-PULS",
+          "cantidad": 4
+        },
+        {
+          "codigo": "DET-SIR",
+          "cantidad": 3
+        },
+        {
+          "codigo": "BIE-25",
+          "cantidad": 3
+        },
+        {
+          "codigo": "GP-S",
+          "cantidad": 1
+        },
+        {
+          "codigo": "ALJIBE",
+          "cantidad": 1
+        },
+        {
+          "codigo": "SCTEH-SIS",
+          "cantidad": 1,
+          "modo": "propio"
+        },
+        {
+          "codigo": "SCTEH-VENT",
+          "cantidad": 2,
+          "modo": "propio"
+        }
+      ]
+    },
+    {
+      "familia": "Ventilación CO",
+      "titulo": "Ventilación por CO",
+      "equipos": [
+        {
+          "codigo": "CO-CENTRAL",
+          "cantidad": 1,
+          "modo": "propio"
+        },
+        {
+          "codigo": "CO-DET",
+          "cantidad": 8,
+          "modo": "propio"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,64 @@
+codigo;familia;descripcion;unidad;sistema_ripci;equipo_tabla_3_1;modo_defecto;partida_subcontrata
+SPLIT-INT;RITE;Unidad interior de split/multisplit;ud;;Aire acondicionado;propio;
+SPLIT-EXT;RITE;Unidad exterior de split/multisplit;ud;;Aire acondicionado;propio;
+VRF-EXT;RITE;Unidad exterior VRF;ud;;Aire acondicionado;propio;
+VRF-INT;RITE;Unidad interior VRF (cassette, conductos, pared);ud;;Aire acondicionado;propio;
+ROOFTOP;RITE;Equipo autónomo compacto (rooftop);ud;;Aire acondicionado;propio;
+ENFRIADORA;RITE;Enfriadora / bomba de calor aire-agua;ud;;Aire acondicionado;propio;
+CALD-GAS;RITE;Caldera de gas (no mural);ud;;Resto de instalaciones de calefacción;propio;
+CALD-MURAL;RITE;Caldera mural de gas ≤70 kW;ud;;Calderas murales a gas;propio;
+CALD-GASOLEO;RITE;Caldera de gasóleo;ud;;Resto de instalaciones de calefacción;propio;
+CALD-BIO;RITE;Caldera de biomasa;ud;;Resto de instalaciones de calefacción;propio;
+CALENT-GAS;RITE;Calentador de ACS a gas;ud;;Calentadores de ACS a gas;propio;
+BC-ACS;RITE;Bomba de calor para ACS;ud;;Bombas de calor para ACS;propio;
+TORRE;RITE;Torre de refrigeración / condensador evaporativo;ud;;;propio;
+UTA;RITE;Unidad de tratamiento de aire;ud;;;propio;
+RECUP;RITE;Recuperador de calor independiente;ud;;;propio;
+FANCOIL;RITE;Fancoil / inductor (terminal agua-aire);ud;;;propio;
+DIFUSOR;RITE;Difusor / rejilla (terminal de aire);ud;;;propio;
+BOMBA;RITE;Bomba circuladora;ud;;;propio;
+VENT;RITE;Ventilador / extractor;ud;;;propio;
+VASO-EXP;RITE;Vaso de expansión;ud;;;propio;
+TRAT-AGUA;RITE;Sistema de tratamiento de agua;ud;;;propio;
+FILTRO-AGUA;RITE;Filtro de agua;ud;;;propio;
+CIRC-HIDR;RITE;Circuito hidráulico (por circuito);circuito;;;propio;
+ACS-SIS;RITE;Sistema de preparación de ACS (interacumulador/intercambiador);ud;;;propio;
+SOLAR-CAMPO;RITE;Campo de captadores solares;campo;;Instalaciones solares térmicas;propio;
+SOLAR-CAPT;RITE;Captador solar;ud;;Instalaciones solares térmicas;propio;
+CONTROL;RITE;Sistema de control automático;sistema;;;propio;
+CONDUCTOS;RITE;Red de conductos;red;;;propio;
+CAL-AMB;RITE;Calidad ambiental interior;edificio;;;propio;
+VRF-BS;RITE;Caja de distribución VRF (BS);ud;;Aire acondicionado;propio;
+PURIF;RITE;Purificador de aire autónomo;ud;;;propio;
+EXT-POLVO;PCI;Extintor de polvo ABC;ud;EXT;;subcontrata;SUB-PCI-019
+EXT-CO2;PCI;Extintor de CO2;ud;EXT;;subcontrata;SUB-PCI-020
+EXT-AGUA;PCI;Extintor de agua/espuma;ud;EXT;;subcontrata;SUB-PCI-021
+EXT-CARRO;PCI;Carro extintor;ud;EXT;;subcontrata;SUB-PCI-022
+DET-CENTRAL-ANA;PCI;Central de detección analógica;ud;DET;;subcontrata;SUB-PCI-001
+DET-CENTRAL-CONV;PCI;Central de detección convencional;ud;DET;;subcontrata;SUB-PCI-002
+DET-OPT;PCI;Detector óptico de humos;ud;DET-DETECT;;subcontrata;SUB-PCI-005
+DET-TERM;PCI;Detector térmico;ud;DET-DETECT;;subcontrata;SUB-PCI-006
+DET-MULTI;PCI;Detector multicriterio;ud;DET-DETECT;;subcontrata;SUB-PCI-008
+DET-PULS;PCI;Pulsador manual de alarma;ud;DET-PULS;;subcontrata;SUB-PCI-012
+DET-SIR;PCI;Sirena acústica;ud;DET-AVIS;;subcontrata;SUB-PCI-013
+DET-SIR-OA;PCI;Sirena óptico-acústica;ud;DET-AVIS;;subcontrata;SUB-PCI-014
+DET-FA;PCI;Fuente de alimentación PCI;ud;DET-FA;;subcontrata;SUB-PCI-018
+DET-MOD;PCI;Módulo de entrada/salida;ud;DET;;subcontrata;SUB-PCI-016
+DET-RETEN;PCI;Retenedor electromagnético;ud;DET;;subcontrata;SUB-PCI-017
+BIE-25;PCI;BIE de 25 mm;ud;BIE;;subcontrata;SUB-PCI-027
+BIE-45;PCI;BIE de 45 mm;ud;BIE;;subcontrata;SUB-PCI-028
+GP-S;PCI;Grupo de presión PCI pequeño;ud;ABAST;;subcontrata;SUB-PCI-033
+GP-M;PCI;Grupo de presión PCI medio;ud;ABAST;;subcontrata;SUB-PCI-034
+GP-L;PCI;Grupo de presión PCI grande con diésel;ud;ABAST;;subcontrata;SUB-PCI-035
+ALJIBE;PCI;Aljibe / depósito PCI;ud;ABAST;;subcontrata;SUB-PCI-078
+HID-EXT;PCI;Hidrante exterior;ud;HID;;subcontrata;SUB-PCI-041
+HID-COL;PCI;Hidrante de columna;ud;HID;;subcontrata;SUB-PCI-042
+CS-S;PCI;Columna seca pequeña;ud;CS;;subcontrata;SUB-PCI-045
+CS-M;PCI;Columna seca media;ud;CS;;subcontrata;SUB-PCI-046
+SCTEH-SIS;PCI;Sistema de control de humos (conjunto);ud;SCH;;subcontrata;SUB-PCI-069
+SCTEH-VENT;PCI;Ventilador de extracción de humos;ud;SCH;;subcontrata;SUB-PCI-070
+SCTEH-CUADRO;PCI;Cuadro eléctrico de control de humos;ud;SCH;;subcontrata;
+CO-CENTRAL;PCI;Central de detección de CO;ud;CO;;subcontrata;SUB-PCI-004
+CO-DET;PCI;Detector de CO;ud;CO;;subcontrata;SUB-PCI-009
+AE-UD;PCI;Alumbrado de emergencia;ud;AE;;subcontrata;SUB-PCI-072
+SEN-UD;PCI;Señal fotoluminiscente;ud;SEN;;subcontrata;SUB-PCI-073
