@@ -1,0 +1,12 @@
+﻿id;equipo;pn_min_kw;pn_max_kw;viviendas_meses;otros_usos_meses;fuente;verificado;nota
+RITE-T31-01;Calentadores de ACS a gas;;24.4;60;24;Pliego Junta de Andalucía doc. 159751 (transcribe RITE IT 3.3) — pendiente cotejo con BOE-A-2007-15820 consolidado 02/08/2022;no;
+RITE-T31-02;Calentadores de ACS a gas;24.4;70;24;12;Pliego Junta de Andalucía doc. 159751 (transcribe RITE IT 3.3) — pendiente cotejo con BOE-A-2007-15820 consolidado 02/08/2022;no;
+RITE-T31-03;Calderas murales a gas;;70;24;12;Pliego Junta de Andalucía doc. 159751 (transcribe RITE IT 3.3) — pendiente cotejo con BOE-A-2007-15820 consolidado 02/08/2022;no;
+RITE-T31-04;Resto de instalaciones de calefacción;;70;12;12;Pliego Junta de Andalucía doc. 159751 (transcribe RITE IT 3.3) — pendiente cotejo con BOE-A-2007-15820 consolidado 02/08/2022;no;"La fuente secundaria indica Pn > 70 kW; por coherencia con la fila de >70 kW se toma ≤70 kW. COTEJAR"
+RITE-T31-05;Aire acondicionado;;12;48;24;Pliego Junta de Andalucía doc. 159751 (transcribe RITE IT 3.3) — pendiente cotejo con BOE-A-2007-15820 consolidado 02/08/2022;no;
+RITE-T31-06;Aire acondicionado;12;70;24;12;Pliego Junta de Andalucía doc. 159751 (transcribe RITE IT 3.3) — pendiente cotejo con BOE-A-2007-15820 consolidado 02/08/2022;no;
+RITE-T31-07;Bombas de calor para ACS;;12;48;24;Pliego Junta de Andalucía doc. 159751 (transcribe RITE IT 3.3) — pendiente cotejo con BOE-A-2007-15820 consolidado 02/08/2022;no;
+RITE-T31-08;Bombas de calor para ACS;12;70;24;12;Pliego Junta de Andalucía doc. 159751 (transcribe RITE IT 3.3) — pendiente cotejo con BOE-A-2007-15820 consolidado 02/08/2022;no;
+RITE-T31-09;Instalaciones de potencia superior a 70 kW;70;;1;1;Pliego Junta de Andalucía doc. 159751 (transcribe RITE IT 3.3) — pendiente cotejo con BOE-A-2007-15820 consolidado 02/08/2022;no;Operaciones y periodicidad según tabla 3.3
+RITE-T31-10;Instalaciones solares térmicas;;14;12;12;Pliego Junta de Andalucía doc. 159751 (transcribe RITE IT 3.3) — pendiente cotejo con BOE-A-2007-15820 consolidado 02/08/2022;no;
+RITE-T31-11;Instalaciones solares térmicas;14;;6;6;Pliego Junta de Andalucía doc. 159751 (transcribe RITE IT 3.3) — pendiente cotejo con BOE-A-2007-15820 consolidado 02/08/2022;no;
