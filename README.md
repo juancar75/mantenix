@@ -1,6 +1,6 @@
 # Mantenix
 
-Aplicación de escritorio, de código abierto, para **valorar contratos de mantenimiento** de instalaciones térmicas (RITE) y de protección contra incendios (RIPCI) en edificios no industriales, y generar la **hoja de costes, la tarifa y el contrato** en PDF.
+Aplicación de escritorio, de código abierto, para **valorar contratos de mantenimiento** de instalaciones térmicas (RITE) y de protección contra incendios (RIPCI) en edificios no industriales, y generar la **hoja de costes, la tarifa y el contrato** en PDF. También hace **cartas presupuesto** de reparaciones y pequeñas obras.
 
 > Estado: **versión 0.1 en desarrollo**. El motor de cálculo y la aplicación funcionan; los tiempos estándar son un borrador pendiente de calibrar con datos reales. Ver [CHANGELOG](CHANGELOG.md).
 
@@ -10,7 +10,8 @@ Aplicación de escritorio, de código abierto, para **valorar contratos de mante
 2. Mantenix aplica la **normativa vigente** (tablas 3.1 y 3.3 del RITE, anexo II del RIPCI tras el RD 164/2025) y calcula las visitas mínimas y las operaciones de cada equipo.
 3. Calcula **horas, coste y precio de venta** con los parámetros del año: coste hora, desplazamiento, subcontratas, indirectos y margen.
 4. Genera la **hoja de costes interna**, la **tarifa propia** y el **contrato** en PDF.
-5. Guarda **todo en SQLite**, con un **historial de cambios** de cada dato (quién, cuándo, valor anterior).
+5. Hace **cartas presupuesto** de reparaciones y pequeñas obras: qué se ha roto o desgastado, el repuesto propuesto y el importe con IVA, con el margen interno a la vista solo en la app.
+6. Guarda **todo en SQLite**, con un **historial de cambios** de cada dato (quién, cuándo, valor anterior).
 
 ## Instalación (usuarios)
 

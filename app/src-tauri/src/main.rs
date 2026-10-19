@@ -12,7 +12,8 @@
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
-use mantenix_core::{db, modelo::Contrato, tarifa, valorar, Biblioteca, Valoracion};
+use mantenix_core::presupuesto::{self, PrecioDefecto, TotalesPresupuesto};
+use mantenix_core::{db, modelo::Contrato, tarifa, valorar, Biblioteca, Presupuesto, Valoracion};
 use rusqlite::Connection;
 use serde::Serialize;
 use tauri::{Manager, State};
@@ -39,6 +40,22 @@ fn carpeta_semilla(app: &tauri::AppHandle) -> PathBuf {
         }
     }
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../datos/semilla")
+}
+
+/// Fichero donde se recuerda la última base abierta, para abrirla al iniciar.
+fn fichero_ultima(app: &tauri::AppHandle) -> Option<PathBuf> {
+    app.path().app_data_dir().ok().map(|d| d.join("ultima_base.txt"))
+}
+
+/// Fichero donde se recuerda el último usuario identificado en este equipo.
+fn fichero_usuario(app: &tauri::AppHandle) -> Option<PathBuf> {
+    app.path().app_data_dir().ok().map(|d| d.join("ultimo_usuario.txt"))
+}
+
+fn recordar_base(app: &tauri::AppHandle, ruta: &str) {
+    if let Some(f) = fichero_ultima(app) {
+        let _ = std::fs::write(f, ruta);
+    }
 }
 
 /// Abre la base y, si está vacía, la crea con la normativa y los datos de empresa indicados.
@@ -74,8 +91,20 @@ fn estado(base: State<Base>) -> R<Estado> {
 
 /// Identifica al usuario: sus cambios quedan registrados a su nombre.
 #[tauri::command]
-fn fijar_usuario(base: State<Base>, usuario: String) -> R<()> {
-    db::fijar_usuario(&base.conexion.lock().unwrap(), &usuario).map_err(txt)
+fn fijar_usuario(app: tauri::AppHandle, base: State<Base>, usuario: String) -> R<()> {
+    db::fijar_usuario(&base.conexion.lock().unwrap(), &usuario).map_err(txt)?;
+    if let Some(f) = fichero_usuario(&app) {
+        let _ = std::fs::write(f, &usuario);
+    }
+    Ok(())
+}
+
+/// Vuelve a identificar al último usuario en la base recién abierta.
+fn restaurar_usuario(app: &tauri::AppHandle, c: &Connection) {
+    let u = fichero_usuario(app).and_then(|f| std::fs::read_to_string(f).ok());
+    if let Some(u) = u.as_deref().map(str::trim).filter(|u| !u.is_empty()) {
+        let _ = db::fijar_usuario(c, u);
+    }
 }
 
 /// Abre otra base de datos (p. ej. la de la empresa en una carpeta compartida).
@@ -83,7 +112,9 @@ fn fijar_usuario(base: State<Base>, usuario: String) -> R<()> {
 fn abrir_base(app: tauri::AppHandle, base: State<Base>, ruta: String) -> R<()> {
     let s = carpeta_semilla(&app);
     let c = abrir_o_crear(Path::new(&ruta), &s.join("normativa"), &s.join("ejemplo"))?;
+    restaurar_usuario(&app, &c);
     *base.conexion.lock().unwrap() = c;
+    recordar_base(&app, &ruta);
     *base.ruta.lock().unwrap() = PathBuf::from(ruta);
     Ok(())
 }
@@ -97,6 +128,7 @@ fn crear_base(app: tauri::AppHandle, base: State<Base>, ruta: String, carpeta_em
     let s = carpeta_semilla(&app);
     let c = abrir_o_crear(Path::new(&ruta), &s.join("normativa"), Path::new(&carpeta_empresa))?;
     *base.conexion.lock().unwrap() = c;
+    recordar_base(&app, &ruta);
     *base.ruta.lock().unwrap() = PathBuf::from(ruta);
     Ok(())
 }
@@ -160,6 +192,61 @@ fn pdf_hoja_costes(base: State<Base>, nombre: String, ruta: String) -> R<()> {
     let (_, k) = db::cargar_contrato(&c, &nombre).map_err(txt)?;
     let v = valorar(&b, &k).map_err(txt)?;
     let pdf = mantenix_informes::hoja_costes(&v, &db::empresa(&c).map_err(txt)?).map_err(txt)?;
+    std::fs::write(ruta, pdf).map_err(txt)
+}
+
+// ───────────────────────────── Presupuestos ─────────────────────────────
+
+#[tauri::command]
+fn listar_presupuestos(base: State<Base>) -> R<Vec<db::ResumenPresupuesto>> {
+    db::listar_presupuestos(&base.conexion.lock().unwrap()).map_err(txt)
+}
+
+#[tauri::command]
+fn cargar_presupuesto(base: State<Base>, numero: String) -> R<Presupuesto> {
+    db::cargar_presupuesto(&base.conexion.lock().unwrap(), &numero).map_err(txt)
+}
+
+/// Guarda y devuelve el número (asignado si era nuevo).
+#[tauri::command]
+fn guardar_presupuesto(base: State<Base>, presupuesto: Presupuesto) -> R<String> {
+    db::guardar_presupuesto(&base.conexion.lock().unwrap(), &presupuesto).map_err(txt)
+}
+
+#[tauri::command]
+fn borrar_presupuesto(base: State<Base>, numero: String) -> R<()> {
+    db::borrar_presupuesto(&base.conexion.lock().unwrap(), &numero).map_err(txt)
+}
+
+/// Importes, IVA, total y margen interno (sin guardar).
+#[tauri::command]
+fn calcular_presupuesto(presupuesto: Presupuesto) -> TotalesPresupuesto {
+    presupuesto::calcular(&presupuesto)
+}
+
+/// Precios y costes por defecto de cada tipo de línea, con los parámetros del año.
+#[derive(Serialize)]
+struct PreciosPresupuesto {
+    filas: Vec<PrecioDefecto>,
+    recargo_material_pct: Option<f64>,
+}
+
+#[tauri::command]
+fn precios_presupuesto(base: State<Base>, anio: u32) -> R<PreciosPresupuesto> {
+    let b = Biblioteca::desde_db(&base.conexion.lock().unwrap()).map_err(txt)?;
+    let (filas, recargo_material_pct) = presupuesto::precios_por_defecto(&b, anio);
+    Ok(PreciosPresupuesto {
+        filas,
+        recargo_material_pct,
+    })
+}
+
+/// Carta presupuesto en PDF (del presupuesto guardado).
+#[tauri::command]
+fn pdf_presupuesto(base: State<Base>, numero: String, ruta: String) -> R<()> {
+    let c = base.conexion.lock().unwrap();
+    let p = db::cargar_presupuesto(&c, &numero).map_err(txt)?;
+    let pdf = mantenix_informes::presupuesto(&p, &db::empresa(&c).map_err(txt)?).map_err(txt)?;
     std::fs::write(ruta, pdf).map_err(txt)
 }
 
@@ -271,12 +358,18 @@ fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
-            // Base por defecto en la carpeta de datos del usuario; se crea con datos de ejemplo.
+            // Se abre la última base usada; si no hay o ya no existe, la base por defecto de la
+            // carpeta de datos del usuario (se crea con datos de ejemplo).
             let dir = app.path().app_data_dir()?;
             std::fs::create_dir_all(&dir)?;
-            let ruta = dir.join("mantenix.db");
+            let ruta = fichero_ultima(app.handle())
+                .and_then(|f| std::fs::read_to_string(f).ok())
+                .map(|t| PathBuf::from(t.trim()))
+                .filter(|p| p.is_file())
+                .unwrap_or_else(|| dir.join("mantenix.db"));
             let s = carpeta_semilla(app.handle());
             let c = abrir_o_crear(&ruta, &s.join("normativa"), &s.join("ejemplo")).map_err(|e| e.to_string())?;
+            restaurar_usuario(app.handle(), &c);
             app.manage(Base {
                 conexion: Mutex::new(c),
                 ruta: Mutex::new(ruta),
@@ -294,6 +387,13 @@ fn main() {
             borrar_contrato,
             valorar_contrato,
             pdf_hoja_costes,
+            listar_presupuestos,
+            cargar_presupuesto,
+            guardar_presupuesto,
+            borrar_presupuesto,
+            calcular_presupuesto,
+            precios_presupuesto,
+            pdf_presupuesto,
             catalogo,
             fijar_tiempo,
             parametros,

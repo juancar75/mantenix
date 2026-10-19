@@ -75,6 +75,14 @@ enum Orden {
         #[arg(long)]
         pdf: Option<PathBuf>,
     },
+    /// Guarda un presupuesto desde JSON (sin número = el siguiente libre) y genera la carta en PDF.
+    Presupuesto {
+        json: PathBuf,
+        #[arg(long)]
+        pdf: Option<PathBuf>,
+    },
+    /// Lista los presupuestos.
+    Presupuestos,
     /// Genera el PDF de un contrato desde su JSON de datos (la empresa y las operaciones salen de la base).
     Contrato {
         datos: PathBuf,
@@ -164,6 +172,28 @@ fn main() -> Result<()> {
             if let Some(pdf) = pdf {
                 std::fs::write(&pdf, mantenix_informes::tarifa(&t, &db::empresa(&c)?)?)?;
                 println!("PDF: {}", pdf.display());
+            }
+        }
+        Orden::Presupuesto { json, pdf } => {
+            let p: mantenix_core::Presupuesto = serde_json::from_value(leer_json(&json)?)?;
+            let numero = db::guardar_presupuesto(&c, &p)?;
+            let p = db::cargar_presupuesto(&c, &numero)?;
+            let t = mantenix_core::presupuesto::calcular(&p);
+            println!(
+                "Presupuesto {numero}: base {:.2} €, total {:.2} € (margen {:.2} € · {:.1} %)",
+                t.base, t.total, t.margen, t.margen_pct
+            );
+            if let Some(pdf) = pdf {
+                std::fs::write(&pdf, mantenix_informes::presupuesto(&p, &db::empresa(&c)?)?)?;
+                println!("PDF: {}", pdf.display());
+            }
+        }
+        Orden::Presupuestos => {
+            for r in db::listar_presupuestos(&c)? {
+                println!(
+                    "{}  {}  {:<10} {:>10.2} €  {} · {}",
+                    r.numero, r.fecha, r.estado, r.total, r.cliente, r.titulo
+                );
             }
         }
         Orden::Contrato { datos, pdf } => {

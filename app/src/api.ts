@@ -38,6 +38,24 @@ export interface EquipoVista { codigo: string; familia: string; descripcion: str
 export interface FilaTarifa { codigo: string; familia: string; descripcion: string; unidad: string; origen: string; minutos_revision: number; coste_revision: number; precio_revision: number; coste_anual_regimen: number; precio_anual_regimen: number }
 export interface Tarifa { anio: number; coste_hora_oficial: number; coste_hora_ayudante: number; recargo_pct: number; margen_pct: number; filas: FilaTarifa[] }
 export interface Cambio { id: number; fecha: string; usuario: string | null; tabla: string; accion: string; antes: string | null; despues: string | null }
+export interface LineaPresupuesto {
+  tipo: string; descripcion: string; unidad: string; cantidad: number; precio_unitario: number; coste_unitario: number | null;
+  /** Solo en la interfaz: el precio se recalcula desde el coste (material). No se guarda. */
+  auto?: boolean;
+}
+export interface Presupuesto {
+  numero: string; fecha: string; tipo: string; cliente: string; cif: string; direccion: string; contacto: string; contrato: string;
+  titulo: string; equipo: string; deteccion: string; averia: string; consecuencias: string; propuesta: string;
+  lineas: LineaPresupuesto[]; descuento_pct: number; iva_pct: number; validez_dias: number; condiciones: string;
+  estado: string; notas_internas: string;
+}
+export interface TotalesPresupuesto {
+  lineas: { importe: number; coste: number | null }[]; subtotal: number; descuento: number; base: number; iva: number;
+  total: number; coste: number; lineas_sin_coste: number; margen: number; margen_pct: number;
+}
+export interface ResumenPresupuesto { numero: string; fecha: string; cliente: string; titulo: string; estado: string; total: number }
+export interface PrecioDefecto { tipo: string; descripcion: string; unidad: string; precio_unitario: number | null; coste_unitario: number | null }
+
 export interface Estado { ruta: string; usuario: string | null; contratos: number; empresa: string }
 
 // ── Comandos ──────────────────────────────────────────────────────
@@ -54,6 +72,15 @@ export const api = {
   borrarContrato: (nombre: string) => invoke<void>("borrar_contrato", { nombre }),
   valorar: (nombre: string) => invoke<Valoracion>("valorar_contrato", { nombre }),
   pdfHojaCostes: (nombre: string, ruta: string) => invoke<void>("pdf_hoja_costes", { nombre, ruta }),
+
+  listarPresupuestos: () => invoke<ResumenPresupuesto[]>("listar_presupuestos"),
+  cargarPresupuesto: (numero: string) => invoke<Presupuesto>("cargar_presupuesto", { numero }),
+  guardarPresupuesto: (presupuesto: Presupuesto) => invoke<string>("guardar_presupuesto", { presupuesto }),
+  borrarPresupuesto: (numero: string) => invoke<void>("borrar_presupuesto", { numero }),
+  calcularPresupuesto: (presupuesto: Presupuesto) => invoke<TotalesPresupuesto>("calcular_presupuesto", { presupuesto }),
+  preciosPresupuesto: (anio: number) =>
+    invoke<{ filas: PrecioDefecto[]; recargo_material_pct: number | null }>("precios_presupuesto", { anio }),
+  pdfPresupuesto: (numero: string, ruta: string) => invoke<void>("pdf_presupuesto", { numero, ruta }),
 
   catalogo: () => invoke<EquipoVista[]>("catalogo"),
   fijarTiempo: (equipo: string, operacion: string, minutos: number, tecnicos: number) =>

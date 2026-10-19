@@ -18,6 +18,7 @@
 //! - [`modelo`]: inventario de un contrato (entrada).
 //! - [`motor`]: valoración: horas, costes y precio de venta.
 //! - [`tarifa`]: tarifa propia por equipo y revisión.
+//! - [`presupuesto`]: presupuestos de reparación y pequeñas obras.
 
 #![warn(missing_docs)]
 
@@ -25,11 +26,13 @@ pub mod datos;
 pub mod db;
 pub mod modelo;
 pub mod motor;
+pub mod presupuesto;
 pub mod tarifa;
 
 pub use datos::Biblioteca;
 pub use modelo::Contrato;
 pub use motor::{valorar, Valoracion};
+pub use presupuesto::Presupuesto;
 pub use tarifa::{tarifa, Tarifa};
 
 /// Errores del núcleo. Los mensajes están en español porque se muestran al usuario.
@@ -50,8 +53,8 @@ pub enum Error {
     /// Error de SQLite.
     #[error("Base de datos: {0}")]
     Db(String),
-    /// Contrato inexistente.
-    #[error("No existe el contrato «{0}»")]
+    /// Contrato o presupuesto inexistente.
+    #[error("No existe «{0}»")]
     NoEncontrado(String),
 }
 
@@ -177,5 +180,51 @@ mod tests {
         // la carga inicial queda atribuida a «semilla»
         let todo = db::historial(&c, Some("operacion"), 1000).unwrap();
         assert!(todo.iter().all(|x| x.usuario.as_deref() == Some("semilla")));
+    }
+
+    #[test]
+    fn presupuestos_numeracion_y_guardado() {
+        let c = db::abrir(std::path::Path::new(":memory:")).unwrap();
+        db::fijar_usuario(&c, "juancar").unwrap();
+        let mut p: Presupuesto = serde_json::from_str(
+            r#"{"fecha":"2026-10-19","cliente":"Comunidad X","titulo":"Cambio de bomba",
+            "lineas":[{"tipo":"material","descripcion":"Bomba","cantidad":1,"precio_unitario":650,"coste_unitario":500}]}"#,
+        )
+        .unwrap();
+        assert_eq!(db::guardar_presupuesto(&c, &p).unwrap(), "P-2026-001");
+        assert_eq!(db::guardar_presupuesto(&c, &p).unwrap(), "P-2026-002");
+        // guardar con número existente sustituye
+        p.numero = "P-2026-001".into();
+        p.estado = "enviado".into();
+        db::guardar_presupuesto(&c, &p).unwrap();
+        let l = db::listar_presupuestos(&c).unwrap();
+        assert_eq!(l.len(), 2);
+        assert_eq!(db::cargar_presupuesto(&c, "P-2026-001").unwrap().estado, "enviado");
+        assert_eq!(l[0].total, 786.5);
+        let h = db::historial(&c, Some("presupuesto"), 10).unwrap();
+        assert_eq!(h.len(), 3);
+        assert_eq!(h[0].usuario.as_deref(), Some("juancar"));
+        // otro año empieza en 001
+        p.numero.clear();
+        p.fecha = "2027-01-02".into();
+        assert_eq!(db::guardar_presupuesto(&c, &p).unwrap(), "P-2027-001");
+        db::borrar_presupuesto(&c, "P-2027-001").unwrap();
+        assert!(db::cargar_presupuesto(&c, "P-2027-001").is_err());
+        // validaciones
+        p.cliente.clear();
+        assert!(db::guardar_presupuesto(&c, &p).is_err());
+    }
+
+    #[test]
+    fn presupuestos_precios_por_defecto() {
+        let b = biblioteca();
+        let (filas, recargo) = presupuesto::precios_por_defecto(&b, 2026);
+        let pareja = filas.iter().find(|f| f.tipo == "hora_pareja").unwrap();
+        assert!((pareja.coste_unitario.unwrap() - (28.72 + 19.19)).abs() < 1e-9);
+        assert!(
+            pareja.precio_unitario.is_some(),
+            "la semilla de ejemplo trae precios de venta"
+        );
+        assert!(recargo.is_some());
     }
 }

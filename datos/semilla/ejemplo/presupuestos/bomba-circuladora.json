@@ -1,0 +1,25 @@
+{
+  "fecha": "2026-10-19",
+  "tipo": "correctivo",
+  "cliente": "Comunidad de Propietarios Ejemplo 12",
+  "cif": "H-00000000",
+  "contacto": "Sr. Presidente",
+  "direccion": "Calle Ejemplo 12, 28000 Madrid",
+  "contrato": "Mantenimiento RITE 2026",
+  "titulo": "Sustitución de bomba circuladora del circuito primario de calefacción",
+  "equipo": "la bomba circuladora B-1 del circuito primario de calefacción (sala de calderas)",
+  "deteccion": "revisión mensual del 14 de octubre de 2026",
+  "averia": "La bomba presenta ruido de rodamientos y vibraciones anómalas. El consumo eléctrico medido supera en un 20 % el nominal de la placa y el caudal no alcanza el de diseño, lo que indica desgaste del rotor y de los rodamientos.\n\nPor la antigüedad del equipo (instalado en 2011) no es recomendable su reparación.",
+  "consecuencias": "Riesgo de parada de la bomba durante la temporada de calefacción, con pérdida de servicio en las viviendas hasta su sustitución, y mayor consumo eléctrico mientras siga en funcionamiento.",
+  "propuesta": "Sustituir la bomba por una de rotor húmedo de alta eficiencia, de caudal y altura equivalentes, incluyendo juntas, conexionado eléctrico, purga del circuito y puesta en marcha con comprobación de caudal.",
+  "lineas": [
+    {"tipo": "material", "descripcion": "Bomba circuladora electrónica de alta eficiencia DN40, 1~230 V", "unidad": "ud", "cantidad": 1, "precio_unitario": 1105.0, "coste_unitario": 850.0},
+    {"tipo": "material", "descripcion": "Juntas, racores y pequeño material", "unidad": "ud", "cantidad": 1, "precio_unitario": 39.0, "coste_unitario": 30.0},
+    {"tipo": "hora_pareja", "descripcion": "Mano de obra oficial + ayudante", "unidad": "h", "cantidad": 3, "precio_unitario": 75.0, "coste_unitario": 47.91},
+    {"tipo": "salida", "descripcion": "Desplazamiento", "unidad": "salida", "cantidad": 1, "precio_unitario": 30.0}
+  ],
+  "descuento_pct": 0,
+  "iva_pct": 21,
+  "validez_dias": 30,
+  "notas_internas": "Ejemplo ficticio."
+}

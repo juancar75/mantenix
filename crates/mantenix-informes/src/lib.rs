@@ -14,17 +14,19 @@
 #![warn(missing_docs)]
 
 use mantenix_core::datos::Operacion;
-use mantenix_core::{Tarifa, Valoracion};
+use mantenix_core::presupuesto::calcular;
+use mantenix_core::{Presupuesto, Tarifa, Valoracion};
 use typst::foundations::{Dict, IntoValue};
 use typst_as_lib::TypstEngine;
 use typst_layout::PagedDocument;
 
 /// Plantillas incrustadas: (nombre de fichero, contenido).
-const PLANTILLAS: [(&str, &str); 4] = [
+const PLANTILLAS: [(&str, &str); 5] = [
     ("comun.typ", include_str!("../../../plantillas/comun.typ")),
     ("hoja_costes.typ", include_str!("../../../plantillas/hoja_costes.typ")),
     ("tarifa.typ", include_str!("../../../plantillas/tarifa.typ")),
     ("contrato.typ", include_str!("../../../plantillas/contrato.typ")),
+    ("presupuesto.typ", include_str!("../../../plantillas/presupuesto.typ")),
 ];
 
 /// Tipografía Inter (SIL OFL 1.1, ver `assets/fuentes/OFL.txt`).
@@ -82,6 +84,15 @@ pub fn tarifa(t: &Tarifa, empresa: &Empresa) -> Result<Vec<u8>, Error> {
     compilar(
         "tarifa.typ",
         &[("datos", serde_json::to_string(t)?), ("empresa", empresa.to_string())],
+    )
+}
+
+/// Carta presupuesto para el cliente (sin costes internos).
+pub fn presupuesto(p: &Presupuesto, empresa: &Empresa) -> Result<Vec<u8>, Error> {
+    let datos = serde_json::json!({ "p": p, "t": calcular(p) });
+    compilar(
+        "presupuesto.typ",
+        &[("datos", datos.to_string()), ("empresa", empresa.to_string())],
     )
 }
 

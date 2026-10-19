@@ -7,3 +7,7 @@ anio;parametro;valor;unidad
 2026;contingencia_pct;5;%
 2026;margen_pct;25;%
 2026;minimo_visita_subcontrata;90;€
+2026;precio_hora_oficial;45;€/h
+2026;precio_hora_pareja;75;€/h
+2026;precio_salida;30;€
+2026;recargo_material_pct;30;%
