@@ -91,6 +91,9 @@ pub struct Totales {
     pub desplazamiento: f64,
     /// Coste anual de subcontrata (€).
     pub subcontrata: f64,
+    /// Coste anual de los avisos incluidos en la cuota (€).
+    #[serde(default)]
+    pub avisos: f64,
     /// Coste directo anual (€).
     pub directo: f64,
     /// Gastos indirectos sobre el coste directo (€).
@@ -140,8 +143,25 @@ pub struct Valoracion {
     pub parametros: BTreeMap<String, f64>,
     /// Totales económicos.
     pub totales: Totales,
+    /// Atención de avisos de avería.
+    pub avisos_averia: AvisosValorados,
     /// Advertencias para revisar antes de ofertar (datos que faltan, visitas insuficientes…).
     pub avisos: Vec<String>,
+}
+
+/// Estimación y coste de los avisos de avería.
+#[derive(Debug, Clone, Default, Serialize)]
+pub struct AvisosValorados {
+    /// `bolsa`, `incluidos` o `aparte`.
+    pub modalidad: String,
+    /// Avisos estimados al año.
+    pub estimados: f64,
+    /// Avisos incluidos en la cuota (en `incluidos`, los estimados redondeados).
+    pub incluidos: u32,
+    /// Coste de un aviso: horas en el edificio, desplazamiento y km (€).
+    pub coste_aviso: f64,
+    /// Coste anual incluido en la cuota (€).
+    pub coste_anual: f64,
 }
 
 /// Veces al año de una operación según su código de periodicidad.
@@ -369,6 +389,34 @@ pub fn valorar(b: &Biblioteca, c: &Contrato) -> Result<Valoracion, Error> {
         }
     }
 
+    // Avisos de avería: estimación por equipo y coste de los incluidos en la cuota.
+    let mut estimados = 0.0;
+    for ins in &c.instalaciones {
+        for l in &ins.equipos {
+            let familia = b.catalogo.get(&l.codigo).map(|e| e.familia.as_str()).unwrap_or("");
+            estimados += l.cantidad * crate::avisos::tasa(&l.codigo, familia);
+        }
+    }
+    let av = &c.avisos;
+    estimados *=
+        crate::avisos::factor_antiguedad(&av.antiguedad) * crate::avisos::factor_uso(viviendas, av.servicio_24h);
+    let estimados = r2(estimados);
+    let coste_aviso = av.horas_por_aviso * coste_of
+        + 2.0 * c.desplazamiento.minutos_ida / 60.0 * coste_of
+        + 2.0 * c.desplazamiento.km_ida * coste_km;
+    let incluidos = match av.modalidad.as_str() {
+        "aparte" => 0,
+        "incluidos" => estimados.ceil() as u32,
+        _ => av.bolsa.unwrap_or(estimados.ceil() as u32),
+    };
+    let coste_avisos = incluidos as f64 * coste_aviso;
+    if av.modalidad == "bolsa" && av.bolsa.is_some_and(|n| (n as f64) < estimados) {
+        avisos.push(format!(
+            "La bolsa de {} avisos es menor que los {estimados} estimados: el exceso se facturará aparte.",
+            av.bolsa.unwrap_or(0)
+        ));
+    }
+
     // Subcontrata: suma por visita con mínimo de facturación.
     let sub_suma: f64 = lineas.iter().map(|l| l.subcontrata_visita).sum();
     let sub_fact = if sub_suma > 0.0 { sub_suma.max(minimo_sub) } else { 0.0 };
@@ -390,7 +438,7 @@ pub fn valorar(b: &Biblioteca, c: &Contrato) -> Result<Valoracion, Error> {
     let mano_obra: f64 = lineas.iter().map(|l| l.mano_obra).sum();
     let consumibles: f64 = lineas.iter().map(|l| l.consumibles).sum();
     let horas_equipos: f64 = lineas.iter().map(|l| l.horas_anio).sum();
-    let directo = mano_obra + consumibles + coste_desp + subcontrata;
+    let directo = mano_obra + consumibles + coste_desp + subcontrata + coste_avisos;
     let indirectos = directo * ind_pct / 100.0;
     let contingencia = directo * cont_pct / 100.0;
     let coste_total = directo + indirectos + contingencia;
@@ -427,6 +475,13 @@ pub fn valorar(b: &Biblioteca, c: &Contrato) -> Result<Valoracion, Error> {
         subcontrata_visita_facturada: r2(sub_fact),
         operaciones_aparte: aparte.into_values().collect(),
         parametros,
+        avisos_averia: AvisosValorados {
+            modalidad: av.modalidad.clone(),
+            estimados,
+            incluidos,
+            coste_aviso: r2(coste_aviso),
+            coste_anual: r2(coste_avisos),
+        },
         totales: Totales {
             horas_equipos: r2(horas_equipos),
             horas_desplazamiento: r2(horas_desp),
@@ -434,6 +489,7 @@ pub fn valorar(b: &Biblioteca, c: &Contrato) -> Result<Valoracion, Error> {
             consumibles: r2(consumibles),
             desplazamiento: r2(coste_desp),
             subcontrata: r2(subcontrata),
+            avisos: r2(coste_avisos),
             directo: r2(directo),
             indirectos: r2(indirectos),
             contingencia: r2(contingencia),

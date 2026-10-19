@@ -54,6 +54,19 @@ anual = por_visita × visitas_de_subcontrata
 
 Partidas `incluido` → 0. Partidas `consultar` o `aparte`, o sin precio → aviso.
 
+## 5 bis. Avisos de avería
+
+Avisos estimados al año = Σ (unidades × tasa del tipo de equipo) × factor de antigüedad × factor de uso.
+
+- Tasas por equipo: `crates/mantenix-core/src/avisos.rs`. Son **estimaciones de partida** (no hay histórico): ajustarlas con los avisos reales.
+- Antigüedad: nueva ×0,7 · media ×1,0 · antigua ×1,5. Uso: otros ×1,0 · viviendas ×1,2 · servicio 24 h ×1,5.
+- Coste de un aviso = horas en el edificio (1,5 h por defecto) × coste hora oficial + ida y vuelta (minutos × coste hora + km × coste km).
+- Modalidad del contrato:
+  - `bolsa` (por defecto): se incluyen N avisos (los estimados redondeados hacia arriba, o los que se indiquen); el exceso se factura por la tarifa de correctivo.
+  - `incluidos`: todos los avisos estimados entran en la cuota.
+  - `aparte`: ninguno entra en la cuota.
+- El coste de los avisos incluidos se suma al coste directo, y lleva indirectos, contingencia y margen como el resto.
+
 ## 6. Precio
 
 ```

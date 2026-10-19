@@ -90,6 +90,15 @@ enum Orden {
     },
     /// Carga el logo (PNG, JPG o SVG) de un ámbito: RITE, PCI, REBT o «general».
     Logo { ambito: String, fichero: PathBuf },
+    /// Genera el contrato en PDF de un contrato guardado: inventario y precio de su valoración,
+    /// y los datos de las partes (cliente, edificio, referencia, condiciones) de un JSON.
+    ContratoPdf {
+        nombre: String,
+        #[arg(long)]
+        partes: PathBuf,
+        #[arg(long)]
+        pdf: PathBuf,
+    },
     /// Genera el PDF de un contrato desde su JSON de datos (la empresa y las operaciones salen de la base).
     Contrato {
         datos: PathBuf,
@@ -234,6 +243,17 @@ fn main() -> Result<()> {
                 );
             }
         }
+        Orden::ContratoPdf { nombre, partes, pdf } => {
+            let b = Biblioteca::desde_db(&c)?;
+            let (id, k) = db::cargar_contrato(&c, &nombre)?;
+            let v = valorar(&b, &k)?;
+            db::guardar_valoracion(&c, &id, &v)?;
+            imprimir_resumen(&v);
+            let datos = mantenix_core::documento::datos_contrato(&b, &k, &v, &leer_json(&partes)?);
+            let bytes = mantenix_informes::contrato(&datos, &db::empresa(&c)?, b.operaciones.values())?;
+            std::fs::write(&pdf, bytes)?;
+            println!("PDF: {}", pdf.display());
+        }
         Orden::Contrato { datos, pdf } => {
             let b = Biblioteca::desde_db(&c)?;
             let bytes = mantenix_informes::contrato(&leer_json(&datos)?, &db::empresa(&c)?, b.operaciones.values())?;
@@ -267,6 +287,15 @@ fn imprimir_resumen(v: &mantenix_core::Valoracion) {
         eur(t.subcontrata),
         v.subcontrata_visita_facturada,
         v.visitas_subcontrata
+    );
+    let a = &v.avisos_averia;
+    println!(
+        "  Avisos         {}  ({} incluidos, {:.1} estimados, {:.2} €/aviso, modalidad {})",
+        eur(t.avisos),
+        a.incluidos,
+        a.estimados,
+        a.coste_aviso,
+        a.modalidad
     );
     println!("  Coste total    {}", eur(t.coste_total));
     println!(

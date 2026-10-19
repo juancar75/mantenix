@@ -23,6 +23,53 @@ pub struct Contrato {
     pub margen_pct: Option<f64>,
     /// Precio actual del contrato, para comparar (calibración / renovación).
     pub precio_actual_anual: Option<f64>,
+    /// Atención de avisos de avería (bolsa incluida en la cuota, todos incluidos o aparte).
+    #[serde(default)]
+    pub avisos: Avisos,
+}
+
+/// Cómo se atienden los avisos de avería y con qué datos se estiman.
+///
+/// Ver [`crate::avisos`] para las tasas de avisos por equipo.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Avisos {
+    /// `bolsa` (N avisos incluidos; el exceso por tarifa), `incluidos` (todos) o `aparte`.
+    #[serde(default = "bolsa")]
+    pub modalidad: String,
+    /// Avisos incluidos en la bolsa. Si falta, los estimados redondeados hacia arriba.
+    #[serde(default)]
+    pub bolsa: Option<u32>,
+    /// Antigüedad de la instalación: `nueva` (< 5 años), `media` o `antigua` (> 15 años).
+    #[serde(default = "media")]
+    pub antiguedad: String,
+    /// Servicio 24 horas (hotel, residencia, hospital…): más avisos.
+    #[serde(default)]
+    pub servicio_24h: bool,
+    /// Horas de oficial en el edificio por aviso.
+    #[serde(default = "hora_y_media")]
+    pub horas_por_aviso: f64,
+}
+
+impl Default for Avisos {
+    fn default() -> Self {
+        Avisos {
+            modalidad: bolsa(),
+            bolsa: None,
+            antiguedad: media(),
+            servicio_24h: false,
+            horas_por_aviso: hora_y_media(),
+        }
+    }
+}
+
+fn bolsa() -> String {
+    "bolsa".into()
+}
+fn media() -> String {
+    "media".into()
+}
+fn hora_y_media() -> f64 {
+    1.5
 }
 
 fn uso_por_defecto() -> String {

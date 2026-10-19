@@ -188,6 +188,7 @@ const margenClase = (v: Valoracion) =>
             <tr><td>Desplazamiento y tiempo fijo</td><td class="der">{{ num(valoracion.totales.horas_desplazamiento) }}</td><td class="der">{{ eur(valoracion.totales.desplazamiento) }}</td></tr>
             <tr><td>Consumibles</td><td></td><td class="der">{{ eur(valoracion.totales.consumibles) }}</td></tr>
             <tr><td>Subcontrata ({{ eur(valoracion.subcontrata_visita_facturada) }}/visita × {{ valoracion.visitas_subcontrata }})</td><td></td><td class="der">{{ eur(valoracion.totales.subcontrata) }}</td></tr>
+            <tr v-if="valoracion.totales.avisos"><td>Avisos de avería incluidos ({{ valoracion.avisos_averia.incluidos }} × {{ eur(valoracion.avisos_averia.coste_aviso) }}; estimados {{ num(valoracion.avisos_averia.estimados) }})</td><td></td><td class="der">{{ eur(valoracion.totales.avisos) }}</td></tr>
             <tr><td><b>Coste directo</b></td><td></td><td class="der"><b>{{ eur(valoracion.totales.directo) }}</b></td></tr>
             <tr><td>Indirectos + contingencia</td><td></td><td class="der">{{ eur(valoracion.totales.indirectos + valoracion.totales.contingencia) }}</td></tr>
             <tr><td><b>Precio de venta</b></td><td></td><td class="der"><b>{{ eur(valoracion.totales.precio_anual) }}</b></td></tr>

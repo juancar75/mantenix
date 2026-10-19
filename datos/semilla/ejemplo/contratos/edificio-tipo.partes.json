@@ -1,0 +1,13 @@
+{
+  "contrato": { "referencia": "EJ-2026-002", "lugar_fecha": "Madrid, 20 de octubre de 2026" },
+  "cliente": {
+    "razon_social": "Comunidad de Propietarios Ejemplo 7", "cif": "H-00000000",
+    "domicilio": "Calle Ejemplo 7, 28000 Madrid",
+    "firmante": { "nombre": "", "dni": "", "cargo": "Presidente de la Comunidad" }
+  },
+  "edificio": {
+    "nombre": "Edificio de viviendas Calle Ejemplo 7",
+    "direccion": "Calle Ejemplo 7, 28000 Madrid",
+    "uso": "Residencial vivienda, con aparcamiento bajo rasante"
+  }
+}

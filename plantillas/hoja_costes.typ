@@ -36,6 +36,10 @@
   [Desplazamiento y tiempo fijo por visita], num(t.horas_desplazamiento, d: 1) + " h", eur(t.desplazamiento),
   [Consumibles], [], eur(t.consumibles),
   [Subcontrata (#eur(val.subcontrata_visita_facturada)/visita × #val.visitas_subcontrata)], [], eur(t.subcontrata),
+  ..if "avisos_averia" in val {
+    let a = val.avisos_averia
+    ([Avisos de avería incluidos (#a.incluidos × #eur(a.coste_aviso) · estimados #num(a.estimados, d: 1) · #a.modalidad)], [], eur(t.at("avisos", default: 0)))
+  } else { () },
   [*Coste directo*], [], [*#eur(t.directo)*],
   [Indirectos (#num(p.indirectos_pct, d: 0) %)], [], eur(t.indirectos),
   [Contingencia (#num(p.contingencia_pct, d: 0) %)], [], eur(t.contingencia),

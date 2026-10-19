@@ -1,8 +1,10 @@
-// Mantenix — Plantilla de contrato de mantenimiento PCI / ventilación
+// Mantenix — Plantilla de contrato de mantenimiento (RITE, RIPCI, ventilación y otros sistemas)
 //
-// Entradas (sys.inputs, texto JSON), que prepara el crate mantenix-informes:
-//   datos       → datos del contrato: partes, edificio, sistemas e inventario, condiciones
-//   empresa     → datos comunes de la empresa mantenedora (razón social, habilitaciones, horario)
+// Entradas (sys.inputs, texto JSON), que prepara mantenix-core (documento::datos_contrato) y
+// el crate mantenix-informes:
+//   datos       → partes, edificio, instalaciones RITE con sus operaciones, sistemas RIPCI con su
+//                 inventario, otros sistemas, visitas, economía, bolsa de avisos y condiciones
+//   empresa     → datos de la empresa mantenedora (razón social, habilitaciones, horario)
 //   operaciones → operaciones del RIPCI de la base de datos: [{id, sistema, periodicidad, texto, tipo}]
 // Las operaciones NO están escritas en la plantilla: salen de la base de datos, de modo que un
 // cambio normativo se aplica a todos los contratos nuevos sin tocar este fichero.
@@ -19,7 +21,15 @@
 #let c = datos.cliente
 #let e = datos.edificio
 #let k = datos.contrato
+#let rite = datos.at("rite", default: ())
+#let sistemas = datos.at("sistemas", default: ())
+#let otros = datos.at("otros_sistemas", default: ())
+#let av = datos.at("avisos", default: none)
 #let excluidas = datos.at("excluir_operaciones", default: ())
+#let firmante-c = c.at("firmante", default: (nombre: "", dni: "", cargo: ""))
+#let firmante-m = m.at("firmante", default: (nombre: "", dni: "", cargo: ""))
+#let hay-pci = sistemas.len() > 0
+#let hay-rite = rite.len() > 0
 
 #let periodos = (
   "3m": "Cada tres meses",
@@ -36,6 +46,14 @@
 
 #let codigos(s) = s.at("subsistemas", default: (s.codigo,))
 #let ops-de(s) = ops.filter(r => codigos(s).contains(r.sistema) and not excluidas.contains(r.id))
+#let num(x) = if calc.fract(x) == 0 { str(int(x)) } else { str(x).replace(".", ",") }
+
+#let inventario(equipos) = table(
+  columns: (1fr, 2.2cm),
+  align: (left, right),
+  table.header[Equipo][Cantidad],
+  ..equipos.map(q => (q.at(0), num(q.at(1)))).flatten(),
+)
 
 // ---------- Estilo general ----------
 #set document(title: k.titulo, author: m.razon_social)
@@ -77,7 +95,7 @@
   #v(0.6em)
   #text(22pt, weight: "bold", fill: azul)[Contrato de mantenimiento]
   #v(0.2em)
-  #text(13pt)[Protección contra incendios y ventilación]
+  #text(13pt)[#datos.at("subtitulo", default: "")]
   #v(2.2em)
   #line(length: 100%, stroke: 0.8pt + azul)
   #v(1.2em)
@@ -113,59 +131,76 @@ De otra parte, *#m.razon_social*, con CIF #m.cif y domicilio en #m.domicilio, en
 
 = Objeto
 
-El presente contrato tiene por objeto el mantenimiento preventivo de las instalaciones de protección contra incendios y de ventilación del inmueble *#e.nombre*, situado en #e.direccion, en los términos que se detallan a continuación.
+El presente contrato tiene por objeto el mantenimiento preventivo de las siguientes instalaciones del inmueble *#e.nombre*, situado en #e.direccion: #lower(datos.at("subtitulo", default: "")), así como la atención de las averías en los términos de la cláusula de avisos, todo ello conforme a la normativa vigente y a las instrucciones de los fabricantes.
 
 = Normativa aplicable
 
-- Reglamento de instalaciones de protección contra incendios, aprobado por el Real Decreto 513/2017, de 22 de mayo, modificado por el Real Decreto 164/2025, de 4 de marzo (RIPCI), y en particular su anexo II.
-- Normas UNE a las que remite el anexo II del RIPCI: UNE 23120 (extintores), UNE-EN 671-3 (BIE), UNE 23007-14 (detección y alarma).
-- Reglamento de equipos a presión, aprobado por el Real Decreto 809/2021, de 21 de septiembre, en lo relativo a las pruebas de los extintores.
-- Reglamento electrotécnico para baja tensión (REBT) y Código Técnico de la Edificación, DB HS 3, para la ventilación por monóxido de carbono.
+#if hay-rite [
+  - Reglamento de instalaciones térmicas en los edificios (RITE), aprobado por el Real Decreto 1027/2007, de 20 de julio, en su redacción vigente tras el Real Decreto 178/2021, de 23 de marzo, y en particular su instrucción técnica IT 3, de mantenimiento y uso.
+  - Real Decreto 115/2017, de 17 de febrero, y Reglamento (UE) 2024/573, sobre gases fluorados de efecto invernadero, en lo relativo a los equipos frigoríficos.
+]
+#if hay-pci [
+  - Reglamento de instalaciones de protección contra incendios, aprobado por el Real Decreto 513/2017, de 22 de mayo, modificado por el Real Decreto 164/2025, de 4 de marzo (RIPCI), y en particular su anexo II.
+  - Normas UNE a las que remite el anexo II del RIPCI, y Reglamento de equipos a presión (Real Decreto 809/2021) en lo relativo a los extintores.
+]
+#if otros.len() > 0 [
+  - Código Técnico de la Edificación, DB HS 3 (calidad del aire interior), y Reglamento electrotécnico para baja tensión (REBT).
+]
 - Instrucciones de mantenimiento de los fabricantes de los equipos.
 
 = Alcance e inventario
 
 Las instalaciones incluidas, con los equipos inventariados a la fecha del contrato, son las siguientes:
 
-#for s in datos.sistemas [
-  == #s.titulo
-  #table(
-    columns: (1fr, 2.2cm),
-    align: (left, right),
-    table.header[Equipo][Cantidad],
-    ..s.equipos.map(q => (q.at(0), str(q.at(1)))).flatten(),
-  )
+#for r in rite [
+  == #r.titulo
+  #if r.potencia_kw != none [Potencia térmica nominal: *#num(r.potencia_kw) kW*. ]
+  #inventario(r.equipos)
 ]
-#for o in datos.at("otros_sistemas", default: ()) [
+#for s in sistemas [
+  == #s.titulo
+  #inventario(s.equipos)
+]
+#for o in otros [
   == #o.titulo
-  #table(
-    columns: (1fr, 2.2cm),
-    align: (left, right),
-    table.header[Equipo][Cantidad],
-    ..o.equipos.map(q => (q.at(0), str(q.at(1)))).flatten(),
-  )
+  #inventario(o.equipos)
 ]
 
 Cualquier equipo que se añada o retire durante la vigencia del contrato se comunicará por escrito y podrá dar lugar a la revisión del importe.
 
 = Programa de mantenimiento
 
-Se realizarán, como mínimo, las operaciones del anexo II del RIPCI que se indican para cada sistema, además de las recomendadas por el fabricante. Las operaciones son las que establece el reglamento en su redacción vigente.
+#if hay-rite [
+  Las instalaciones térmicas se mantendrán conforme a la IT 3 del RITE, con las operaciones y periodicidades siguientes:
 
-#for s in datos.sistemas {
-  let lista = ops-de(s).filter(r => r.tipo == "preventivo")
-  [== #s.titulo]
-  if "norma_adicional" in s { par(text(style: "italic")[#s.norma_adicional]) }
-  for p in orden-preventivo {
-    let grupo = lista.filter(r => r.periodicidad == p)
-    if grupo.len() > 0 {
-      block(sticky: true, above: 0.9em, below: 0.4em, text(weight: "bold", fill: azul)[#periodos.at(p)])
-      for r in grupo [- #r.texto]
+  #for r in rite [
+    == #r.titulo
+    #text(style: "italic")[#r.regimen.]
+    #for g in r.grupos [
+      #block(sticky: true, above: 0.9em, below: 0.4em, text(weight: "bold", fill: azul)[#g.periodicidad])
+      #for t in g.operaciones [- #t]
+    ]
+  ]
+]
+
+#if hay-pci [
+  Las instalaciones de protección contra incendios se mantendrán con, como mínimo, las operaciones del anexo II del RIPCI que se indican para cada sistema, además de las recomendadas por el fabricante.
+
+  #for s in sistemas {
+    let lista = ops-de(s).filter(r => r.tipo == "preventivo")
+    [== #s.titulo]
+    if "norma_adicional" in s { par(text(style: "italic")[#s.norma_adicional]) }
+    for p in orden-preventivo {
+      let grupo = lista.filter(r => r.periodicidad == p)
+      if grupo.len() > 0 {
+        block(sticky: true, above: 0.9em, below: 0.4em, text(weight: "bold", fill: azul)[#periodos.at(p)])
+        for r in grupo [- #r.texto]
+      }
     }
   }
-}
+]
 
-#for o in datos.at("otros_sistemas", default: ()) [
+#for o in otros [
   == #o.titulo
   #block(sticky: true, above: 0.9em, below: 0.4em, text(weight: "bold", fill: azul)[#o.periodicidad])
   #for t in o.operaciones [- #t]
@@ -175,46 +210,68 @@ Se realizarán, como mínimo, las operaciones del anexo II del RIPCI que se indi
 
 Se realizarán *#datos.visitas.anuales visitas al año*. #datos.visitas.descripcion
 
-Las fechas se acordarán con el titular. Las operaciones podrán adelantarse o retrasarse unos días respecto a la fecha prevista sin alterar el calendario, dejando constancia de la fecha real en el acta.
+Las fechas se acordarán con el titular. Las operaciones podrán adelantarse o retrasarse unos días respecto a la fecha prevista sin alterar el calendario, dejando constancia de la fecha real en el parte o acta de la visita.
 
-= Operaciones de periodicidad superior a un año
+#if hay-pci {
+  let filas = sistemas.map(s => ops-de(s).filter(r => r.tipo != "preventivo")).fold((), (a, b) => a + b)
+  if filas.len() > 0 [
+    = Operaciones de periodicidad superior a un año
 
-Las siguientes operaciones no están incluidas en el importe del contrato. La empresa mantenedora avisará al titular con antelación suficiente y presentará presupuesto cuando correspondan, según las fechas de fabricación, timbrado o puesta en servicio de cada equipo:
+    Las siguientes operaciones no están incluidas en el importe del contrato. La empresa mantenedora avisará al titular con antelación suficiente y presentará presupuesto cuando correspondan, según las fechas de fabricación, timbrado o puesta en servicio de cada equipo:
 
-#{
-  let filas = datos.sistemas
-    .map(s => ops-de(s).filter(r => r.tipo != "preventivo"))
-    .fold((), (a, b) => a + b)
-  table(
-    columns: (3.2cm, 1fr),
-    table.header[Periodicidad][Operación],
-    ..filas.map(r => (periodos.at(r.periodicidad), r.texto)).flatten(),
-  )
+    #table(
+      columns: (3.2cm, 1fr),
+      table.header[Periodicidad][Operación],
+      ..filas.map(r => (periodos.at(r.periodicidad, default: r.periodicidad), r.texto)).flatten(),
+    )
+  ]
 }
 
 = Documentación
 
-Tras cada visita, la empresa mantenedora entregará al titular un certificado firmado por su responsable técnico, con las listas de comprobación de las operaciones realizadas, conforme al punto 5 del anexo II del RIPCI. Para su elaboración podrán utilizarse los formatos de la serie UNE 23580.
+Tras cada visita, la empresa mantenedora entregará al titular el parte de trabajo con las operaciones realizadas y las anomalías encontradas.
 
-Tanto la empresa mantenedora como el titular conservarán constancia documental del cumplimiento del programa de mantenimiento durante al menos cinco años.
+#if hay-rite [
+  Para las instalaciones térmicas, la empresa mantenedora llevará el registro de las operaciones de mantenimiento, que formará parte del Libro del Edificio#if rite.any(r => r.mas_de_70) [, y emitirá el certificado anual de mantenimiento que exige el RITE para las instalaciones de más de 70 kW]. Las operaciones con gases fluorados se registrarán conforme a su normativa.
+]
+#if hay-pci [
+  Para las instalaciones de protección contra incendios, entregará un acta firmada por su responsable técnico, con las listas de comprobación de las operaciones realizadas, conforme al anexo II del RIPCI.
+]
+
+Tanto la empresa mantenedora como el titular conservarán constancia documental del mantenimiento durante al menos cinco años.
 
 = Condiciones económicas
 
 El importe anual del presente contrato asciende a *#datos.economia.importe_anual* (#datos.economia.importe_anual_letra), #datos.economia.iva.
 
-Se facturarán *#datos.economia.importe_visita* en cada una de las #datos.visitas.anuales visitas anuales, #datos.condiciones.forma_pago.
+El pago se realizará #datos.condiciones.forma_pago.
+
+#if av != none [
+  = Avisos de avería
+
+  La empresa mantenedora atenderá los avisos de avería comunicados por el titular en un plazo máximo de #datos.condiciones.plazo_respuesta_averias, y de #datos.condiciones.plazo_urgencias.
+
+  #if av.modalidad == "bolsa" [
+    El importe del contrato incluye *#av.incluidos avisos al año*, que comprenden el desplazamiento y la mano de obra de diagnóstico y reparación en horario normal. Los avisos que excedan de ese número se facturarán aparte según la tarifa de correctivo vigente#if av.precio_hora_oficial != none [ (hora de oficial #av.precio_hora_oficial, hora de oficial y ayudante #av.precio_hora_pareja, desplazamiento #av.precio_salida por salida, IVA no incluido)]. Los avisos no consumidos no se acumulan al año siguiente.
+  ] else if av.modalidad == "incluidos" [
+    El importe del contrato incluye el desplazamiento y la mano de obra de diagnóstico y reparación en horario normal de los avisos de avería.
+  ] else [
+    Los avisos de avería se facturarán aparte según la tarifa de correctivo vigente#if av.precio_hora_oficial != none [ (hora de oficial #av.precio_hora_oficial, hora de oficial y ayudante #av.precio_hora_pareja, desplazamiento #av.precio_salida por salida, IVA no incluido)].
+  ]
+
+  En todos los casos, los materiales y repuestos se facturarán aparte, previa aceptación del presupuesto correspondiente, salvo urgencia para la seguridad de las personas o de la instalación. Las intervenciones fuera del horario establecido tendrán el recargo que indique la tarifa vigente.
+]
 
 = Condiciones generales
 
 #set enum(numbering: "1.", spacing: 0.8em)
-+ *Duración.* El contrato tendrá una duración de #datos.condiciones.duracion y se prorrogará tácitamente por periodos iguales. Cualquiera de las partes podrá resolverlo en cualquier momento comunicándolo por escrito con una antelación mínima de #datos.condiciones.preaviso, sin derecho a reclamación alguna.
++ *Duración.* El contrato tendrá una duración de #datos.condiciones.duracion y se prorrogará tácitamente por periodos iguales. Cualquiera de las partes podrá resolverlo comunicándolo por escrito con una antelación mínima de #datos.condiciones.preaviso.
 + *Revisión de precios.* #datos.condiciones.revision_precios
 + *Reparaciones.* Las reparaciones y sustituciones necesarias se realizarán previa aceptación por escrito del presupuesto correspondiente. Los materiales se facturarán según la tarifa vigente de la empresa mantenedora.
-+ *Exclusiones.* Quedan fuera del importe: las operaciones de periodicidad superior a un año, las recargas de extintores por uso, las sustituciones por fin de vida útil, la reposición de componentes, las inspecciones periódicas por organismo de control que en su caso resulten exigibles y las actuaciones fuera del horario establecido.
++ *Exclusiones.* Quedan fuera del importe: los materiales y repuestos, el refrigerante, los productos químicos y de tratamiento, #if hay-pci [las operaciones de periodicidad superior a un año, las recargas de extintores por uso, las sustituciones por fin de vida útil, ]las inspecciones periódicas por organismo de control que en su caso resulten exigibles y las actuaciones fuera del horario establecido.
 + *Horario.* Los trabajos se realizarán #m.horario.
-+ *Averías.* La empresa mantenedora atenderá las averías comunicadas en un plazo máximo de #datos.condiciones.plazo_respuesta_averias. La reparación se facturará conforme a la condición 3.
-+ *Subcontratación.* La empresa mantenedora podrá encargar parte de las operaciones a empresas mantenedoras habilitadas conforme al RIPCI, respondiendo ante el titular del cumplimiento del contrato.
-+ *Obligaciones del titular.* Facilitar el acceso a las instalaciones, comunicar cualquier anomalía o modificación de los locales, no manipular los equipos y conservar la documentación del mantenimiento.
++ *Subcontratación.* La empresa mantenedora podrá encargar parte de las operaciones a empresas habilitadas para ello, respondiendo ante el titular del cumplimiento del contrato.
++ *Obligaciones del titular.* Facilitar el acceso a las instalaciones, comunicar cualquier anomalía o modificación de los locales, no manipular los equipos, realizar las operaciones que el RITE y el RIPCI atribuyen al usuario y conservar la documentación del mantenimiento.
 + *Protección de datos.* Los datos personales facilitados se tratarán únicamente para la gestión de este contrato, conforme al Reglamento (UE) 2016/679 y a la Ley Orgánica 3/2018.
 
 // ---------- Firmas ----------
@@ -229,10 +286,11 @@ Se facturarán *#datos.economia.importe_visita* en cada una de las #datos.visita
     #line(length: 85%, stroke: 0.5pt + linea)
     #set text(8.5pt)
     #grid(columns: (1.6cm, 1fr), row-gutter: 0.7em,
-      [Nombre:], f.nombre, [DNI:], f.dni, [Cargo:], f.cargo, [Fecha:], [])
+      [Nombre:], f.at("nombre", default: ""), [DNI:], f.at("dni", default: ""),
+      [Cargo:], f.at("cargo", default: ""), [Fecha:], [])
   ]
   #grid(columns: (1fr, 1fr), column-gutter: 1.5cm,
-    firma("El titular", c.razon_social, c.firmante),
-    firma("La empresa mantenedora", m.razon_social, m.firmante),
+    firma("El titular", c.razon_social, firmante-c),
+    firma("La empresa mantenedora", m.razon_social, firmante-m),
   )
 ]

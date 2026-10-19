@@ -22,7 +22,7 @@ export interface LineaValorada {
 }
 export interface Totales {
   horas_equipos: number; horas_desplazamiento: number; mano_obra: number; consumibles: number; desplazamiento: number;
-  subcontrata: number; directo: number; indirectos: number; contingencia: number; coste_total: number; margen_pct: number;
+  subcontrata: number; avisos: number; directo: number; indirectos: number; contingencia: number; coste_total: number; margen_pct: number;
   precio_anual: number; precio_visita: number; precio_actual_anual: number | null; margen_precio_actual_pct: number | null;
 }
 export interface Valoracion {
@@ -31,6 +31,7 @@ export interface Valoracion {
   lineas: LineaValorada[]; subcontrata_visita_suma: number; subcontrata_visita_facturada: number;
   operaciones_aparte: { sistema: string; operacion_id: string; periodicidad: string; texto: string }[];
   totales: Totales; avisos: string[];
+  avisos_averia: { modalidad: string; estimados: number; incluidos: number; coste_aviso: number; coste_anual: number };
 }
 
 export interface TiempoVista { operacion_id: string; texto: string; periodicidad: string; referencia: string; fuente: string; verificado: string; minutos: number; tecnicos: number; estado: string }

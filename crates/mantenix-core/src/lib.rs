@@ -17,14 +17,18 @@
 //! - [`datos`]: estructuras de la biblioteca normativa (RITE, RIPCI) y de los datos de empresa.
 //! - [`modelo`]: inventario de un contrato (entrada).
 //! - [`motor`]: valoración: horas, costes y precio de venta.
+//! - [`avisos`]: estimación de avisos de avería al año.
+//! - [`documento`]: datos del documento de contrato desde el inventario y la valoración.
 //! - [`tarifa`]: tarifa propia por equipo y revisión.
 //! - [`presupuesto`]: presupuestos de reparación y pequeñas obras.
 //! - [`empresa`]: membrete de los documentos (logo y habilitación según el ámbito).
 
 #![warn(missing_docs)]
 
+pub mod avisos;
 pub mod datos;
 pub mod db;
+pub mod documento;
 pub mod empresa;
 pub mod modelo;
 pub mod motor;
@@ -221,6 +225,36 @@ mod tests {
         // validaciones
         p.cliente.clear();
         assert!(db::guardar_presupuesto(&c, &p).is_err());
+    }
+
+    #[test]
+    fn avisos_bolsa_incluidos_y_aparte() {
+        let b = biblioteca();
+        let mut c: Contrato = serde_json::from_str(
+            r#"{"nombre":"av","anio":2026,"uso":"viviendas","desplazamiento":{"km_ida":20,"minutos_ida":25},
+            "instalaciones":[{"familia":"RITE","potencia_kw":300,"equipos":[
+              {"codigo":"CALD-GAS","cantidad":2},{"codigo":"BOMBA","cantidad":4}]}]}"#,
+        )
+        .unwrap();
+        // (2 × 1,2 + 4 × 0,1) × 1,0 (media) × 1,2 (viviendas) = 3,36 → bolsa de 4
+        let v = valorar(&b, &c).unwrap();
+        assert_eq!(v.avisos_averia.estimados, 3.36);
+        assert_eq!(v.avisos_averia.incluidos, 4);
+        let coste_aviso = 1.5 * 28.72 + 50.0 / 60.0 * 28.72 + 40.0 * 0.15;
+        assert!((v.avisos_averia.coste_aviso - coste_aviso).abs() < 0.01);
+        assert!((v.totales.avisos - 4.0 * coste_aviso).abs() < 0.05);
+
+        c.avisos.modalidad = "aparte".into();
+        let v2 = valorar(&b, &c).unwrap();
+        assert_eq!(v2.totales.avisos, 0.0);
+        assert!(v2.totales.precio_anual < v.totales.precio_anual);
+
+        c.avisos.modalidad = "bolsa".into();
+        c.avisos.bolsa = Some(2);
+        c.avisos.antiguedad = "antigua".into();
+        let v3 = valorar(&b, &c).unwrap();
+        assert_eq!(v3.avisos_averia.incluidos, 2);
+        assert!(v3.avisos.iter().any(|a| a.contains("bolsa")));
     }
 
     #[test]

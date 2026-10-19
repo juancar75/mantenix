@@ -1,0 +1,37 @@
+{
+  "nombre": "Edificio tipo - comunidad con calefacción central y garaje",
+  "anio": 2026,
+  "uso": "viviendas",
+  "visitas_contratadas": null,
+  "desplazamiento": { "km_ida": 20, "minutos_ida": 25 },
+  "margen_pct": null,
+  "precio_actual_anual": null,
+  "avisos": { "modalidad": "bolsa", "antiguedad": "media", "servicio_24h": false, "horas_por_aviso": 1.5 },
+  "instalaciones": [
+    {
+      "familia": "RITE", "titulo": "Calefacción central y agua caliente sanitaria", "potencia_kw": 250, "temporada_meses": 7,
+      "equipos": [
+        { "codigo": "CALD-GAS", "cantidad": 2, "descripcion": "Caldera de gas de condensación 125 kW" },
+        { "codigo": "BOMBA", "cantidad": 4, "descripcion": "" },
+        { "codigo": "VASO-EXP", "cantidad": 1, "descripcion": "" },
+        { "codigo": "ACS-SIS", "cantidad": 1, "descripcion": "Interacumulador de ACS 1.500 l" },
+        { "codigo": "CONTROL", "cantidad": 1, "descripcion": "Centralita de regulación de la sala de calderas" }
+      ]
+    },
+    {
+      "familia": "PCI", "titulo": "Protección contra incendios y ventilación del garaje",
+      "equipos": [
+        { "codigo": "EXT-POLVO", "cantidad": 12, "descripcion": "Extintor de polvo ABC 6 kg" },
+        { "codigo": "EXT-CO2", "cantidad": 2, "descripcion": "Extintor de CO₂ 5 kg" },
+        { "codigo": "DET-CENTRAL-CONV", "cantidad": 1, "descripcion": "" },
+        { "codigo": "DET-OPT", "cantidad": 24, "descripcion": "" },
+        { "codigo": "DET-PULS", "cantidad": 3, "descripcion": "" },
+        { "codigo": "DET-SIR", "cantidad": 3, "descripcion": "" },
+        { "codigo": "BIE-25", "cantidad": 3, "descripcion": "" },
+        { "codigo": "CO-CENTRAL", "cantidad": 1, "descripcion": "" },
+        { "codigo": "CO-DET", "cantidad": 8, "descripcion": "" },
+        { "codigo": "AE-UD", "cantidad": 20, "descripcion": "" }
+      ]
+    }
+  ]
+}
