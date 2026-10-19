@@ -228,6 +228,31 @@ mod tests {
     }
 
     #[test]
+    fn migra_bases_antiguas() {
+        let ruta = std::env::temp_dir().join(format!("mantenix-migra-{}.db", std::process::id()));
+        let _ = std::fs::remove_file(&ruta);
+        {
+            let c = rusqlite::Connection::open(&ruta).unwrap();
+            c.execute_batch(
+                "CREATE TABLE contrato (id TEXT PRIMARY KEY, cliente_id TEXT, nombre TEXT NOT NULL UNIQUE,
+                 anio INTEGER NOT NULL, uso TEXT NOT NULL DEFAULT 'otros', visitas_contratadas INTEGER,
+                 km_ida REAL NOT NULL DEFAULT 0, minutos_ida REAL NOT NULL DEFAULT 0, margen_pct REAL,
+                 precio_actual_anual REAL, actualizado TEXT NOT NULL DEFAULT (datetime('now')));",
+            )
+            .unwrap();
+        }
+        let mut c = db::abrir(&ruta).unwrap();
+        let mut k: Contrato = serde_json::from_str(r#"{"nombre":"m","anio":2026,"instalaciones":[]}"#).unwrap();
+        k.partes = serde_json::json!({"cliente": {"razon_social": "X"}});
+        db::guardar_contrato(&mut c, &k).unwrap();
+        let (_, k2) = db::cargar_contrato(&c, "m").unwrap();
+        assert_eq!(k2.partes["cliente"]["razon_social"], "X");
+        assert_eq!(k2.avisos.modalidad, "bolsa");
+        drop(c);
+        let _ = std::fs::remove_file(&ruta);
+    }
+
+    #[test]
     fn avisos_bolsa_incluidos_y_aparte() {
         let b = biblioteca();
         let mut c: Contrato = serde_json::from_str(

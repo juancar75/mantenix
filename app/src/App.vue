@@ -5,6 +5,7 @@
 <script setup lang="ts">
 import { onMounted, ref, shallowRef } from "vue";
 import { api, type Estado } from "./api";
+import Asistente from "./vistas/Asistente.vue";
 import Contratos from "./vistas/Contratos.vue";
 import Presupuestos from "./vistas/Presupuestos.vue";
 import Catalogo from "./vistas/Catalogo.vue";
@@ -15,6 +16,7 @@ import BaseDatos from "./vistas/BaseDatos.vue";
 import Empresa from "./vistas/Empresa.vue";
 
 const vistas = [
+  { id: "asistente", titulo: "Nuevo contrato (asistente)", comp: Asistente },
   { id: "contratos", titulo: "Contratos", comp: Contratos },
   { id: "presupuestos", titulo: "Presupuestos", comp: Presupuestos },
   { id: "catalogo", titulo: "Catálogo y tiempos", comp: Catalogo },

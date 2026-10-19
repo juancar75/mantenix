@@ -94,8 +94,9 @@ enum Orden {
     /// y los datos de las partes (cliente, edificio, referencia, condiciones) de un JSON.
     ContratoPdf {
         nombre: String,
+        /// JSON con las partes; si falta, se usan las guardadas con el contrato.
         #[arg(long)]
-        partes: PathBuf,
+        partes: Option<PathBuf>,
         #[arg(long)]
         pdf: PathBuf,
     },
@@ -249,7 +250,11 @@ fn main() -> Result<()> {
             let v = valorar(&b, &k)?;
             db::guardar_valoracion(&c, &id, &v)?;
             imprimir_resumen(&v);
-            let datos = mantenix_core::documento::datos_contrato(&b, &k, &v, &leer_json(&partes)?);
+            let partes = match partes {
+                Some(p) => leer_json(&p)?,
+                None => k.partes.clone(),
+            };
+            let datos = mantenix_core::documento::datos_contrato(&b, &k, &v, &partes);
             let bytes = mantenix_informes::contrato(&datos, &db::empresa(&c)?, b.operaciones.values())?;
             std::fs::write(&pdf, bytes)?;
             println!("PDF: {}", pdf.display());

@@ -26,6 +26,10 @@ pub struct Contrato {
     /// Atención de avisos de avería (bolsa incluida en la cuota, todos incluidos o aparte).
     #[serde(default)]
     pub avisos: Avisos,
+    /// Datos del documento: cliente, edificio, referencia, firmantes y condiciones (JSON con la
+    /// forma que espera [`crate::documento::datos_contrato`]). Vacío si aún no se han rellenado.
+    #[serde(default)]
+    pub partes: serde_json::Value,
 }
 
 /// Cómo se atienden los avisos de avería y con qué datos se estiman.

@@ -199,6 +199,20 @@ fn pdf_hoja_costes(base: State<Base>, nombre: String, ruta: String) -> R<()> {
     std::fs::write(ruta, pdf).map_err(txt)
 }
 
+/// Contrato de mantenimiento en PDF (inventario, precio de la valoración y partes guardadas).
+#[tauri::command]
+fn pdf_contrato(base: State<Base>, nombre: String, ruta: String) -> R<()> {
+    let c = base.conexion.lock().unwrap();
+    let b = Biblioteca::desde_db(&c).map_err(txt)?;
+    let (id, k) = db::cargar_contrato(&c, &nombre).map_err(txt)?;
+    let v = valorar(&b, &k).map_err(txt)?;
+    db::guardar_valoracion(&c, &id, &v).map_err(txt)?;
+    let datos = mantenix_core::documento::datos_contrato(&b, &k, &v, &k.partes);
+    let pdf =
+        mantenix_informes::contrato(&datos, &db::empresa(&c).map_err(txt)?, b.operaciones.values()).map_err(txt)?;
+    std::fs::write(ruta, pdf).map_err(txt)
+}
+
 // ───────────────────────────── Presupuestos ─────────────────────────────
 
 #[tauri::command]
@@ -503,6 +517,7 @@ fn main() {
             borrar_contrato,
             valorar_contrato,
             pdf_hoja_costes,
+            pdf_contrato,
             listar_presupuestos,
             cargar_presupuesto,
             guardar_presupuesto,

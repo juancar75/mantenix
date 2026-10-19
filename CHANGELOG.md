@@ -4,7 +4,12 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ## [Sin publicar]
 
+### Cambiado
+- Las bases de versiones anteriores se actualizan solas al abrirse (columnas nuevas y disparadores de auditoría).
+
 ### Añadido
+- **Asistente de nuevo contrato** en la app: 8 pasos guiados (cliente, edificio, climatización, incendios, garaje y emergencias, avisos y condiciones, resultado) con ayuda en cada pantalla; al final, precio, hoja de costes y contrato en PDF. Guía en `docs/guia-nuevo-contrato.md`.
+- Los datos del documento (cliente, edificio, firmante, referencia) se guardan con el contrato; botón *Contrato PDF* también en «Contratos».
 - **Contrato tipo** generado desde el inventario y la valoración (`mantenix contrato-pdf <contrato> --partes <json> --pdf`): instalaciones térmicas (operaciones del RITE con su periodicidad), protección contra incendios (anexo II del RIPCI), ventilación por CO y alumbrado de emergencia; importe en cifras y letras, pago según la periodicidad de las visitas y cláusula de avisos.
 - **Avisos de avería** en la valoración: estimación por equipo, antigüedad y uso; modalidades bolsa (por defecto), incluidos y aparte. Ejemplo `datos/semilla/ejemplo/contratos/edificio-tipo.json`.
 

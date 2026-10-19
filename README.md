@@ -15,6 +15,9 @@ Aplicación de escritorio, de código abierto, para **valorar contratos de mante
 
 ## Instalación (usuarios)
 
+Guía para quien da de alta contratos: [docs/guia-nuevo-contrato.md](docs/guia-nuevo-contrato.md).
+
+
 Descargue el instalador de la última versión en [Releases](../../releases) (Windows `.msi`/`.exe`, Linux `.deb`/`.AppImage`, macOS `.dmg`).
 La primera vez se crea una base con **datos de ejemplo**. Para trabajar con los datos de su empresa: *Base de datos → Crear base con datos de empresa…* (ver [docs/datos-privados.md](docs/datos-privados.md)).
 

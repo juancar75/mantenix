@@ -78,6 +78,14 @@ const pdf = () => intentar(async () => {
   mensaje.value = `PDF guardado en ${ruta}`;
 });
 
+const pdfContrato = () => intentar(async () => {
+  if (!nombreGuardado.value) return;
+  const ruta = await save({ defaultPath: `contrato-${nombreGuardado.value}.pdf`, filters: [{ name: "PDF", extensions: ["pdf"] }] });
+  if (!ruta) return;
+  await api.pdfContrato(nombreGuardado.value, ruta);
+  mensaje.value = `PDF guardado en ${ruta}`;
+});
+
 const borrar = () => intentar(async () => {
   if (!nombreGuardado.value || !confirm(`¿Borrar el contrato «${nombreGuardado.value}» y sus valoraciones?`)) return;
   await api.borrarContrato(nombreGuardado.value);
@@ -163,6 +171,7 @@ const margenClase = (v: Valoracion) =>
         <button @click="guardar">Guardar</button>
         <button class="primario" @click="valorar">Guardar y valorar</button>
         <button v-if="valoracion" @click="pdf">Hoja de costes PDF</button>
+        <button v-if="valoracion && contrato.partes" @click="pdfContrato">Contrato PDF</button>
       </div>
 
       <template v-if="valoracion">

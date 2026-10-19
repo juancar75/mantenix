@@ -13,7 +13,11 @@ export interface Contrato {
   nombre: string; anio: number; uso: string; visitas_contratadas: number | null;
   desplazamiento: { km_ida: number; minutos_ida: number };
   instalaciones: Instalacion[]; margen_pct: number | null; precio_actual_anual: number | null;
+  avisos?: AvisosContrato;
+  /** Datos del documento: cliente, edificio, referencia, firmantes, condiciones. */
+  partes?: Record<string, any> | null;
 }
+export interface AvisosContrato { modalidad: string; bolsa: number | null; antiguedad: string; servicio_24h: boolean; horas_por_aviso: number }
 
 export interface OperacionValorada { operacion_id: string; texto: string; periodicidad: string; veces_anio: number; minutos_ud: number; tecnicos: number; horas_anio: number }
 export interface LineaValorada {
@@ -84,6 +88,7 @@ export const api = {
   borrarContrato: (nombre: string) => invoke<void>("borrar_contrato", { nombre }),
   valorar: (nombre: string) => invoke<Valoracion>("valorar_contrato", { nombre }),
   pdfHojaCostes: (nombre: string, ruta: string) => invoke<void>("pdf_hoja_costes", { nombre, ruta }),
+  pdfContrato: (nombre: string, ruta: string) => invoke<void>("pdf_contrato", { nombre, ruta }),
 
   listarPresupuestos: () => invoke<ResumenPresupuesto[]>("listar_presupuestos"),
   cargarPresupuesto: (numero: string) => invoke<Presupuesto>("cargar_presupuesto", { numero }),
