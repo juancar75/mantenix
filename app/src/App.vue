@@ -12,6 +12,7 @@ import Parametros from "./vistas/Parametros.vue";
 import TarifaVista from "./vistas/Tarifa.vue";
 import Historial from "./vistas/Historial.vue";
 import BaseDatos from "./vistas/BaseDatos.vue";
+import Empresa from "./vistas/Empresa.vue";
 
 const vistas = [
   { id: "contratos", titulo: "Contratos", comp: Contratos },
@@ -20,6 +21,7 @@ const vistas = [
   { id: "parametros", titulo: "Parámetros por año", comp: Parametros },
   { id: "tarifa", titulo: "Tarifa propia", comp: TarifaVista },
   { id: "historial", titulo: "Historial de cambios", comp: Historial },
+  { id: "empresa", titulo: "Empresa y logos", comp: Empresa },
   { id: "base", titulo: "Base de datos", comp: BaseDatos },
 ];
 const activa = shallowRef(vistas[0]);

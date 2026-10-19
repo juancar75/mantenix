@@ -12,7 +12,7 @@
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
-use mantenix_core::presupuesto::{self, PrecioDefecto, TotalesPresupuesto};
+use mantenix_core::presupuesto::{self, ModeloPresupuesto, PrecioDefecto, TotalesPresupuesto};
 use mantenix_core::{db, modelo::Contrato, tarifa, valorar, Biblioteca, Presupuesto, Valoracion};
 use rusqlite::Connection;
 use serde::Serialize;
@@ -62,6 +62,10 @@ fn recordar_base(app: &tauri::AppHandle, ruta: &str) {
 fn abrir_o_crear(ruta: &Path, normativa: &Path, empresa: &Path) -> R<Connection> {
     let mut c = db::abrir(ruta).map_err(txt)?;
     db::inicializar(&mut c, normativa, empresa).map_err(txt)?;
+    // Modelos de presupuesto: también para bases ya existentes que aún no los tengan.
+    if let Some(semilla) = normativa.parent() {
+        db::cargar_modelos_semilla(&c, &semilla.join("presupuestos/modelos.json")).map_err(txt)?;
+    }
     Ok(c)
 }
 
@@ -250,6 +254,118 @@ fn pdf_presupuesto(base: State<Base>, numero: String, ruta: String) -> R<()> {
     std::fs::write(ruta, pdf).map_err(txt)
 }
 
+/// Relación en PDF de los presupuestos indicados (en el orden del listado).
+#[tauri::command]
+fn pdf_relacion_presupuestos(base: State<Base>, numeros: Vec<String>, titulo: String, ruta: String) -> R<()> {
+    let c = base.conexion.lock().unwrap();
+    let lista: Vec<_> = db::listar_presupuestos(&c)
+        .map_err(txt)?
+        .into_iter()
+        .filter(|r| numeros.contains(&r.numero))
+        .collect();
+    let hoy: String = c
+        .query_row("SELECT date('now','localtime')", [], |r| r.get(0))
+        .map_err(txt)?;
+    let pdf =
+        mantenix_informes::relacion_presupuestos(&lista, &titulo, &hoy, &db::empresa(&c).map_err(txt)?).map_err(txt)?;
+    std::fs::write(ruta, pdf).map_err(txt)
+}
+
+#[tauri::command]
+fn listar_modelos(base: State<Base>) -> R<Vec<ModeloPresupuesto>> {
+    db::listar_modelos(&base.conexion.lock().unwrap()).map_err(txt)
+}
+
+/// Presupuesto nuevo (sin guardar) a partir de un modelo, con los precios del año.
+#[tauri::command]
+fn presupuesto_desde_modelo(base: State<Base>, codigo: String, fecha: String) -> R<Presupuesto> {
+    let c = base.conexion.lock().unwrap();
+    let m = db::listar_modelos(&c)
+        .map_err(txt)?
+        .into_iter()
+        .find(|m| m.codigo == codigo)
+        .ok_or_else(|| format!("No existe el modelo {codigo}"))?;
+    let b = Biblioteca::desde_db(&c).map_err(txt)?;
+    Ok(presupuesto::desde_modelo(&m, &b, &fecha))
+}
+
+/// Guarda el presupuesto como modelo propio (sin datos del cliente).
+#[tauri::command]
+fn guardar_como_modelo(
+    base: State<Base>,
+    presupuesto: Presupuesto,
+    codigo: String,
+    grupo: String,
+    nombre: String,
+) -> R<()> {
+    let m = presupuesto::a_modelo(&presupuesto, &codigo, &grupo, &nombre);
+    db::guardar_modelo(&base.conexion.lock().unwrap(), &m).map_err(txt)
+}
+
+#[tauri::command]
+fn borrar_modelo(base: State<Base>, codigo: String) -> R<()> {
+    db::borrar_modelo(&base.conexion.lock().unwrap(), &codigo).map_err(txt)
+}
+
+// ───────────────────────────── Empresa ─────────────────────────────
+
+/// Datos de la empresa (razón social, habilitaciones, logos…).
+#[tauri::command]
+fn empresa(base: State<Base>) -> R<serde_json::Value> {
+    db::empresa(&base.conexion.lock().unwrap()).map_err(txt)
+}
+
+/// Guarda los datos de la empresa (los logos se conservan).
+#[tauri::command]
+fn fijar_empresa(base: State<Base>, datos: serde_json::Value) -> R<()> {
+    let c = base.conexion.lock().unwrap();
+    let mut nueva = datos;
+    let actual = db::empresa(&c).map_err(txt)?;
+    if let Some(o) = nueva.as_object_mut() {
+        for k in ["logo", "ambitos"] {
+            if let Some(v) = actual.get(k) {
+                o.insert(k.into(), v.clone());
+            }
+        }
+    }
+    db::fijar_empresa(&c, &nueva).map_err(txt)
+}
+
+/// Carga (ruta = fichero de imagen) o quita (ruta vacía) el logo de un ámbito ("" = general).
+#[tauri::command]
+fn fijar_logo(base: State<Base>, ambito: String, ruta: String) -> R<()> {
+    let c = base.conexion.lock().unwrap();
+    let mut e = db::empresa(&c).map_err(txt)?;
+    let datos = if ruta.is_empty() {
+        None
+    } else {
+        Some(std::fs::read(&ruta).map_err(txt)?)
+    };
+    mantenix_core::empresa::fijar_logo(&mut e, &ambito, datos.as_deref()).map_err(txt)?;
+    db::fijar_empresa(&c, &e).map_err(txt)
+}
+
+/// Ámbitos de trabajo con su nombre y la habilitación que se mostraría.
+#[derive(Serialize)]
+struct AmbitoVista {
+    codigo: String,
+    nombre: String,
+    habilitaciones: Vec<(String, String)>,
+}
+
+#[tauri::command]
+fn ambitos(base: State<Base>) -> R<Vec<AmbitoVista>> {
+    let e = db::empresa(&base.conexion.lock().unwrap()).map_err(txt)?;
+    Ok(std::iter::once(("", "General (todas las habilitaciones)"))
+        .chain(mantenix_core::empresa::AMBITOS.iter().map(|a| (a.0, a.1)))
+        .map(|(codigo, nombre)| AmbitoVista {
+            codigo: codigo.into(),
+            nombre: nombre.into(),
+            habilitaciones: mantenix_core::empresa::membrete(&e, codigo).habilitaciones,
+        })
+        .collect())
+}
+
 // ───────────────────────────── Catálogo y tiempos ─────────────────────────────
 
 /// Tiempo estándar con el texto de su operación, para editarlo.
@@ -394,6 +510,15 @@ fn main() {
             calcular_presupuesto,
             precios_presupuesto,
             pdf_presupuesto,
+            pdf_relacion_presupuestos,
+            listar_modelos,
+            presupuesto_desde_modelo,
+            guardar_como_modelo,
+            borrar_modelo,
+            empresa,
+            fijar_empresa,
+            fijar_logo,
+            ambitos,
             catalogo,
             fijar_tiempo,
             parametros,

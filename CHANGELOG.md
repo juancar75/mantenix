@@ -11,7 +11,11 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 - **Carta presupuesto** en PDF: explica qué se ha roto o desgastado, las consecuencias de no actuar y el repuesto o trabajo propuesto; importe desglosado con IVA, condiciones estándar y espacio para la aceptación del cliente. No muestra costes internos.
 - Líneas de repuesto, hora de oficial, hora de oficial + ayudante, desplazamiento y otras partidas, con coste interno y margen del presupuesto.
 - Parámetros por año para presupuestos: `precio_hora_oficial`, `precio_hora_pareja`, `precio_salida`, `coste_salida` y `recargo_material_pct` (el precio del material se calcula desde su coste).
-- Órdenes `mantenix presupuesto <json> --pdf` y `mantenix presupuestos`. Ejemplo en `datos/semilla/ejemplo/presupuestos/`.
+- **Listado de presupuestos** por cliente e instalación, con filtros (cliente, ámbito, estado), resumen por estado y **relación en PDF**.
+- **Ámbito** del presupuesto (RITE, PCI, baja tensión): la carta muestra el logo y el número de empresa habilitada de ese ámbito.
+- Pantalla **Empresa y logos**: datos del membrete, habilitaciones y logo por ámbito (guardados en la base, con historial).
+- **Modelos de presupuesto**: 28 averías típicas de semilla (sala de calderas, ACS, bomba de calor aire-agua, climatizador, extractor, split, PCI, alumbrado de emergencia, CO de garaje) en `datos/semilla/presupuestos/modelos.json`, con precios orientativos. Cualquier presupuesto se puede guardar como modelo propio para adaptarlo a equipos parecidos. Las bases existentes reciben los modelos al abrirse.
+- Órdenes `mantenix presupuesto <json> --pdf`, `mantenix presupuestos [--cliente] [--pdf]` y `mantenix logo <ámbito> <fichero>`. Ejemplo en `datos/semilla/ejemplo/presupuestos/`.
 
 ### Cambiado
 - La aplicación recuerda la última base de datos abierta y el último usuario identificado.

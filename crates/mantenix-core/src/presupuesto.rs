@@ -40,7 +40,8 @@ pub struct LineaPresupuesto {
     pub unidad: String,
     /// Cantidad.
     pub cantidad: f64,
-    /// Precio de venta unitario, sin IVA (€).
+    /// Precio de venta unitario, sin IVA (€). En un modelo, 0 = tomarlo de los parámetros del año.
+    #[serde(default)]
     pub precio_unitario: f64,
     /// Coste unitario para la empresa (€). Solo para el margen interno.
     #[serde(default)]
@@ -71,6 +72,10 @@ pub struct Presupuesto {
     pub numero: String,
     /// Fecha de emisión `AAAA-MM-DD`.
     pub fecha: String,
+    /// Ámbito del trabajo: `RITE`, `PCI`, `REBT` o vacío (general). Decide el logo y la
+    /// habilitación que aparecen en la carta (ver [`crate::empresa`]).
+    #[serde(default)]
+    pub ambito: String,
     /// `correctivo` (reparación) u `obra` (pequeña obra o mejora).
     #[serde(default = "tipo_defecto")]
     pub tipo: String,
@@ -264,6 +269,130 @@ pub fn precios_por_defecto(b: &Biblioteca, anio: u32) -> (Vec<PrecioDefecto>, Op
 /// Precio de venta de un material a partir de su coste y el recargo (% sobre coste).
 pub fn precio_material(coste: f64, recargo_pct: f64) -> f64 {
     r2(coste * (1.0 + recargo_pct / 100.0))
+}
+
+/// Modelo de presupuesto: avería típica de un equipo, con su explicación y sus líneas.
+///
+/// Los modelos semilla están en `datos/semilla/presupuestos/modelos.json`. Cualquier
+/// presupuesto se puede guardar como modelo nuevo (p. ej. adaptando uno de la semilla a un
+/// equipo parecido).
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ModeloPresupuesto {
+    /// Código único (p. ej. `UTA-CORREAS`).
+    pub codigo: String,
+    /// Grupo de equipos (Sala de calderas, Climatizador…).
+    pub grupo: String,
+    /// Nombre corto del modelo.
+    pub nombre: String,
+    /// `semilla` o `propio`.
+    #[serde(default = "origen_propio")]
+    pub origen: String,
+    /// Ámbito (logo y habilitación).
+    #[serde(default)]
+    pub ambito: String,
+    /// `correctivo` u `obra`.
+    #[serde(default = "tipo_defecto")]
+    pub tipo: String,
+    /// Asunto de la carta.
+    pub titulo: String,
+    /// Equipo afectado.
+    #[serde(default)]
+    pub equipo: String,
+    /// Qué se ha roto o desgastado.
+    #[serde(default)]
+    pub averia: String,
+    /// Consecuencias de no actuar.
+    #[serde(default)]
+    pub consecuencias: String,
+    /// Repuesto o trabajo propuesto.
+    #[serde(default)]
+    pub propuesta: String,
+    /// Líneas. Precio 0 = se toma de los parámetros del año (mano de obra, salida) o del
+    /// coste más el recargo (material).
+    #[serde(default)]
+    pub lineas: Vec<LineaPresupuesto>,
+}
+
+fn origen_propio() -> String {
+    "propio".into()
+}
+
+/// Presupuesto nuevo a partir de un modelo, con los precios del año.
+pub fn desde_modelo(m: &ModeloPresupuesto, b: &Biblioteca, fecha: &str) -> Presupuesto {
+    let anio = fecha.get(..4).and_then(|a| a.parse().ok()).unwrap_or(2026);
+    let (defecto, recargo) = precios_por_defecto(b, anio);
+    let lineas = m
+        .lineas
+        .iter()
+        .map(|l| {
+            let mut l = l.clone();
+            let d = defecto.iter().find(|d| d.tipo == l.tipo);
+            if l.coste_unitario.is_none() {
+                l.coste_unitario = d.and_then(|d| d.coste_unitario);
+            }
+            if l.precio_unitario == 0.0 {
+                l.precio_unitario = match (l.tipo.as_str(), l.coste_unitario, recargo) {
+                    ("material", Some(c), Some(r)) => precio_material(c, r),
+                    _ => d.and_then(|d| d.precio_unitario).unwrap_or(0.0),
+                };
+            }
+            l
+        })
+        .collect();
+    Presupuesto {
+        numero: String::new(),
+        fecha: fecha.into(),
+        ambito: m.ambito.clone(),
+        tipo: m.tipo.clone(),
+        cliente: String::new(),
+        cif: String::new(),
+        direccion: String::new(),
+        contacto: String::new(),
+        contrato: String::new(),
+        titulo: m.titulo.clone(),
+        equipo: m.equipo.clone(),
+        deteccion: String::new(),
+        averia: m.averia.clone(),
+        consecuencias: m.consecuencias.clone(),
+        propuesta: m.propuesta.clone(),
+        lineas,
+        descuento_pct: 0.0,
+        iva_pct: iva_defecto(),
+        validez_dias: validez_defecto(),
+        condiciones: String::new(),
+        estado: estado_defecto(),
+        notas_internas: format!("Creado desde el modelo {}.", m.codigo),
+    }
+}
+
+/// Modelo propio a partir de un presupuesto (sin datos del cliente). Los precios de mano de
+/// obra y desplazamiento se guardan a 0 para que tomen siempre los del año.
+pub fn a_modelo(p: &Presupuesto, codigo: &str, grupo: &str, nombre: &str) -> ModeloPresupuesto {
+    ModeloPresupuesto {
+        codigo: codigo.trim().to_uppercase(),
+        grupo: grupo.trim().into(),
+        nombre: nombre.trim().into(),
+        origen: origen_propio(),
+        ambito: p.ambito.clone(),
+        tipo: p.tipo.clone(),
+        titulo: p.titulo.clone(),
+        equipo: p.equipo.clone(),
+        averia: p.averia.clone(),
+        consecuencias: p.consecuencias.clone(),
+        propuesta: p.propuesta.clone(),
+        lineas: p
+            .lineas
+            .iter()
+            .map(|l| {
+                let mut l = l.clone();
+                if matches!(l.tipo.as_str(), "hora_oficial" | "hora_pareja" | "salida") {
+                    l.precio_unitario = 0.0;
+                    l.coste_unitario = None;
+                }
+                l
+            })
+            .collect(),
+    }
 }
 
 #[cfg(test)]

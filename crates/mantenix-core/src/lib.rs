@@ -19,11 +19,13 @@
 //! - [`motor`]: valoración: horas, costes y precio de venta.
 //! - [`tarifa`]: tarifa propia por equipo y revisión.
 //! - [`presupuesto`]: presupuestos de reparación y pequeñas obras.
+//! - [`empresa`]: membrete de los documentos (logo y habilitación según el ámbito).
 
 #![warn(missing_docs)]
 
 pub mod datos;
 pub mod db;
+pub mod empresa;
 pub mod modelo;
 pub mod motor;
 pub mod presupuesto;
@@ -201,8 +203,14 @@ mod tests {
         assert_eq!(l.len(), 2);
         assert_eq!(db::cargar_presupuesto(&c, "P-2026-001").unwrap().estado, "enviado");
         assert_eq!(l[0].total, 786.5);
+        assert_eq!(l[0].instalacion, "", "sin contrato ni dirección");
+        p.contrato = "Mantenimiento RITE Edificio A".into();
+        p.numero = "P-2026-002".into();
+        db::guardar_presupuesto(&c, &p).unwrap();
+        let l = db::listar_presupuestos(&c).unwrap();
+        assert!(l.iter().any(|r| r.instalacion == "Mantenimiento RITE Edificio A"));
         let h = db::historial(&c, Some("presupuesto"), 10).unwrap();
-        assert_eq!(h.len(), 3);
+        assert_eq!(h.len(), 4);
         assert_eq!(h[0].usuario.as_deref(), Some("juancar"));
         // otro año empieza en 001
         p.numero.clear();
@@ -213,6 +221,47 @@ mod tests {
         // validaciones
         p.cliente.clear();
         assert!(db::guardar_presupuesto(&c, &p).is_err());
+    }
+
+    #[test]
+    fn modelos_semilla_y_adaptacion() {
+        let c = db::abrir(std::path::Path::new(":memory:")).unwrap();
+        let fichero = raiz().join("datos/semilla/presupuestos/modelos.json");
+        let n = db::cargar_modelos_semilla(&c, &fichero).unwrap();
+        assert!(n >= 20, "{n} modelos");
+        assert_eq!(
+            db::cargar_modelos_semilla(&c, &fichero).unwrap(),
+            0,
+            "solo si no hay modelos"
+        );
+        let modelos = db::listar_modelos(&c).unwrap();
+        assert!(modelos.iter().all(|m| m.origen == "semilla" && !m.lineas.is_empty()));
+
+        // Presupuesto desde el modelo: precios del año (mano de obra) y coste + recargo (material)
+        let b = biblioteca();
+        let m = modelos.iter().find(|m| m.codigo == "UTA-CORREAS").unwrap();
+        let p = presupuesto::desde_modelo(m, &b, "2026-11-02");
+        let hora = p.lineas.iter().find(|l| l.tipo == "hora_oficial").unwrap();
+        assert_eq!(hora.precio_unitario, b.parametro(2026, "precio_hora_oficial").unwrap());
+        let correa = p.lineas.iter().find(|l| l.tipo == "material").unwrap();
+        let r = b.parametro(2026, "recargo_material_pct").unwrap();
+        assert_eq!(correa.precio_unitario, presupuesto::precio_material(18.0, r));
+        assert!(presupuesto::calcular(&p).total > 0.0);
+
+        // Adaptar: guardar como modelo propio con otro código
+        let mut q = p.clone();
+        q.equipo = "el extractor de la cocina".into();
+        let propio = presupuesto::a_modelo(&q, "ext-correas", "Extractor / ventilador", "Correas de extractor");
+        assert_eq!(propio.codigo, "EXT-CORREAS");
+        assert_eq!(propio.origen, "propio");
+        assert!(propio
+            .lineas
+            .iter()
+            .filter(|l| l.tipo == "hora_oficial")
+            .all(|l| l.precio_unitario == 0.0));
+        db::guardar_modelo(&c, &propio).unwrap();
+        assert_eq!(db::listar_modelos(&c).unwrap().len(), n + 1);
+        db::borrar_modelo(&c, "EXT-CORREAS").unwrap();
     }
 
     #[test]

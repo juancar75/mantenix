@@ -5,6 +5,8 @@
 
 // Entradas: datos = {p: Presupuesto, t: TotalesPresupuesto}, empresa = JSON de la empresa.
 #let empresa = json(bytes(sys.inputs.empresa))
+// membrete = {habilitaciones: [[texto, número]], logo: "logo.png" | none}, según el ámbito.
+#let membrete = json(bytes(sys.inputs.membrete))
 #let d = json(bytes(sys.inputs.datos))
 #let p = d.p
 #let t = d.t
@@ -40,13 +42,16 @@
 #grid(columns: (1fr, 1fr), column-gutter: 1.5cm,
   {
     set par(justify: false, leading: 0.45em)
+    if membrete.logo != none {
+      block(below: 0.5em, image(membrete.logo, height: 1.5cm, width: auto))
+    }
     text(13pt, weight: "bold", fill: azul, razon)
     set text(7.5pt, fill: gris)
     linebreak()
     for k in ("domicilio", "telefono", "email") {
       if campo(empresa.at(k, default: "")) [#empresa.at(k) \ ]
     }
-    for (nombre, numero) in empresa.at("habilitaciones", default: ()) [#nombre: #numero \ ]
+    for (nombre, numero) in membrete.habilitaciones [#nombre: *#numero* \ ]
   },
   block(inset: (left: 10pt), stroke: (left: 1.5pt + azul), {
     text(8pt, fill: gris, "Destinatario")

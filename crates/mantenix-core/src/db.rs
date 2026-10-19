@@ -15,7 +15,7 @@ use rusqlite::{params, Connection, OptionalExtension};
 use crate::datos::{Biblioteca, Equipo, FilaTabla31, Operacion, PartidaSubcontrata, Tiempo};
 use crate::modelo::{Contrato, Desplazamiento, Instalacion, LineaEquipo};
 use crate::motor::Valoracion;
-use crate::presupuesto::{calcular, Presupuesto, ESTADOS, TIPOS_LINEA};
+use crate::presupuesto::{calcular, ModeloPresupuesto, Presupuesto, ESTADOS, TIPOS_LINEA};
 use crate::Error;
 
 const ESQUEMA: &str = r#"
@@ -84,6 +84,11 @@ CREATE TABLE IF NOT EXISTS presupuesto (
     cliente TEXT NOT NULL, titulo TEXT NOT NULL, estado TEXT NOT NULL,
     base REAL NOT NULL, total REAL NOT NULL, json TEXT NOT NULL,
     actualizado TEXT NOT NULL DEFAULT (datetime('now')));
+
+-- Modelos de presupuesto (averías típicas por equipo)
+CREATE TABLE IF NOT EXISTS modelo_presupuesto (
+    codigo TEXT PRIMARY KEY, grupo TEXT NOT NULL, nombre TEXT NOT NULL, origen TEXT NOT NULL,
+    json TEXT NOT NULL, actualizado TEXT NOT NULL DEFAULT (datetime('now')));
 
 -- Valoraciones guardadas (reproducibles: se guarda el resultado completo)
 CREATE TABLE IF NOT EXISTS valoracion (
@@ -686,6 +691,20 @@ pub struct ResumenPresupuesto {
     pub titulo: String,
     /// Estado.
     pub estado: String,
+    /// `correctivo` u `obra`.
+    pub tipo: String,
+    /// Ámbito (`RITE`, `PCI`, `REBT` o vacío).
+    pub ambito: String,
+    /// Contrato de mantenimiento relacionado (puede estar vacío).
+    pub contrato: String,
+    /// Dirección de la instalación.
+    pub direccion: String,
+    /// Instalación a la que se oferta: el contrato si lo hay, si no la dirección.
+    pub instalacion: String,
+    /// Equipo afectado.
+    pub equipo: String,
+    /// Base imponible (€).
+    pub base: f64,
     /// Total con IVA (€).
     pub total: f64,
 }
@@ -773,15 +792,23 @@ pub fn cargar_presupuesto(c: &Connection, numero: &str) -> Result<Presupuesto, E
     serde_json::from_str(&json).map_err(|x| Error::Db(x.to_string()))
 }
 
-/// Presupuestos guardados, del más reciente al más antiguo.
+/// Presupuestos guardados, por cliente y, dentro de cada cliente, del más reciente al más antiguo.
 pub fn listar_presupuestos(c: &Connection) -> Result<Vec<ResumenPresupuesto>, Error> {
     let mut s = c
         .prepare(
-            "SELECT numero, fecha, cliente, titulo, estado, total FROM presupuesto ORDER BY fecha DESC, numero DESC",
+            "SELECT numero, fecha, cliente, titulo, estado, total, base,
+                    coalesce(json_extract(json, '$.tipo'), 'correctivo'),
+                    coalesce(json_extract(json, '$.contrato'), ''),
+                    coalesce(json_extract(json, '$.direccion'), ''),
+                    coalesce(json_extract(json, '$.equipo'), ''),
+                    coalesce(json_extract(json, '$.ambito'), '')
+             FROM presupuesto ORDER BY cliente COLLATE NOCASE, fecha DESC, numero DESC",
         )
         .map_err(e)?;
     let v = s
         .query_map([], |r| {
+            let contrato: String = r.get(8)?;
+            let direccion: String = r.get(9)?;
             Ok(ResumenPresupuesto {
                 numero: r.get(0)?,
                 fecha: r.get(1)?,
@@ -789,6 +816,17 @@ pub fn listar_presupuestos(c: &Connection) -> Result<Vec<ResumenPresupuesto>, Er
                 titulo: r.get(3)?,
                 estado: r.get(4)?,
                 total: r.get(5)?,
+                base: r.get(6)?,
+                tipo: r.get(7)?,
+                instalacion: if contrato.trim().is_empty() {
+                    direccion.clone()
+                } else {
+                    contrato.clone()
+                },
+                contrato,
+                direccion,
+                equipo: r.get(10)?,
+                ambito: r.get(11)?,
             })
         })
         .map_err(e)?
@@ -806,4 +844,77 @@ pub fn borrar_presupuesto(c: &Connection, numero: &str) -> Result<(), Error> {
         return Err(Error::NoEncontrado(numero.to_string()));
     }
     Ok(())
+}
+
+/// Guarda (o sustituye) un modelo de presupuesto.
+pub fn guardar_modelo(c: &Connection, m: &ModeloPresupuesto) -> Result<(), Error> {
+    if m.codigo.trim().is_empty() || m.nombre.trim().is_empty() {
+        return Err(Error::Db("El modelo necesita código y nombre".into()));
+    }
+    let json = serde_json::to_string(m).map_err(|x| Error::Db(x.to_string()))?;
+    c.execute(
+        "INSERT INTO modelo_presupuesto (codigo, grupo, nombre, origen, json) VALUES (?1,?2,?3,?4,?5)
+         ON CONFLICT(codigo) DO UPDATE SET grupo=excluded.grupo, nombre=excluded.nombre, origen=excluded.origen,
+         json=excluded.json, actualizado=datetime('now')",
+        params![m.codigo, m.grupo, m.nombre, m.origen, json],
+    )
+    .map_err(e)?;
+    Ok(())
+}
+
+/// Modelos de presupuesto, por grupo y nombre.
+pub fn listar_modelos(c: &Connection) -> Result<Vec<ModeloPresupuesto>, Error> {
+    let mut s = c
+        .prepare("SELECT json FROM modelo_presupuesto ORDER BY grupo COLLATE NOCASE, nombre COLLATE NOCASE")
+        .map_err(e)?;
+    let v: Vec<String> = s
+        .query_map([], |r| r.get(0))
+        .map_err(e)?
+        .collect::<Result<_, _>>()
+        .map_err(e)?;
+    v.iter()
+        .map(|j| serde_json::from_str(j).map_err(|x| Error::Db(x.to_string())))
+        .collect()
+}
+
+/// Elimina un modelo de presupuesto.
+pub fn borrar_modelo(c: &Connection, codigo: &str) -> Result<(), Error> {
+    if c.execute("DELETE FROM modelo_presupuesto WHERE codigo=?1", [codigo])
+        .map_err(e)?
+        == 0
+    {
+        return Err(Error::NoEncontrado(codigo.to_string()));
+    }
+    Ok(())
+}
+
+/// Carga los modelos semilla (JSON) si la base todavía no tiene ninguno. Devuelve cuántos cargó.
+/// Se llama al abrir la base, para que también las bases ya existentes reciban los modelos.
+pub fn cargar_modelos_semilla(c: &Connection, fichero: &Path) -> Result<usize, Error> {
+    let hay: i64 = c
+        .query_row("SELECT COUNT(*) FROM modelo_presupuesto", [], |r| r.get(0))
+        .map_err(e)?;
+    if hay > 0 || !fichero.exists() {
+        return Ok(0);
+    }
+    let texto =
+        std::fs::read_to_string(fichero).map_err(|x| Error::Fichero(fichero.display().to_string(), x.to_string()))?;
+    let modelos: Vec<ModeloPresupuesto> =
+        serde_json::from_str(&texto).map_err(|x| Error::Csv(fichero.display().to_string(), x.to_string()))?;
+    let anterior: Option<String> = c
+        .query_row("SELECT usuario FROM sesion LIMIT 1", [], |r| r.get(0))
+        .optional()
+        .map_err(e)?;
+    fijar_usuario(c, "semilla")?;
+    for mut m in modelos.iter().cloned() {
+        m.origen = "semilla".into();
+        guardar_modelo(c, &m)?;
+    }
+    match anterior {
+        Some(u) => fijar_usuario(c, &u)?,
+        None => {
+            c.execute("DELETE FROM sesion", []).map_err(e)?;
+        }
+    }
+    Ok(modelos.len())
 }

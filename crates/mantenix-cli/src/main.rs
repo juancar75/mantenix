@@ -81,8 +81,15 @@ enum Orden {
         #[arg(long)]
         pdf: Option<PathBuf>,
     },
-    /// Lista los presupuestos.
-    Presupuestos,
+    /// Lista los presupuestos (opcionalmente de un cliente) y genera la relación en PDF.
+    Presupuestos {
+        #[arg(long)]
+        cliente: Option<String>,
+        #[arg(long)]
+        pdf: Option<PathBuf>,
+    },
+    /// Carga el logo (PNG, JPG o SVG) de un ámbito: RITE, PCI, REBT o «general».
+    Logo { ambito: String, fichero: PathBuf },
     /// Genera el PDF de un contrato desde su JSON de datos (la empresa y las operaciones salen de la base).
     Contrato {
         datos: PathBuf,
@@ -105,6 +112,12 @@ fn main() -> Result<()> {
     }
     match cli.orden {
         Orden::Init { normativa, empresa } => {
+            if let Some(semilla) = normativa.parent() {
+                let n = db::cargar_modelos_semilla(&c, &semilla.join("presupuestos/modelos.json"))?;
+                if n > 0 {
+                    println!("{n} modelos de presupuesto cargados.");
+                }
+            }
             if db::inicializar(&mut c, &normativa, &empresa)? {
                 println!("Base creada en {} (empresa: {}).", cli.db.display(), empresa.display());
             } else {
@@ -188,8 +201,33 @@ fn main() -> Result<()> {
                 println!("PDF: {}", pdf.display());
             }
         }
-        Orden::Presupuestos => {
-            for r in db::listar_presupuestos(&c)? {
+        Orden::Logo { ambito, fichero } => {
+            let ambito = if ambito.eq_ignore_ascii_case("general") {
+                String::new()
+            } else {
+                ambito.to_uppercase()
+            };
+            let mut e = db::empresa(&c)?;
+            mantenix_core::empresa::fijar_logo(&mut e, &ambito, Some(&std::fs::read(&fichero)?))?;
+            db::fijar_empresa(&c, &e)?;
+            println!("Logo cargado.");
+        }
+        Orden::Presupuestos { cliente, pdf } => {
+            let lista: Vec<_> = db::listar_presupuestos(&c)?
+                .into_iter()
+                .filter(|r| cliente.as_ref().is_none_or(|x| &r.cliente == x))
+                .collect();
+            if let Some(pdf) = pdf {
+                let titulo = cliente
+                    .as_ref()
+                    .map(|x| format!("Presupuestos · {x}"))
+                    .unwrap_or_else(|| "Relación de presupuestos".into());
+                let hoy: String = c.query_row("SELECT date('now','localtime')", [], |r| r.get(0))?;
+                let bytes = mantenix_informes::relacion_presupuestos(&lista, &titulo, &hoy, &db::empresa(&c)?)?;
+                std::fs::write(&pdf, bytes)?;
+                println!("PDF: {}", pdf.display());
+            }
+            for r in &lista {
                 println!(
                     "{}  {}  {:<10} {:>10.2} €  {} · {}",
                     r.numero, r.fecha, r.estado, r.total, r.cliente, r.titulo
