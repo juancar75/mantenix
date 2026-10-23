@@ -17,6 +17,11 @@ const NOMBRES: Record<string, string> = {
   contingencia_pct: "Contingencia (%)",
   margen_pct: "Margen sobre venta (%)",
   minimo_visita_subcontrata: "Mínimo por visita de subcontrata (€)",
+  precio_hora_oficial: "Presupuestos: precio hora oficial (€/h)",
+  precio_hora_pareja: "Presupuestos: precio hora oficial + ayudante (€/h)",
+  precio_salida: "Presupuestos: precio por salida (€)",
+  coste_salida: "Presupuestos: coste por salida (€)",
+  recargo_material_pct: "Presupuestos: recargo sobre coste del material (%)",
 };
 const anio = ref(new Date().getFullYear());
 const valores = ref<Record<string, number | null>>({});

@@ -1,0 +1,1202 @@
+[
+ {
+  "codigo": "CAL-ELECTRODOS",
+  "grupo": "Sala de calderas",
+  "nombre": "Quemador de gas: electrodos de encendido e ionización",
+  "ambito": "RITE",
+  "tipo": "correctivo",
+  "titulo": "Sustitución de electrodos de encendido e ionización del quemador",
+  "equipo": "el quemador de la caldera de la sala de calderas",
+  "averia": "Los electrodos de encendido y de ionización presentan desgaste en la punta, depósitos de óxido y separación fuera de la cota del fabricante. Se registran fallos de encendido y bloqueos por falta de detección de llama.",
+  "consecuencias": "Bloqueos repetidos de la caldera con pérdida de servicio de calefacción y agua caliente, y arranques más largos con mayor emisión de inquemados.",
+  "propuesta": "Sustituir los electrodos de encendido e ionización por recambios originales, ajustar su posición según el fabricante, comprobar la corriente de ionización y realizar un análisis de combustión tras la intervención.",
+  "lineas": [
+   {
+    "tipo": "material",
+    "descripcion": "Juego de electrodos de encendido e ionización del quemador",
+    "unidad": "ud",
+    "cantidad": 1,
+    "precio_unitario": 0,
+    "coste_unitario": 45.0
+   },
+   {
+    "tipo": "hora_oficial",
+    "descripcion": "Mano de obra oficial",
+    "unidad": "h",
+    "cantidad": 1.5,
+    "precio_unitario": 0,
+    "coste_unitario": null
+   },
+   {
+    "tipo": "salida",
+    "descripcion": "Desplazamiento",
+    "unidad": "salida",
+    "cantidad": 1,
+    "precio_unitario": 0,
+    "coste_unitario": null
+   }
+  ]
+ },
+ {
+  "codigo": "CAL-BOQUILLA",
+  "grupo": "Sala de calderas",
+  "nombre": "Quemador de gasóleo: boquilla, filtro y fotocélula",
+  "ambito": "RITE",
+  "tipo": "correctivo",
+  "titulo": "Sustitución de boquilla, filtro de gasóleo y fotocélula del quemador",
+  "equipo": "el quemador de gasóleo de la caldera",
+  "averia": "La boquilla de pulverización presenta desgaste y goteo, el filtro de la línea de gasóleo está colmatado y la fotocélula da una lectura de llama baja. La combustión resulta inestable, con opacidad y CO por encima de lo admisible.",
+  "consecuencias": "Aumento del consumo de combustible, ensuciamiento del hogar y de los pasos de humos, y bloqueos del quemador.",
+  "propuesta": "Sustituir la boquilla por una de igual caudal y ángulo, el cartucho filtrante y la fotocélula; limpiar el cabezal de combustión y ajustar el quemador con analizador de gases.",
+  "lineas": [
+   {
+    "tipo": "material",
+    "descripcion": "Boquilla de pulverización de gasóleo",
+    "unidad": "ud",
+    "cantidad": 1,
+    "precio_unitario": 0,
+    "coste_unitario": 18.0
+   },
+   {
+    "tipo": "material",
+    "descripcion": "Cartucho filtrante de gasóleo",
+    "unidad": "ud",
+    "cantidad": 1,
+    "precio_unitario": 0,
+    "coste_unitario": 12.0
+   },
+   {
+    "tipo": "material",
+    "descripcion": "Fotocélula de detección de llama",
+    "unidad": "ud",
+    "cantidad": 1,
+    "precio_unitario": 0,
+    "coste_unitario": 38.0
+   },
+   {
+    "tipo": "hora_oficial",
+    "descripcion": "Mano de obra oficial",
+    "unidad": "h",
+    "cantidad": 2,
+    "precio_unitario": 0,
+    "coste_unitario": null
+   },
+   {
+    "tipo": "salida",
+    "descripcion": "Desplazamiento",
+    "unidad": "salida",
+    "cantidad": 1,
+    "precio_unitario": 0,
+    "coste_unitario": null
+   }
+  ]
+ },
+ {
+  "codigo": "CAL-VASO-EXP",
+  "grupo": "Sala de calderas",
+  "nombre": "Vaso de expansión sin carga o con membrana rota",
+  "ambito": "RITE",
+  "tipo": "correctivo",
+  "titulo": "Sustitución del vaso de expansión del circuito de calefacción",
+  "equipo": "el vaso de expansión del circuito de calefacción",
+  "averia": "El vaso de expansión ha perdido la precarga de aire y no la mantiene tras recargarlo, lo que indica rotura de la membrana. El circuito sufre variaciones de presión importantes y la válvula de seguridad descarga agua al calentarse la instalación.",
+  "consecuencias": "Disparos de la válvula de seguridad, entrada continua de agua nueva (con oxígeno y cal) que acelera la corrosión, y paradas de caldera por baja presión.",
+  "propuesta": "Sustituir el vaso de expansión por uno de igual o mayor capacidad, ajustar su precarga a la altura de la instalación, vaciar y llenar el tramo afectado, purgar y comprobar presiones en frío y en caliente.",
+  "lineas": [
+   {
+    "tipo": "material",
+    "descripcion": "Vaso de expansión de membrana 50 l, 10 bar",
+    "unidad": "ud",
+    "cantidad": 1,
+    "precio_unitario": 0,
+    "coste_unitario": 120.0
+   },
+   {
+    "tipo": "material",
+    "descripcion": "Racores, juntas y pequeño material",
+    "unidad": "ud",
+    "cantidad": 1,
+    "precio_unitario": 0,
+    "coste_unitario": 20.0
+   },
+   {
+    "tipo": "hora_pareja",
+    "descripcion": "Mano de obra oficial + ayudante",
+    "unidad": "h",
+    "cantidad": 2,
+    "precio_unitario": 0,
+    "coste_unitario": null
+   },
+   {
+    "tipo": "salida",
+    "descripcion": "Desplazamiento",
+    "unidad": "salida",
+    "cantidad": 1,
+    "precio_unitario": 0,
+    "coste_unitario": null
+   }
+  ]
+ },
+ {
+  "codigo": "CAL-VALV-SEG",
+  "grupo": "Sala de calderas",
+  "nombre": "Válvula de seguridad que gotea",
+  "ambito": "RITE",
+  "tipo": "correctivo",
+  "titulo": "Sustitución de la válvula de seguridad del generador",
+  "equipo": "la válvula de seguridad de la caldera",
+  "averia": "La válvula de seguridad gotea de forma continua con la instalación a presión normal de trabajo: el asiento está deteriorado por depósitos de cal.",
+  "consecuencias": "Pérdida continua de agua del circuito y de presión, y riesgo de que la válvula no abra correctamente cuando sea necesario.",
+  "propuesta": "Sustituir la válvula de seguridad por otra del mismo tarado y diámetro, con conducción de la descarga a desagüe visible, y comprobar su funcionamiento.",
+  "lineas": [
+   {
+    "tipo": "material",
+    "descripcion": "Válvula de seguridad tarada 3 bar, 1\"",
+    "unidad": "ud",
+    "cantidad": 1,
+    "precio_unitario": 0,
+    "coste_unitario": 40.0
+   },
+   {
+    "tipo": "hora_oficial",
+    "descripcion": "Mano de obra oficial",
+    "unidad": "h",
+    "cantidad": 1,
+    "precio_unitario": 0,
+    "coste_unitario": null
+   },
+   {
+    "tipo": "salida",
+    "descripcion": "Desplazamiento",
+    "unidad": "salida",
+    "cantidad": 1,
+    "precio_unitario": 0,
+    "coste_unitario": null
+   }
+  ]
+ },
+ {
+  "codigo": "CAL-SERVO-3V",
+  "grupo": "Sala de calderas",
+  "nombre": "Servomotor de válvula de tres vías averiado",
+  "ambito": "RITE",
+  "tipo": "correctivo",
+  "titulo": "Sustitución del servomotor de la válvula mezcladora de tres vías",
+  "equipo": "el servomotor de la válvula de tres vías del circuito de calefacción",
+  "averia": "El servomotor no responde a las señales de la centralita de regulación: el motor no actúa y la válvula queda en posición fija.",
+  "consecuencias": "La temperatura de impulsión no se regula según la temperatura exterior, con exceso o falta de calor en el edificio y mayor consumo.",
+  "propuesta": "Sustituir el servomotor por otro compatible con la válvula y con la regulación existentes, conectar, ajustar el recorrido y comprobar el funcionamiento desde la centralita.",
+  "lineas": [
+   {
+    "tipo": "material",
+    "descripcion": "Servomotor para válvula de tres vías, 230 V, 3 puntos",
+    "unidad": "ud",
+    "cantidad": 1,
+    "precio_unitario": 0,
+    "coste_unitario": 220.0
+   },
+   {
+    "tipo": "hora_oficial",
+    "descripcion": "Mano de obra oficial",
+    "unidad": "h",
+    "cantidad": 1.5,
+    "precio_unitario": 0,
+    "coste_unitario": null
+   },
+   {
+    "tipo": "salida",
+    "descripcion": "Desplazamiento",
+    "unidad": "salida",
+    "cantidad": 1,
+    "precio_unitario": 0,
+    "coste_unitario": null
+   }
+  ]
+ },
+ {
+  "codigo": "CAL-BOMBA",
+  "grupo": "Sala de calderas",
+  "nombre": "Bomba circuladora con rodamientos desgastados",
+  "ambito": "RITE",
+  "tipo": "correctivo",
+  "titulo": "Sustitución de bomba circuladora",
+  "equipo": "la bomba circuladora del circuito primario",
+  "averia": "La bomba presenta ruido de rodamientos y vibraciones anómalas. El consumo eléctrico medido supera el nominal de la placa y el caudal no alcanza el de diseño, lo que indica desgaste del rotor y de los rodamientos.",
+  "consecuencias": "Riesgo de parada de la bomba en temporada, con pérdida de servicio, y mayor consumo eléctrico mientras siga en funcionamiento.",
+  "propuesta": "Sustituir la bomba por una electrónica de alta eficiencia, de caudal y altura equivalentes, incluyendo juntas, conexionado eléctrico, purga del circuito y puesta en marcha con comprobación de caudal.",
+  "lineas": [
+   {
+    "tipo": "material",
+    "descripcion": "Bomba circuladora electrónica de alta eficiencia DN40",
+    "unidad": "ud",
+    "cantidad": 1,
+    "precio_unitario": 0,
+    "coste_unitario": 850.0
+   },
+   {
+    "tipo": "material",
+    "descripcion": "Juntas, racores y pequeño material",
+    "unidad": "ud",
+    "cantidad": 1,
+    "precio_unitario": 0,
+    "coste_unitario": 30.0
+   },
+   {
+    "tipo": "hora_pareja",
+    "descripcion": "Mano de obra oficial + ayudante",
+    "unidad": "h",
+    "cantidad": 3,
+    "precio_unitario": 0,
+    "coste_unitario": null
+   },
+   {
+    "tipo": "salida",
+    "descripcion": "Desplazamiento",
+    "unidad": "salida",
+    "cantidad": 1,
+    "precio_unitario": 0,
+    "coste_unitario": null
+   }
+  ]
+ },
+ {
+  "codigo": "CAL-INTERCAMB",
+  "grupo": "Sala de calderas",
+  "nombre": "Intercambiador de placas incrustado",
+  "ambito": "RITE",
+  "tipo": "correctivo",
+  "titulo": "Limpieza química del intercambiador de placas",
+  "equipo": "el intercambiador de placas de producción de agua caliente sanitaria",
+  "averia": "El intercambiador presenta una pérdida de carga elevada y un salto térmico bajo entre primario y secundario por incrustaciones calcáreas en las placas.",
+  "consecuencias": "Agua caliente sanitaria por debajo de la temperatura de consigna, mayor tiempo de funcionamiento de la caldera y dificultad para alcanzar las temperaturas de tratamiento frente a la legionela.",
+  "propuesta": "Desmontar o aislar el intercambiador, realizar una limpieza química con desincrustante compatible con el material de las placas, neutralizar, aclarar, sustituir las juntas dañadas y volver a poner en servicio.",
+  "lineas": [
+   {
+    "tipo": "material",
+    "descripcion": "Desincrustante y neutralizante",
+    "unidad": "ud",
+    "cantidad": 1,
+    "precio_unitario": 0,
+    "coste_unitario": 60.0
+   },
+   {
+    "tipo": "material",
+    "descripcion": "Juntas del intercambiador",
+    "unidad": "ud",
+    "cantidad": 1,
+    "precio_unitario": 0,
+    "coste_unitario": 45.0
+   },
+   {
+    "tipo": "hora_pareja",
+    "descripcion": "Mano de obra oficial + ayudante",
+    "unidad": "h",
+    "cantidad": 4,
+    "precio_unitario": 0,
+    "coste_unitario": null
+   },
+   {
+    "tipo": "salida",
+    "descripcion": "Desplazamiento",
+    "unidad": "salida",
+    "cantidad": 1,
+    "precio_unitario": 0,
+    "coste_unitario": null
+   }
+  ]
+ },
+ {
+  "codigo": "ACS-ANODO",
+  "grupo": "Agua caliente sanitaria",
+  "nombre": "Ánodo de magnesio agotado en acumulador",
+  "ambito": "RITE",
+  "tipo": "correctivo",
+  "titulo": "Sustitución del ánodo de magnesio del acumulador de ACS",
+  "equipo": "el acumulador de agua caliente sanitaria",
+  "averia": "El ánodo de sacrificio de magnesio está consumido en más de un 70 %, por lo que el acumulador ha perdido la protección catódica.",
+  "consecuencias": "Corrosión interior del acumulador y riesgo de perforación, con su sustitución completa.",
+  "propuesta": "Vaciar el acumulador, sustituir el ánodo de magnesio por otro de las mismas dimensiones, limpiar los lodos del fondo, llenar, purgar y comprobar la estanqueidad.",
+  "lineas": [
+   {
+    "tipo": "material",
+    "descripcion": "Ánodo de magnesio para acumulador",
+    "unidad": "ud",
+    "cantidad": 1,
+    "precio_unitario": 0,
+    "coste_unitario": 45.0
+   },
+   {
+    "tipo": "hora_oficial",
+    "descripcion": "Mano de obra oficial",
+    "unidad": "h",
+    "cantidad": 1.5,
+    "precio_unitario": 0,
+    "coste_unitario": null
+   },
+   {
+    "tipo": "salida",
+    "descripcion": "Desplazamiento",
+    "unidad": "salida",
+    "cantidad": 1,
+    "precio_unitario": 0,
+    "coste_unitario": null
+   }
+  ]
+ },
+ {
+  "codigo": "BDC-FUGA",
+  "grupo": "Bomba de calor aire-agua",
+  "nombre": "Fuga de refrigerante",
+  "ambito": "RITE",
+  "tipo": "correctivo",
+  "titulo": "Localización y reparación de fuga de refrigerante y recarga",
+  "equipo": "la bomba de calor aire-agua",
+  "averia": "La unidad trabaja con baja presión de aspiración y recalentamiento elevado, y la prueba de detección indica una fuga de refrigerante en el circuito frigorífico.",
+  "consecuencias": "Pérdida progresiva de potencia y de rendimiento, riesgo de avería del compresor por trabajo con falta de carga y emisión de gas fluorado a la atmósfera.",
+  "propuesta": "Localizar la fuga con detector electrónico y nitrógeno, reparar el punto de fuga, hacer prueba de estanqueidad y vacío, recargar con el refrigerante y la cantidad indicados en la placa, y registrar la intervención según la normativa de gases fluorados.",
+  "lineas": [
+   {
+    "tipo": "material",
+    "descripcion": "Refrigerante (según placa del equipo)",
+    "unidad": "kg",
+    "cantidad": 3,
+    "precio_unitario": 0,
+    "coste_unitario": 30.0
+   },
+   {
+    "tipo": "material",
+    "descripcion": "Nitrógeno, varilla de soldadura y material de reparación",
+    "unidad": "ud",
+    "cantidad": 1,
+    "precio_unitario": 0,
+    "coste_unitario": 35.0
+   },
+   {
+    "tipo": "hora_pareja",
+    "descripcion": "Mano de obra oficial + ayudante",
+    "unidad": "h",
+    "cantidad": 4,
+    "precio_unitario": 0,
+    "coste_unitario": null
+   },
+   {
+    "tipo": "salida",
+    "descripcion": "Desplazamiento",
+    "unidad": "salida",
+    "cantidad": 1,
+    "precio_unitario": 0,
+    "coste_unitario": null
+   }
+  ]
+ },
+ {
+  "codigo": "BDC-VENT-EXT",
+  "grupo": "Bomba de calor aire-agua",
+  "nombre": "Motor del ventilador exterior averiado",
+  "ambito": "RITE",
+  "tipo": "correctivo",
+  "titulo": "Sustitución del motor del ventilador de la unidad exterior",
+  "equipo": "la unidad exterior de la bomba de calor aire-agua",
+  "averia": "El motor del ventilador de la unidad exterior presenta ruido de rodamientos y arranca de forma intermitente; el equipo entra en alarma por alta presión en frío o por desescarches deficientes en calor.",
+  "consecuencias": "Paradas del equipo por alarma, pérdida de potencia y riesgo de avería del compresor.",
+  "propuesta": "Sustituir el motor del ventilador por un recambio compatible, comprobar el equilibrado de la hélice y verificar presiones y consumos de la unidad en funcionamiento.",
+  "lineas": [
+   {
+    "tipo": "material",
+    "descripcion": "Motor de ventilador de unidad exterior (recambio original)",
+    "unidad": "ud",
+    "cantidad": 1,
+    "precio_unitario": 0,
+    "coste_unitario": 380.0
+   },
+   {
+    "tipo": "hora_oficial",
+    "descripcion": "Mano de obra oficial",
+    "unidad": "h",
+    "cantidad": 2,
+    "precio_unitario": 0,
+    "coste_unitario": null
+   },
+   {
+    "tipo": "salida",
+    "descripcion": "Desplazamiento",
+    "unidad": "salida",
+    "cantidad": 1,
+    "precio_unitario": 0,
+    "coste_unitario": null
+   }
+  ]
+ },
+ {
+  "codigo": "BDC-SONDAS",
+  "grupo": "Bomba de calor aire-agua",
+  "nombre": "Sondas de temperatura deterioradas",
+  "ambito": "RITE",
+  "tipo": "correctivo",
+  "titulo": "Sustitución de sondas de temperatura de la bomba de calor",
+  "equipo": "las sondas de temperatura de la bomba de calor aire-agua",
+  "averia": "Las sondas de temperatura de impulsión y retorno dan lecturas fuera de rango respecto a un termómetro de contraste; una de ellas presenta el cable deteriorado.",
+  "consecuencias": "Regulación incorrecta del equipo, con ciclos cortos del compresor, alarmas y temperaturas de servicio inadecuadas.",
+  "propuesta": "Sustituir las sondas por recambios del fabricante, fijarlas con pasta térmica y aislamiento, y comprobar las lecturas en el controlador.",
+  "lineas": [
+   {
+    "tipo": "material",
+    "descripcion": "Sonda de temperatura NTC (recambio original)",
+    "unidad": "ud",
+    "cantidad": 2,
+    "precio_unitario": 0,
+    "coste_unitario": 25.0
+   },
+   {
+    "tipo": "hora_oficial",
+    "descripcion": "Mano de obra oficial",
+    "unidad": "h",
+    "cantidad": 1,
+    "precio_unitario": 0,
+    "coste_unitario": null
+   },
+   {
+    "tipo": "salida",
+    "descripcion": "Desplazamiento",
+    "unidad": "salida",
+    "cantidad": 1,
+    "precio_unitario": 0,
+    "coste_unitario": null
+   }
+  ]
+ },
+ {
+  "codigo": "BDC-GLICOL",
+  "grupo": "Bomba de calor aire-agua",
+  "nombre": "Glicol degradado en el circuito",
+  "ambito": "RITE",
+  "tipo": "correctivo",
+  "titulo": "Sustitución del anticongelante del circuito hidráulico",
+  "equipo": "el circuito hidráulico de la bomba de calor aire-agua",
+  "averia": "El análisis del fluido indica una concentración de glicol insuficiente para la temperatura mínima de la zona y un pH ácido, lo que revela degradación del anticongelante.",
+  "consecuencias": "Riesgo de congelación y rotura del intercambiador en heladas, y corrosión interna del circuito.",
+  "propuesta": "Vaciar el circuito, retirar el fluido como residuo, lavar, llenar con glicol propilénico inhibido a la concentración necesaria, purgar y comprobar la concentración con refractómetro.",
+  "lineas": [
+   {
+    "tipo": "material",
+    "descripcion": "Glicol propilénico inhibido (garrafa 25 l)",
+    "unidad": "ud",
+    "cantidad": 2,
+    "precio_unitario": 0,
+    "coste_unitario": 110.0
+   },
+   {
+    "tipo": "partida",
+    "descripcion": "Retirada y gestión del fluido usado como residuo",
+    "unidad": "ud",
+    "cantidad": 1,
+    "precio_unitario": 60.0,
+    "coste_unitario": 40.0
+   },
+   {
+    "tipo": "hora_pareja",
+    "descripcion": "Mano de obra oficial + ayudante",
+    "unidad": "h",
+    "cantidad": 3,
+    "precio_unitario": 0,
+    "coste_unitario": null
+   },
+   {
+    "tipo": "salida",
+    "descripcion": "Desplazamiento",
+    "unidad": "salida",
+    "cantidad": 1,
+    "precio_unitario": 0,
+    "coste_unitario": null
+   }
+  ]
+ },
+ {
+  "codigo": "UTA-CORREAS",
+  "grupo": "Climatizador (UTA)",
+  "nombre": "Correas de transmisión desgastadas",
+  "ambito": "RITE",
+  "tipo": "correctivo",
+  "titulo": "Sustitución de correas de transmisión del ventilador",
+  "equipo": "el climatizador (unidad de tratamiento de aire)",
+  "averia": "Las correas de transmisión del ventilador presentan grietas, desgaste en los flancos y patinan en el arranque; las poleas muestran desalineación.",
+  "consecuencias": "Rotura de correas con parada del ventilador y pérdida del caudal de aire de ventilación y climatización.",
+  "propuesta": "Sustituir el juego completo de correas, alinear las poleas, tensar según el fabricante y comprobar el caudal y el consumo del motor.",
+  "lineas": [
+   {
+    "tipo": "material",
+    "descripcion": "Correa trapezoidal (según medida instalada)",
+    "unidad": "ud",
+    "cantidad": 2,
+    "precio_unitario": 0,
+    "coste_unitario": 18.0
+   },
+   {
+    "tipo": "hora_oficial",
+    "descripcion": "Mano de obra oficial",
+    "unidad": "h",
+    "cantidad": 1.5,
+    "precio_unitario": 0,
+    "coste_unitario": null
+   },
+   {
+    "tipo": "salida",
+    "descripcion": "Desplazamiento",
+    "unidad": "salida",
+    "cantidad": 1,
+    "precio_unitario": 0,
+    "coste_unitario": null
+   }
+  ]
+ },
+ {
+  "codigo": "UTA-FILTROS",
+  "grupo": "Climatizador (UTA)",
+  "nombre": "Filtros colmatados",
+  "ambito": "RITE",
+  "tipo": "correctivo",
+  "titulo": "Sustitución de filtros del climatizador",
+  "equipo": "el climatizador (unidad de tratamiento de aire)",
+  "averia": "Los filtros presentan una pérdida de carga superior a la final recomendada por el fabricante y suciedad visible; los prefiltros tienen el medio filtrante deformado.",
+  "consecuencias": "Reducción del caudal de aire exterior y de la calidad del aire interior, mayor consumo del ventilador y ensuciamiento de las baterías.",
+  "propuesta": "Sustituir prefiltros y filtros de bolsa por otros de la misma clase de filtración, limpiar los marcos y comprobar la estanqueidad y la pérdida de carga inicial.",
+  "lineas": [
+   {
+    "tipo": "material",
+    "descripcion": "Prefiltro ISO Coarse 592×592",
+    "unidad": "ud",
+    "cantidad": 4,
+    "precio_unitario": 0,
+    "coste_unitario": 12.0
+   },
+   {
+    "tipo": "material",
+    "descripcion": "Filtro de bolsas ISO ePM1 592×592",
+    "unidad": "ud",
+    "cantidad": 4,
+    "precio_unitario": 0,
+    "coste_unitario": 38.0
+   },
+   {
+    "tipo": "partida",
+    "descripcion": "Retirada y gestión de filtros usados",
+    "unidad": "ud",
+    "cantidad": 1,
+    "precio_unitario": 25.0,
+    "coste_unitario": 15.0
+   },
+   {
+    "tipo": "hora_oficial",
+    "descripcion": "Mano de obra oficial",
+    "unidad": "h",
+    "cantidad": 1.5,
+    "precio_unitario": 0,
+    "coste_unitario": null
+   },
+   {
+    "tipo": "salida",
+    "descripcion": "Desplazamiento",
+    "unidad": "salida",
+    "cantidad": 1,
+    "precio_unitario": 0,
+    "coste_unitario": null
+   }
+  ]
+ },
+ {
+  "codigo": "UTA-RODAMIENTOS",
+  "grupo": "Climatizador (UTA)",
+  "nombre": "Rodamientos del ventilador desgastados",
+  "ambito": "RITE",
+  "tipo": "correctivo",
+  "titulo": "Sustitución de rodamientos del ventilador del climatizador",
+  "equipo": "el ventilador del climatizador",
+  "averia": "Los rodamientos del eje del ventilador presentan ruido y temperatura elevada en funcionamiento; la medida de vibraciones supera los valores de referencia.",
+  "consecuencias": "Riesgo de gripado del eje y avería del ventilador con parada del climatizador.",
+  "propuesta": "Desmontar el ventilador, sustituir los rodamientos y soportes, engrasar, equilibrar y comprobar vibraciones y consumo tras la intervención.",
+  "lineas": [
+   {
+    "tipo": "material",
+    "descripcion": "Rodamientos y soportes del eje del ventilador",
+    "unidad": "ud",
+    "cantidad": 2,
+    "precio_unitario": 0,
+    "coste_unitario": 45.0
+   },
+   {
+    "tipo": "material",
+    "descripcion": "Grasa y pequeño material",
+    "unidad": "ud",
+    "cantidad": 1,
+    "precio_unitario": 0,
+    "coste_unitario": 15.0
+   },
+   {
+    "tipo": "hora_pareja",
+    "descripcion": "Mano de obra oficial + ayudante",
+    "unidad": "h",
+    "cantidad": 4,
+    "precio_unitario": 0,
+    "coste_unitario": null
+   },
+   {
+    "tipo": "salida",
+    "descripcion": "Desplazamiento",
+    "unidad": "salida",
+    "cantidad": 1,
+    "precio_unitario": 0,
+    "coste_unitario": null
+   }
+  ]
+ },
+ {
+  "codigo": "UTA-CONDENSADOS",
+  "grupo": "Climatizador (UTA)",
+  "nombre": "Bandeja y sifón de condensados obstruidos",
+  "ambito": "RITE",
+  "tipo": "correctivo",
+  "titulo": "Limpieza y reparación del drenaje de condensados",
+  "equipo": "la sección de batería de frío del climatizador",
+  "averia": "La bandeja de condensados retiene agua estancada por obstrucción del sifón, que además está deteriorado; hay restos de lodos biológicos.",
+  "consecuencias": "Desbordamiento de agua en el interior del equipo y riesgo de proliferación de microorganismos en el aire impulsado.",
+  "propuesta": "Limpiar y desinfectar la bandeja, sustituir el sifón por uno adecuado a la presión de la sección, comprobar la pendiente de evacuación y el desagüe.",
+  "lineas": [
+   {
+    "tipo": "material",
+    "descripcion": "Sifón para climatizador",
+    "unidad": "ud",
+    "cantidad": 1,
+    "precio_unitario": 0,
+    "coste_unitario": 35.0
+   },
+   {
+    "tipo": "material",
+    "descripcion": "Producto limpiador y desinfectante",
+    "unidad": "ud",
+    "cantidad": 1,
+    "precio_unitario": 0,
+    "coste_unitario": 20.0
+   },
+   {
+    "tipo": "hora_oficial",
+    "descripcion": "Mano de obra oficial",
+    "unidad": "h",
+    "cantidad": 2,
+    "precio_unitario": 0,
+    "coste_unitario": null
+   },
+   {
+    "tipo": "salida",
+    "descripcion": "Desplazamiento",
+    "unidad": "salida",
+    "cantidad": 1,
+    "precio_unitario": 0,
+    "coste_unitario": null
+   }
+  ]
+ },
+ {
+  "codigo": "EXT-MOTOR",
+  "grupo": "Extractor / ventilador",
+  "nombre": "Motor del extractor averiado",
+  "ambito": "RITE",
+  "tipo": "correctivo",
+  "titulo": "Sustitución del motor del extractor",
+  "equipo": "el extractor de ventilación",
+  "averia": "El motor del extractor presenta aislamiento bajo en la medida con megóhmetro y se calienta en exceso; dispara la protección térmica tras pocos minutos de funcionamiento.",
+  "consecuencias": "Pérdida de la ventilación del local, con acumulación de contaminantes o humedad, y riesgo de quemado del motor.",
+  "propuesta": "Sustituir el motor por otro de igual potencia, velocidad y forma constructiva, comprobar el sentido de giro, el consumo y el ajuste de las protecciones.",
+  "lineas": [
+   {
+    "tipo": "material",
+    "descripcion": "Motor eléctrico trifásico 1,1 kW (según placa)",
+    "unidad": "ud",
+    "cantidad": 1,
+    "precio_unitario": 0,
+    "coste_unitario": 280.0
+   },
+   {
+    "tipo": "hora_pareja",
+    "descripcion": "Mano de obra oficial + ayudante",
+    "unidad": "h",
+    "cantidad": 3,
+    "precio_unitario": 0,
+    "coste_unitario": null
+   },
+   {
+    "tipo": "salida",
+    "descripcion": "Desplazamiento",
+    "unidad": "salida",
+    "cantidad": 1,
+    "precio_unitario": 0,
+    "coste_unitario": null
+   }
+  ]
+ },
+ {
+  "codigo": "EXT-RODAMIENTOS",
+  "grupo": "Extractor / ventilador",
+  "nombre": "Rodamientos del extractor desgastados",
+  "ambito": "RITE",
+  "tipo": "correctivo",
+  "titulo": "Sustitución de rodamientos del extractor",
+  "equipo": "el extractor de ventilación",
+  "averia": "El extractor presenta ruido y vibraciones anómalas por desgaste de los rodamientos del motor o del eje.",
+  "consecuencias": "Avería del extractor con parada de la ventilación y daños en el rodete.",
+  "propuesta": "Desmontar el conjunto, sustituir los rodamientos, comprobar el equilibrado del rodete y el consumo del motor tras el montaje.",
+  "lineas": [
+   {
+    "tipo": "material",
+    "descripcion": "Rodamientos de bolas con obturación",
+    "unidad": "ud",
+    "cantidad": 2,
+    "precio_unitario": 0,
+    "coste_unitario": 15.0
+   },
+   {
+    "tipo": "hora_pareja",
+    "descripcion": "Mano de obra oficial + ayudante",
+    "unidad": "h",
+    "cantidad": 3,
+    "precio_unitario": 0,
+    "coste_unitario": null
+   },
+   {
+    "tipo": "salida",
+    "descripcion": "Desplazamiento",
+    "unidad": "salida",
+    "cantidad": 1,
+    "precio_unitario": 0,
+    "coste_unitario": null
+   }
+  ]
+ },
+ {
+  "codigo": "EXT-SUSTITUCION",
+  "grupo": "Extractor / ventilador",
+  "nombre": "Extractor al final de su vida útil",
+  "ambito": "RITE",
+  "tipo": "correctivo",
+  "titulo": "Sustitución completa del extractor",
+  "equipo": "el extractor de cubierta",
+  "averia": "El extractor presenta corrosión de la carcasa y del rodete, ruido elevado y un caudal muy inferior al de diseño. Por su estado y antigüedad no es aconsejable repararlo.",
+  "consecuencias": "Ventilación insuficiente del local y riesgo de desprendimiento de piezas.",
+  "propuesta": "Sustituir el extractor por uno de caudal y presión equivalentes, adaptando la bancada y las conexiones, con puesta en marcha y medición de caudal.",
+  "lineas": [
+   {
+    "tipo": "material",
+    "descripcion": "Extractor de cubierta (caudal y presión equivalentes)",
+    "unidad": "ud",
+    "cantidad": 1,
+    "precio_unitario": 0,
+    "coste_unitario": 650.0
+   },
+   {
+    "tipo": "material",
+    "descripcion": "Adaptaciones, juntas y pequeño material",
+    "unidad": "ud",
+    "cantidad": 1,
+    "precio_unitario": 0,
+    "coste_unitario": 60.0
+   },
+   {
+    "tipo": "hora_pareja",
+    "descripcion": "Mano de obra oficial + ayudante",
+    "unidad": "h",
+    "cantidad": 4,
+    "precio_unitario": 0,
+    "coste_unitario": null
+   },
+   {
+    "tipo": "salida",
+    "descripcion": "Desplazamiento",
+    "unidad": "salida",
+    "cantidad": 1,
+    "precio_unitario": 0,
+    "coste_unitario": null
+   }
+  ]
+ },
+ {
+  "codigo": "SPLIT-BOMBA-COND",
+  "grupo": "Split / multisplit",
+  "nombre": "Bomba de condensados averiada",
+  "ambito": "RITE",
+  "tipo": "correctivo",
+  "titulo": "Sustitución de la bomba de condensados del split",
+  "equipo": "la unidad interior del equipo de aire acondicionado",
+  "averia": "La bomba de evacuación de condensados no arranca y el agua rebosa por la unidad interior.",
+  "consecuencias": "Goteo de agua sobre techos y paramentos, y parada del equipo por alarma de nivel.",
+  "propuesta": "Sustituir la bomba de condensados, limpiar la bandeja y el tubo de desagüe y comprobar la evacuación con agua.",
+  "lineas": [
+   {
+    "tipo": "material",
+    "descripcion": "Bomba de condensados",
+    "unidad": "ud",
+    "cantidad": 1,
+    "precio_unitario": 0,
+    "coste_unitario": 85.0
+   },
+   {
+    "tipo": "hora_oficial",
+    "descripcion": "Mano de obra oficial",
+    "unidad": "h",
+    "cantidad": 1.5,
+    "precio_unitario": 0,
+    "coste_unitario": null
+   },
+   {
+    "tipo": "salida",
+    "descripcion": "Desplazamiento",
+    "unidad": "salida",
+    "cantidad": 1,
+    "precio_unitario": 0,
+    "coste_unitario": null
+   }
+  ]
+ },
+ {
+  "codigo": "SPLIT-FUGA",
+  "grupo": "Split / multisplit",
+  "nombre": "Fuga de refrigerante",
+  "ambito": "RITE",
+  "tipo": "correctivo",
+  "titulo": "Reparación de fuga y recarga de refrigerante del split",
+  "equipo": "el equipo de aire acondicionado tipo split",
+  "averia": "El equipo no enfría ni calienta lo suficiente; las presiones de trabajo indican falta de carga y se localiza la fuga en un abocardado de la línea frigorífica.",
+  "consecuencias": "Pérdida de potencia, mayor consumo y riesgo de avería del compresor; emisión de gas fluorado.",
+  "propuesta": "Rehacer las uniones con fuga, hacer prueba de estanqueidad con nitrógeno y vacío, y recargar con la cantidad de refrigerante indicada en la placa.",
+  "lineas": [
+   {
+    "tipo": "material",
+    "descripcion": "Refrigerante (según placa del equipo)",
+    "unidad": "kg",
+    "cantidad": 1.2,
+    "precio_unitario": 0,
+    "coste_unitario": 30.0
+   },
+   {
+    "tipo": "material",
+    "descripcion": "Tuercas, abocardados y material de reparación",
+    "unidad": "ud",
+    "cantidad": 1,
+    "precio_unitario": 0,
+    "coste_unitario": 20.0
+   },
+   {
+    "tipo": "hora_pareja",
+    "descripcion": "Mano de obra oficial + ayudante",
+    "unidad": "h",
+    "cantidad": 3,
+    "precio_unitario": 0,
+    "coste_unitario": null
+   },
+   {
+    "tipo": "salida",
+    "descripcion": "Desplazamiento",
+    "unidad": "salida",
+    "cantidad": 1,
+    "precio_unitario": 0,
+    "coste_unitario": null
+   }
+  ]
+ },
+ {
+  "codigo": "SPLIT-SUSTITUCION",
+  "grupo": "Split / multisplit",
+  "nombre": "Split al final de su vida útil",
+  "ambito": "RITE",
+  "tipo": "correctivo",
+  "titulo": "Sustitución del equipo de aire acondicionado",
+  "equipo": "el equipo de aire acondicionado tipo split",
+  "averia": "El equipo tiene más de quince años, presenta averías repetidas y su refrigerante está en régimen de eliminación progresiva, lo que encarece o impide su recarga. No es aconsejable repararlo.",
+  "consecuencias": "Averías cada vez más frecuentes, consumo elevado y posible imposibilidad de reparación por falta de refrigerante o de repuestos.",
+  "propuesta": "Sustituir el equipo por uno nuevo de potencia equivalente y alta eficiencia, con retirada y gestión del equipo antiguo y recuperación de su refrigerante, nueva línea frigorífica si es necesario y puesta en marcha.",
+  "lineas": [
+   {
+    "tipo": "material",
+    "descripcion": "Equipo split 1×1 de 3,5 kW, alta eficiencia",
+    "unidad": "ud",
+    "cantidad": 1,
+    "precio_unitario": 0,
+    "coste_unitario": 750.0
+   },
+   {
+    "tipo": "material",
+    "descripcion": "Línea frigorífica aislada",
+    "unidad": "m",
+    "cantidad": 10,
+    "precio_unitario": 0,
+    "coste_unitario": 15.0
+   },
+   {
+    "tipo": "partida",
+    "descripcion": "Recuperación del refrigerante y gestión del equipo retirado",
+    "unidad": "ud",
+    "cantidad": 1,
+    "precio_unitario": 60.0,
+    "coste_unitario": 40.0
+   },
+   {
+    "tipo": "hora_pareja",
+    "descripcion": "Mano de obra oficial + ayudante",
+    "unidad": "h",
+    "cantidad": 5,
+    "precio_unitario": 0,
+    "coste_unitario": null
+   },
+   {
+    "tipo": "salida",
+    "descripcion": "Desplazamiento",
+    "unidad": "salida",
+    "cantidad": 1,
+    "precio_unitario": 0,
+    "coste_unitario": null
+   }
+  ]
+ },
+ {
+  "codigo": "PCI-DETECTORES",
+  "grupo": "Protección contra incendios",
+  "nombre": "Detectores al final de su vida útil",
+  "ambito": "PCI",
+  "tipo": "correctivo",
+  "titulo": "Sustitución de detectores de incendio por fin de vida útil",
+  "equipo": "los detectores automáticos del sistema de detección de incendios",
+  "averia": "Los detectores instalados han alcanzado los diez años de vida útil desde su fabricación, según la fecha marcada en los equipos.",
+  "consecuencias": "El Reglamento de instalaciones de protección contra incendios obliga a sustituir los detectores al final de su vida útil; mantenerlos supone un incumplimiento y un riesgo de falsas alarmas o de falta de detección.",
+  "propuesta": "Sustituir los detectores por otros compatibles con la central, programarlos si son direccionables y comprobar su funcionamiento uno a uno con gas o calor de prueba.",
+  "lineas": [
+   {
+    "tipo": "material",
+    "descripcion": "Detector óptico de humos compatible con la central",
+    "unidad": "ud",
+    "cantidad": 12,
+    "precio_unitario": 0,
+    "coste_unitario": 18.0
+   },
+   {
+    "tipo": "hora_oficial",
+    "descripcion": "Mano de obra oficial",
+    "unidad": "h",
+    "cantidad": 3,
+    "precio_unitario": 0,
+    "coste_unitario": null
+   },
+   {
+    "tipo": "salida",
+    "descripcion": "Desplazamiento",
+    "unidad": "salida",
+    "cantidad": 1,
+    "precio_unitario": 0,
+    "coste_unitario": null
+   }
+  ]
+ },
+ {
+  "codigo": "PCI-BATERIAS",
+  "grupo": "Protección contra incendios",
+  "nombre": "Baterías de la central de detección agotadas",
+  "ambito": "PCI",
+  "tipo": "correctivo",
+  "titulo": "Sustitución de baterías de la central de detección",
+  "equipo": "la central de detección de incendios",
+  "averia": "Las baterías de respaldo de la central no mantienen la tensión en la prueba de descarga y la central indica avería de baterías.",
+  "consecuencias": "Ante un corte de suministro eléctrico el sistema de detección y alarma quedaría fuera de servicio.",
+  "propuesta": "Sustituir las baterías por otras de la misma tensión y capacidad, comprobar la carga y la conmutación a batería.",
+  "lineas": [
+   {
+    "tipo": "material",
+    "descripcion": "Batería de plomo 12 V 7 Ah",
+    "unidad": "ud",
+    "cantidad": 2,
+    "precio_unitario": 0,
+    "coste_unitario": 16.0
+   },
+   {
+    "tipo": "hora_oficial",
+    "descripcion": "Mano de obra oficial",
+    "unidad": "h",
+    "cantidad": 0.5,
+    "precio_unitario": 0,
+    "coste_unitario": null
+   },
+   {
+    "tipo": "salida",
+    "descripcion": "Desplazamiento",
+    "unidad": "salida",
+    "cantidad": 1,
+    "precio_unitario": 0,
+    "coste_unitario": null
+   }
+  ]
+ },
+ {
+  "codigo": "PCI-MANGUERA-BIE",
+  "grupo": "Protección contra incendios",
+  "nombre": "Manguera de BIE deteriorada",
+  "ambito": "PCI",
+  "tipo": "correctivo",
+  "titulo": "Sustitución de manguera de boca de incendio equipada",
+  "equipo": "la boca de incendio equipada (BIE)",
+  "averia": "La manguera presenta grietas y deformaciones, y no supera la prueba de estanqueidad y resistencia a presión.",
+  "consecuencias": "La BIE no garantiza su funcionamiento en caso de incendio; el Reglamento exige sustituir las mangueras que no superan la prueba.",
+  "propuesta": "Sustituir la manguera por otra del mismo diámetro y longitud, comprobar la estanqueidad del conjunto y dejar la BIE en servicio.",
+  "lineas": [
+   {
+    "tipo": "material",
+    "descripcion": "Manguera semirrígida 25 mm × 20 m con racores",
+    "unidad": "ud",
+    "cantidad": 1,
+    "precio_unitario": 0,
+    "coste_unitario": 95.0
+   },
+   {
+    "tipo": "hora_oficial",
+    "descripcion": "Mano de obra oficial",
+    "unidad": "h",
+    "cantidad": 1,
+    "precio_unitario": 0,
+    "coste_unitario": null
+   },
+   {
+    "tipo": "salida",
+    "descripcion": "Desplazamiento",
+    "unidad": "salida",
+    "cantidad": 1,
+    "precio_unitario": 0,
+    "coste_unitario": null
+   }
+  ]
+ },
+ {
+  "codigo": "PCI-EXTINTORES",
+  "grupo": "Protección contra incendios",
+  "nombre": "Extintores al final de su vida útil",
+  "ambito": "PCI",
+  "tipo": "correctivo",
+  "titulo": "Sustitución de extintores por fin de vida útil",
+  "equipo": "los extintores portátiles",
+  "averia": "Los extintores indicados han alcanzado veinte años desde su fabricación.",
+  "consecuencias": "El Reglamento de instalaciones de protección contra incendios establece una vida útil de veinte años para los extintores; a partir de ella deben retirarse del servicio.",
+  "propuesta": "Suministrar e instalar extintores nuevos de la misma eficacia, retirar los antiguos para su gestión como residuo y actualizar el registro de equipos.",
+  "lineas": [
+   {
+    "tipo": "material",
+    "descripcion": "Extintor de polvo ABC 6 kg eficacia 27A-183B",
+    "unidad": "ud",
+    "cantidad": 6,
+    "precio_unitario": 0,
+    "coste_unitario": 28.0
+   },
+   {
+    "tipo": "partida",
+    "descripcion": "Retirada y gestión de extintores fuera de servicio",
+    "unidad": "ud",
+    "cantidad": 6,
+    "precio_unitario": 6.0,
+    "coste_unitario": 4.0
+   },
+   {
+    "tipo": "hora_oficial",
+    "descripcion": "Mano de obra oficial",
+    "unidad": "h",
+    "cantidad": 1,
+    "precio_unitario": 0,
+    "coste_unitario": null
+   },
+   {
+    "tipo": "salida",
+    "descripcion": "Desplazamiento",
+    "unidad": "salida",
+    "cantidad": 1,
+    "precio_unitario": 0,
+    "coste_unitario": null
+   }
+  ]
+ },
+ {
+  "codigo": "PCI-ALUMBRADO-EMERG",
+  "grupo": "Protección contra incendios",
+  "nombre": "Baterías del alumbrado de emergencia agotadas",
+  "ambito": "REBT",
+  "tipo": "correctivo",
+  "titulo": "Sustitución de baterías del alumbrado de emergencia",
+  "equipo": "las luminarias de alumbrado de emergencia",
+  "averia": "En la prueba de autonomía varias luminarias no mantienen el encendido durante una hora.",
+  "consecuencias": "Falta de iluminación de evacuación en caso de corte de suministro.",
+  "propuesta": "Sustituir las baterías de las luminarias que no superan la prueba y repetir la prueba de autonomía.",
+  "lineas": [
+   {
+    "tipo": "material",
+    "descripcion": "Batería Ni-Cd para luminaria de emergencia",
+    "unidad": "ud",
+    "cantidad": 10,
+    "precio_unitario": 0,
+    "coste_unitario": 9.0
+   },
+   {
+    "tipo": "hora_oficial",
+    "descripcion": "Mano de obra oficial",
+    "unidad": "h",
+    "cantidad": 2,
+    "precio_unitario": 0,
+    "coste_unitario": null
+   },
+   {
+    "tipo": "salida",
+    "descripcion": "Desplazamiento",
+    "unidad": "salida",
+    "cantidad": 1,
+    "precio_unitario": 0,
+    "coste_unitario": null
+   }
+  ]
+ },
+ {
+  "codigo": "GAR-SENSORES-CO",
+  "grupo": "Ventilación de garaje",
+  "nombre": "Sensores de CO caducados",
+  "ambito": "",
+  "tipo": "correctivo",
+  "titulo": "Sustitución de cabezas sensoras de detección de CO",
+  "equipo": "el sistema de detección de monóxido de carbono del garaje",
+  "averia": "Las células electroquímicas de los detectores de CO han superado su vida útil según el fabricante y no responden correctamente al gas de prueba.",
+  "consecuencias": "El sistema puede no arrancar la ventilación del garaje ante concentraciones peligrosas de monóxido de carbono.",
+  "propuesta": "Sustituir las cabezas sensoras, calibrarlas con gas patrón y comprobar la puesta en marcha de la ventilación por niveles.",
+  "lineas": [
+   {
+    "tipo": "material",
+    "descripcion": "Cabeza sensora de CO",
+    "unidad": "ud",
+    "cantidad": 6,
+    "precio_unitario": 0,
+    "coste_unitario": 65.0
+   },
+   {
+    "tipo": "material",
+    "descripcion": "Gas de calibración (parte proporcional)",
+    "unidad": "ud",
+    "cantidad": 1,
+    "precio_unitario": 0,
+    "coste_unitario": 30.0
+   },
+   {
+    "tipo": "hora_oficial",
+    "descripcion": "Mano de obra oficial",
+    "unidad": "h",
+    "cantidad": 2,
+    "precio_unitario": 0,
+    "coste_unitario": null
+   },
+   {
+    "tipo": "salida",
+    "descripcion": "Desplazamiento",
+    "unidad": "salida",
+    "cantidad": 1,
+    "precio_unitario": 0,
+    "coste_unitario": null
+   }
+  ]
+ }
+]

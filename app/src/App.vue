@@ -6,18 +6,22 @@
 import { onMounted, ref, shallowRef } from "vue";
 import { api, type Estado } from "./api";
 import Contratos from "./vistas/Contratos.vue";
+import Presupuestos from "./vistas/Presupuestos.vue";
 import Catalogo from "./vistas/Catalogo.vue";
 import Parametros from "./vistas/Parametros.vue";
 import TarifaVista from "./vistas/Tarifa.vue";
 import Historial from "./vistas/Historial.vue";
 import BaseDatos from "./vistas/BaseDatos.vue";
+import Empresa from "./vistas/Empresa.vue";
 
 const vistas = [
   { id: "contratos", titulo: "Contratos", comp: Contratos },
+  { id: "presupuestos", titulo: "Presupuestos", comp: Presupuestos },
   { id: "catalogo", titulo: "Catálogo y tiempos", comp: Catalogo },
   { id: "parametros", titulo: "Parámetros por año", comp: Parametros },
   { id: "tarifa", titulo: "Tarifa propia", comp: TarifaVista },
   { id: "historial", titulo: "Historial de cambios", comp: Historial },
+  { id: "empresa", titulo: "Empresa y logos", comp: Empresa },
   { id: "base", titulo: "Base de datos", comp: BaseDatos },
 ];
 const activa = shallowRef(vistas[0]);

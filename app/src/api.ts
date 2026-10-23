@@ -38,6 +38,35 @@ export interface EquipoVista { codigo: string; familia: string; descripcion: str
 export interface FilaTarifa { codigo: string; familia: string; descripcion: string; unidad: string; origen: string; minutos_revision: number; coste_revision: number; precio_revision: number; coste_anual_regimen: number; precio_anual_regimen: number }
 export interface Tarifa { anio: number; coste_hora_oficial: number; coste_hora_ayudante: number; recargo_pct: number; margen_pct: number; filas: FilaTarifa[] }
 export interface Cambio { id: number; fecha: string; usuario: string | null; tabla: string; accion: string; antes: string | null; despues: string | null }
+export interface LineaPresupuesto {
+  tipo: string; descripcion: string; unidad: string; cantidad: number; precio_unitario: number; coste_unitario: number | null;
+  /** Solo en la interfaz: el precio se recalcula desde el coste (material). No se guarda. */
+  auto?: boolean;
+}
+export interface Presupuesto {
+  numero: string; fecha: string; ambito: string; tipo: string; cliente: string; cif: string; direccion: string; contacto: string; contrato: string;
+  titulo: string; equipo: string; deteccion: string; averia: string; consecuencias: string; propuesta: string;
+  lineas: LineaPresupuesto[]; descuento_pct: number; iva_pct: number; validez_dias: number; condiciones: string;
+  estado: string; notas_internas: string;
+}
+export interface TotalesPresupuesto {
+  lineas: { importe: number; coste: number | null }[]; subtotal: number; descuento: number; base: number; iva: number;
+  total: number; coste: number; lineas_sin_coste: number; margen: number; margen_pct: number;
+}
+export interface ResumenPresupuesto {
+  numero: string; fecha: string; cliente: string; titulo: string; estado: string; tipo: string; ambito: string; contrato: string;
+  direccion: string; instalacion: string; equipo: string; base: number; total: number;
+}
+export interface PrecioDefecto { tipo: string; descripcion: string; unidad: string; precio_unitario: number | null; coste_unitario: number | null }
+
+export interface ModeloPresupuesto {
+  codigo: string; grupo: string; nombre: string; origen: string; ambito: string; tipo: string; titulo: string;
+  equipo: string; averia: string; consecuencias: string; propuesta: string; lineas: LineaPresupuesto[];
+}
+export interface Ambito { codigo: string; nombre: string; habilitaciones: [string, string][] }
+/** Logo guardado en los datos de empresa (imagen en base64). */
+export interface Logo { tipo: string; datos: string }
+
 export interface Estado { ruta: string; usuario: string | null; contratos: number; empresa: string }
 
 // ── Comandos ──────────────────────────────────────────────────────
@@ -55,6 +84,28 @@ export const api = {
   valorar: (nombre: string) => invoke<Valoracion>("valorar_contrato", { nombre }),
   pdfHojaCostes: (nombre: string, ruta: string) => invoke<void>("pdf_hoja_costes", { nombre, ruta }),
 
+  listarPresupuestos: () => invoke<ResumenPresupuesto[]>("listar_presupuestos"),
+  cargarPresupuesto: (numero: string) => invoke<Presupuesto>("cargar_presupuesto", { numero }),
+  guardarPresupuesto: (presupuesto: Presupuesto) => invoke<string>("guardar_presupuesto", { presupuesto }),
+  borrarPresupuesto: (numero: string) => invoke<void>("borrar_presupuesto", { numero }),
+  calcularPresupuesto: (presupuesto: Presupuesto) => invoke<TotalesPresupuesto>("calcular_presupuesto", { presupuesto }),
+  preciosPresupuesto: (anio: number) =>
+    invoke<{ filas: PrecioDefecto[]; recargo_material_pct: number | null }>("precios_presupuesto", { anio }),
+  pdfPresupuesto: (numero: string, ruta: string) => invoke<void>("pdf_presupuesto", { numero, ruta }),
+  pdfRelacionPresupuestos: (numeros: string[], titulo: string, ruta: string) =>
+    invoke<void>("pdf_relacion_presupuestos", { numeros, titulo, ruta }),
+
+  listarModelos: () => invoke<ModeloPresupuesto[]>("listar_modelos"),
+  presupuestoDesdeModelo: (codigo: string, fecha: string) => invoke<Presupuesto>("presupuesto_desde_modelo", { codigo, fecha }),
+  guardarComoModelo: (presupuesto: Presupuesto, codigo: string, grupo: string, nombre: string) =>
+    invoke<void>("guardar_como_modelo", { presupuesto, codigo, grupo, nombre }),
+  borrarModelo: (codigo: string) => invoke<void>("borrar_modelo", { codigo }),
+
+  empresa: () => invoke<Record<string, any>>("empresa"),
+  fijarEmpresa: (datos: Record<string, any>) => invoke<void>("fijar_empresa", { datos }),
+  fijarLogo: (ambito: string, ruta: string) => invoke<void>("fijar_logo", { ambito, ruta }),
+  ambitos: () => invoke<Ambito[]>("ambitos"),
+
   catalogo: () => invoke<EquipoVista[]>("catalogo"),
   fijarTiempo: (equipo: string, operacion: string, minutos: number, tecnicos: number) =>
     invoke<void>("fijar_tiempo", { equipo, operacion, minutos, tecnicos }),
@@ -69,7 +120,7 @@ export const api = {
 
 // ── Formato ───────────────────────────────────────────────────────
 
-const fmt = new Intl.NumberFormat("es-ES", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fmt = new Intl.NumberFormat("es-ES", { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: "always" } as unknown as Intl.NumberFormatOptions);
 /** Importe en euros con formato español. */
 export const eur = (x: number | null | undefined) => (x == null ? "—" : fmt.format(x) + " €");
 /** Número con los decimales indicados. */

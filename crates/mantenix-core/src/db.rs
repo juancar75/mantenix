@@ -15,6 +15,7 @@ use rusqlite::{params, Connection, OptionalExtension};
 use crate::datos::{Biblioteca, Equipo, FilaTabla31, Operacion, PartidaSubcontrata, Tiempo};
 use crate::modelo::{Contrato, Desplazamiento, Instalacion, LineaEquipo};
 use crate::motor::Valoracion;
+use crate::presupuesto::{calcular, ModeloPresupuesto, Presupuesto, ESTADOS, TIPOS_LINEA};
 use crate::Error;
 
 const ESQUEMA: &str = r#"
@@ -76,6 +77,18 @@ CREATE TABLE IF NOT EXISTS sesion (usuario TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS auditoria (
     id INTEGER PRIMARY KEY AUTOINCREMENT, fecha TEXT NOT NULL DEFAULT (datetime('now')),
     usuario TEXT, tabla TEXT NOT NULL, accion TEXT NOT NULL, antes TEXT, despues TEXT);
+
+-- Presupuestos de reparación y pequeñas obras (el documento completo va en `json`)
+CREATE TABLE IF NOT EXISTS presupuesto (
+    id TEXT PRIMARY KEY, numero TEXT NOT NULL UNIQUE, anio INTEGER NOT NULL, fecha TEXT NOT NULL,
+    cliente TEXT NOT NULL, titulo TEXT NOT NULL, estado TEXT NOT NULL,
+    base REAL NOT NULL, total REAL NOT NULL, json TEXT NOT NULL,
+    actualizado TEXT NOT NULL DEFAULT (datetime('now')));
+
+-- Modelos de presupuesto (averías típicas por equipo)
+CREATE TABLE IF NOT EXISTS modelo_presupuesto (
+    codigo TEXT PRIMARY KEY, grupo TEXT NOT NULL, nombre TEXT NOT NULL, origen TEXT NOT NULL,
+    json TEXT NOT NULL, actualizado TEXT NOT NULL DEFAULT (datetime('now')));
 
 -- Valoraciones guardadas (reproducibles: se guarda el resultado completo)
 CREATE TABLE IF NOT EXISTS valoracion (
@@ -169,6 +182,12 @@ const AUDITADAS: &[(&str, &[&str])] = &[
         &["id", "instalacion_id", "codigo", "cantidad", "descripcion", "modo"],
     ),
     ("empresa", &["id", "json"]),
+    (
+        "presupuesto",
+        &[
+            "id", "numero", "fecha", "cliente", "titulo", "estado", "base", "total", "json",
+        ],
+    ),
 ];
 
 /// Genera los disparadores de auditoría (alta, cambio y baja) de una tabla.
@@ -657,4 +676,245 @@ pub fn borrar_contrato(c: &Connection, nombre: &str) -> Result<(), Error> {
         return Err(Error::NoEncontrado(nombre.to_string()));
     }
     Ok(())
+}
+
+/// Resumen de un presupuesto para listados.
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct ResumenPresupuesto {
+    /// Número (`P-AAAA-NNN`).
+    pub numero: String,
+    /// Fecha de emisión.
+    pub fecha: String,
+    /// Cliente.
+    pub cliente: String,
+    /// Título del trabajo.
+    pub titulo: String,
+    /// Estado.
+    pub estado: String,
+    /// `correctivo` u `obra`.
+    pub tipo: String,
+    /// Ámbito (`RITE`, `PCI`, `REBT` o vacío).
+    pub ambito: String,
+    /// Contrato de mantenimiento relacionado (puede estar vacío).
+    pub contrato: String,
+    /// Dirección de la instalación.
+    pub direccion: String,
+    /// Instalación a la que se oferta: el contrato si lo hay, si no la dirección.
+    pub instalacion: String,
+    /// Equipo afectado.
+    pub equipo: String,
+    /// Base imponible (€).
+    pub base: f64,
+    /// Total con IVA (€).
+    pub total: f64,
+}
+
+/// Siguiente número libre del año: `P-2026-001`, `P-2026-002`…
+pub fn siguiente_numero(c: &Connection, anio: u32) -> Result<String, Error> {
+    let prefijo = format!("P-{anio}-");
+    let ultimo: Option<i64> = c
+        .query_row(
+            "SELECT MAX(CAST(substr(numero, ?2) AS INTEGER)) FROM presupuesto WHERE numero LIKE ?1 || '%'",
+            params![prefijo, prefijo.len() as i64 + 1],
+            |r| r.get(0),
+        )
+        .map_err(e)?;
+    Ok(format!("{prefijo}{:03}", ultimo.unwrap_or(0) + 1))
+}
+
+/// Guarda un presupuesto. Si no tiene número se le asigna el siguiente del año; si ya existe
+/// uno con ese número, se sustituye. Devuelve el número.
+pub fn guardar_presupuesto(c: &Connection, p: &Presupuesto) -> Result<String, Error> {
+    let invalido = |m: String| Error::Db(m);
+    if p.cliente.trim().is_empty() || p.titulo.trim().is_empty() {
+        return Err(invalido("El presupuesto necesita cliente y título".into()));
+    }
+    if !ESTADOS.contains(&p.estado.as_str()) {
+        return Err(invalido(format!("Estado no válido: {}", p.estado)));
+    }
+    if let Some(l) = p.lineas.iter().find(|l| !TIPOS_LINEA.contains(&l.tipo.as_str())) {
+        return Err(invalido(format!("Tipo de línea no válido: {}", l.tipo)));
+    }
+    let mut p = p.clone();
+    if p.numero.trim().is_empty() {
+        p.numero = siguiente_numero(c, p.anio())?;
+    }
+    let t = calcular(&p);
+    let json = serde_json::to_string(&p).map_err(|x| Error::Db(x.to_string()))?;
+    let id: Option<String> = c
+        .query_row("SELECT id FROM presupuesto WHERE numero=?1", [&p.numero], |r| r.get(0))
+        .optional()
+        .map_err(e)?;
+    match id {
+        Some(id) => c.execute(
+            "UPDATE presupuesto SET anio=?2, fecha=?3, cliente=?4, titulo=?5, estado=?6, base=?7, total=?8, json=?9,
+             actualizado=datetime('now') WHERE id=?1",
+            params![
+                id,
+                p.anio(),
+                p.fecha,
+                p.cliente,
+                p.titulo,
+                p.estado,
+                t.base,
+                t.total,
+                json
+            ],
+        ),
+        None => c.execute(
+            "INSERT INTO presupuesto (id, numero, anio, fecha, cliente, titulo, estado, base, total, json)
+             VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10)",
+            params![
+                uuid(),
+                p.numero,
+                p.anio(),
+                p.fecha,
+                p.cliente,
+                p.titulo,
+                p.estado,
+                t.base,
+                t.total,
+                json
+            ],
+        ),
+    }
+    .map_err(e)?;
+    Ok(p.numero)
+}
+
+/// Carga un presupuesto por su número.
+pub fn cargar_presupuesto(c: &Connection, numero: &str) -> Result<Presupuesto, Error> {
+    let json: String = c
+        .query_row("SELECT json FROM presupuesto WHERE numero=?1", [numero], |r| r.get(0))
+        .optional()
+        .map_err(e)?
+        .ok_or_else(|| Error::NoEncontrado(numero.to_string()))?;
+    serde_json::from_str(&json).map_err(|x| Error::Db(x.to_string()))
+}
+
+/// Presupuestos guardados, por cliente y, dentro de cada cliente, del más reciente al más antiguo.
+pub fn listar_presupuestos(c: &Connection) -> Result<Vec<ResumenPresupuesto>, Error> {
+    let mut s = c
+        .prepare(
+            "SELECT numero, fecha, cliente, titulo, estado, total, base,
+                    coalesce(json_extract(json, '$.tipo'), 'correctivo'),
+                    coalesce(json_extract(json, '$.contrato'), ''),
+                    coalesce(json_extract(json, '$.direccion'), ''),
+                    coalesce(json_extract(json, '$.equipo'), ''),
+                    coalesce(json_extract(json, '$.ambito'), '')
+             FROM presupuesto ORDER BY cliente COLLATE NOCASE, fecha DESC, numero DESC",
+        )
+        .map_err(e)?;
+    let v = s
+        .query_map([], |r| {
+            let contrato: String = r.get(8)?;
+            let direccion: String = r.get(9)?;
+            Ok(ResumenPresupuesto {
+                numero: r.get(0)?,
+                fecha: r.get(1)?,
+                cliente: r.get(2)?,
+                titulo: r.get(3)?,
+                estado: r.get(4)?,
+                total: r.get(5)?,
+                base: r.get(6)?,
+                tipo: r.get(7)?,
+                instalacion: if contrato.trim().is_empty() {
+                    direccion.clone()
+                } else {
+                    contrato.clone()
+                },
+                contrato,
+                direccion,
+                equipo: r.get(10)?,
+                ambito: r.get(11)?,
+            })
+        })
+        .map_err(e)?
+        .collect::<Result<_, _>>()
+        .map_err(e)?;
+    Ok(v)
+}
+
+/// Elimina un presupuesto (queda constancia en `auditoria`).
+pub fn borrar_presupuesto(c: &Connection, numero: &str) -> Result<(), Error> {
+    if c.execute("DELETE FROM presupuesto WHERE numero=?1", [numero])
+        .map_err(e)?
+        == 0
+    {
+        return Err(Error::NoEncontrado(numero.to_string()));
+    }
+    Ok(())
+}
+
+/// Guarda (o sustituye) un modelo de presupuesto.
+pub fn guardar_modelo(c: &Connection, m: &ModeloPresupuesto) -> Result<(), Error> {
+    if m.codigo.trim().is_empty() || m.nombre.trim().is_empty() {
+        return Err(Error::Db("El modelo necesita código y nombre".into()));
+    }
+    let json = serde_json::to_string(m).map_err(|x| Error::Db(x.to_string()))?;
+    c.execute(
+        "INSERT INTO modelo_presupuesto (codigo, grupo, nombre, origen, json) VALUES (?1,?2,?3,?4,?5)
+         ON CONFLICT(codigo) DO UPDATE SET grupo=excluded.grupo, nombre=excluded.nombre, origen=excluded.origen,
+         json=excluded.json, actualizado=datetime('now')",
+        params![m.codigo, m.grupo, m.nombre, m.origen, json],
+    )
+    .map_err(e)?;
+    Ok(())
+}
+
+/// Modelos de presupuesto, por grupo y nombre.
+pub fn listar_modelos(c: &Connection) -> Result<Vec<ModeloPresupuesto>, Error> {
+    let mut s = c
+        .prepare("SELECT json FROM modelo_presupuesto ORDER BY grupo COLLATE NOCASE, nombre COLLATE NOCASE")
+        .map_err(e)?;
+    let v: Vec<String> = s
+        .query_map([], |r| r.get(0))
+        .map_err(e)?
+        .collect::<Result<_, _>>()
+        .map_err(e)?;
+    v.iter()
+        .map(|j| serde_json::from_str(j).map_err(|x| Error::Db(x.to_string())))
+        .collect()
+}
+
+/// Elimina un modelo de presupuesto.
+pub fn borrar_modelo(c: &Connection, codigo: &str) -> Result<(), Error> {
+    if c.execute("DELETE FROM modelo_presupuesto WHERE codigo=?1", [codigo])
+        .map_err(e)?
+        == 0
+    {
+        return Err(Error::NoEncontrado(codigo.to_string()));
+    }
+    Ok(())
+}
+
+/// Carga los modelos semilla (JSON) si la base todavía no tiene ninguno. Devuelve cuántos cargó.
+/// Se llama al abrir la base, para que también las bases ya existentes reciban los modelos.
+pub fn cargar_modelos_semilla(c: &Connection, fichero: &Path) -> Result<usize, Error> {
+    let hay: i64 = c
+        .query_row("SELECT COUNT(*) FROM modelo_presupuesto", [], |r| r.get(0))
+        .map_err(e)?;
+    if hay > 0 || !fichero.exists() {
+        return Ok(0);
+    }
+    let texto =
+        std::fs::read_to_string(fichero).map_err(|x| Error::Fichero(fichero.display().to_string(), x.to_string()))?;
+    let modelos: Vec<ModeloPresupuesto> =
+        serde_json::from_str(&texto).map_err(|x| Error::Csv(fichero.display().to_string(), x.to_string()))?;
+    let anterior: Option<String> = c
+        .query_row("SELECT usuario FROM sesion LIMIT 1", [], |r| r.get(0))
+        .optional()
+        .map_err(e)?;
+    fijar_usuario(c, "semilla")?;
+    for mut m in modelos.iter().cloned() {
+        m.origen = "semilla".into();
+        guardar_modelo(c, &m)?;
+    }
+    match anterior {
+        Some(u) => fijar_usuario(c, &u)?,
+        None => {
+            c.execute("DELETE FROM sesion", []).map_err(e)?;
+        }
+    }
+    Ok(modelos.len())
 }

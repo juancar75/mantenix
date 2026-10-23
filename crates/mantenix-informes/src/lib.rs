@@ -14,17 +14,23 @@
 #![warn(missing_docs)]
 
 use mantenix_core::datos::Operacion;
-use mantenix_core::{Tarifa, Valoracion};
+use mantenix_core::presupuesto::calcular;
+use mantenix_core::{Presupuesto, Tarifa, Valoracion};
 use typst::foundations::{Dict, IntoValue};
 use typst_as_lib::TypstEngine;
 use typst_layout::PagedDocument;
 
 /// Plantillas incrustadas: (nombre de fichero, contenido).
-const PLANTILLAS: [(&str, &str); 4] = [
+const PLANTILLAS: [(&str, &str); 6] = [
     ("comun.typ", include_str!("../../../plantillas/comun.typ")),
     ("hoja_costes.typ", include_str!("../../../plantillas/hoja_costes.typ")),
     ("tarifa.typ", include_str!("../../../plantillas/tarifa.typ")),
     ("contrato.typ", include_str!("../../../plantillas/contrato.typ")),
+    ("presupuesto.typ", include_str!("../../../plantillas/presupuesto.typ")),
+    (
+        "relacion_presupuestos.typ",
+        include_str!("../../../plantillas/relacion_presupuestos.typ"),
+    ),
 ];
 
 /// Tipografía Inter (SIL OFL 1.1, ver `assets/fuentes/OFL.txt`).
@@ -54,9 +60,19 @@ pub type Empresa = serde_json::Value;
 
 /// Compila una plantilla con las entradas indicadas (nombre → JSON en texto) y devuelve el PDF.
 fn compilar(plantilla: &str, entradas: &[(&str, String)]) -> Result<Vec<u8>, Error> {
+    compilar_con(plantilla, entradas, Vec::new())
+}
+
+/// Como [`compilar`], con ficheros binarios adicionales (p. ej. el logo) accesibles por su nombre.
+fn compilar_con(
+    plantilla: &str,
+    entradas: &[(&str, String)],
+    binarios: Vec<(&'static str, Vec<u8>)>,
+) -> Result<Vec<u8>, Error> {
     let motor = TypstEngine::builder()
         .fonts(FUENTES)
         .with_static_source_file_resolver(PLANTILLAS)
+        .with_static_file_resolver(binarios)
         .build();
     let mut inputs = Dict::new();
     for (k, v) in entradas {
@@ -83,6 +99,66 @@ pub fn tarifa(t: &Tarifa, empresa: &Empresa) -> Result<Vec<u8>, Error> {
         "tarifa.typ",
         &[("datos", serde_json::to_string(t)?), ("empresa", empresa.to_string())],
     )
+}
+
+/// Membrete (habilitaciones y logo del ámbito) como entrada y fichero para la plantilla.
+fn membrete(empresa: &Empresa, ambito: &str) -> (String, Vec<(&'static str, Vec<u8>)>) {
+    let m = mantenix_core::empresa::membrete(empresa, ambito);
+    let fichero: Option<&'static str> = match m.logo.as_deref() {
+        Some("logo.png") => Some("logo.png"),
+        Some("logo.jpg") => Some("logo.jpg"),
+        Some("logo.svg") => Some("logo.svg"),
+        _ => None,
+    };
+    let json = serde_json::json!({ "habilitaciones": m.habilitaciones, "logo": fichero });
+    let binarios = fichero.map(|f| vec![(f, m.logo_datos)]).unwrap_or_default();
+    (json.to_string(), binarios)
+}
+
+/// Carta presupuesto para el cliente (sin costes internos), con el logo y la habilitación
+/// de su ámbito.
+pub fn presupuesto(p: &Presupuesto, empresa: &Empresa) -> Result<Vec<u8>, Error> {
+    let datos = serde_json::json!({ "p": p, "t": calcular(p) });
+    let (m, logo) = membrete(empresa, &p.ambito);
+    compilar_con(
+        "presupuesto.typ",
+        &[
+            ("datos", datos.to_string()),
+            ("empresa", empresa_sin_logos(empresa).to_string()),
+            ("membrete", m),
+        ],
+        logo,
+    )
+}
+
+/// Relación de presupuestos (por cliente e instalación), sin costes internos.
+pub fn relacion_presupuestos(
+    lista: &[mantenix_core::db::ResumenPresupuesto],
+    titulo: &str,
+    fecha: &str,
+    empresa: &Empresa,
+) -> Result<Vec<u8>, Error> {
+    let datos = serde_json::json!({ "titulo": titulo, "fecha": fecha, "lista": lista });
+    let (m, logo) = membrete(empresa, "");
+    compilar_con(
+        "relacion_presupuestos.typ",
+        &[
+            ("datos", datos.to_string()),
+            ("empresa", empresa_sin_logos(empresa).to_string()),
+            ("membrete", m),
+        ],
+        logo,
+    )
+}
+
+/// Copia de los datos de empresa sin las imágenes (no hace falta pasarlas como texto).
+fn empresa_sin_logos(empresa: &Empresa) -> Empresa {
+    let mut e = empresa.clone();
+    if let Some(o) = e.as_object_mut() {
+        o.remove("logo");
+        o.remove("ambitos");
+    }
+    e
 }
 
 /// Operación tal como la necesita la plantilla del contrato.
