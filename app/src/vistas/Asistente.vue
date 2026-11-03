@@ -34,11 +34,11 @@ const GRUPOS_PCI = [
     codigos: ["DET-CENTRAL-CONV", "DET-CENTRAL-ANA", "DET-OPT", "DET-TERM", "DET-MULTI", "DET-PULS", "DET-SIR", "DET-SIR-OA", "DET-FA", "DET-MOD", "DET-RETEN"] },
   { titulo: "Agua contra incendios", ayuda: "Bocas de incendio (armarios con manguera), grupo de presión y aljibe, hidrantes y columna seca.",
     codigos: ["BIE-25", "BIE-45", "GP-S", "GP-M", "GP-L", "ALJIBE", "HID-EXT", "HID-COL", "CS-S", "CS-M"] },
-  { titulo: "Control de humos y sobrepresión", ayuda: "Ventiladores de extracción de humos del garaje (marcados F400 o F300) y su cuadro. Kits de sobrepresión de escalera: ventilador de impulsión (normalmente en cubierta o en la base de la escalera), compuerta de alivio y cuadro; cuente uno por escalera presurizada.", codigos: ["SCTEH-SIS", "SCTEH-VENT", "SCTEH-CUADRO", "SOBREP-KIT"] },
+  { titulo: "Control de humos y sobrepresión", ayuda: "Ventiladores de extracción de humos del garaje (marcados F400 o F300) y su cuadro. Cuadro de mando de bomberos: caja roja «uso exclusivo bomberos», normalmente en la entrada del garaje; cuente uno por cada cuadro aunque mande también la ventilación normal. Kits de sobrepresión de escalera: ventilador de impulsión (normalmente en cubierta o en la base de la escalera), compuerta de alivio y cuadro; cuente uno por escalera presurizada.", codigos: ["SCTEH-SIS", "SCTEH-VENT", "SCTEH-CUADRO", "SCH-BOMB", "SOBREP-KIT"] },
   { titulo: "Señalización", ayuda: "Señales fotoluminiscentes de evacuación y de medios de extinción.", codigos: ["SEN-UD"] },
 ];
 const GRUPOS_OTROS = [
-  { titulo: "Ventilación del garaje y cuartos técnicos", ayuda: "Central de detección de monóxido de carbono y sus detectores (en las paredes del garaje, a 1,5 m del suelo aprox.). Extractores de garaje que no sean de humos (si son F400/F300, van en «Control de humos» del paso anterior) y extractores de cuartos técnicos, trasteros o cuartos de basuras.", codigos: ["CO-CENTRAL", "CO-DET", "VENT-GAR", "VENT-CT"] },
+  { titulo: "Ventilación del garaje y cuartos técnicos", ayuda: "Central de detección de monóxido de carbono y sus detectores (en las paredes del garaje, a 1,5 m del suelo aprox.). Extractores de garaje que no sean de humos (si son F400/F300, van en «Control de humos» del paso anterior) y extractores de cuartos técnicos, trasteros o cuartos de basuras. Cuente también los cuadros de maniobra de esos ventiladores (el cuadro de bomberos va en el paso anterior).", codigos: ["CO-CENTRAL", "CO-DET", "VENT-GAR", "VENT-CT", "VENT-CUADRO"] },
   { titulo: "Alumbrado de emergencia", ayuda: "Luminarias de emergencia (con piloto verde encendido) en escaleras, pasillos y garaje.", codigos: ["AE-UD"] },
 ];
 

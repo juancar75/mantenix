@@ -346,6 +346,11 @@ mod tests {
             c.execute("DELETE FROM equipo WHERE codigo=?1", [cod]).unwrap();
         }
         c.execute("DELETE FROM operacion WHERE id='SOBREP-MED'", []).unwrap();
+        // y antes de la tabla 7.1 del DB HS 3
+        c.execute("DELETE FROM tiempo WHERE operacion_id LIKE 'CTE-HS3-%'", [])
+            .unwrap();
+        c.execute("DELETE FROM operacion WHERE id LIKE 'CTE-HS3-%'", [])
+            .unwrap();
         c.execute(
             "UPDATE tiempo SET minutos=99 WHERE codigo_equipo='UTA' AND operacion_id='RITE-T33-19'",
             [],
@@ -375,7 +380,7 @@ mod tests {
                 {"codigo":"DEP-INERCIA","cantidad":1},{"codigo":"DESHUM","cantidad":1},{"codigo":"CORTINA","cantidad":2},
                 {"codigo":"HUMID","cantidad":1},{"codigo":"INTERC-PL","cantidad":1},{"codigo":"EMISOR","cantidad":10}]},
               {"familia":"PCI","equipos":[{"codigo":"SOBREP-KIT","cantidad":2},{"codigo":"VENT-GAR","cantidad":4},
-                {"codigo":"VENT-CT","cantidad":3},{"codigo":"CO-DET","cantidad":6,"modo":"propio"}]}]}"#,
+                {"codigo":"VENT-CT","cantidad":3},{"codigo":"VENT-CUADRO","cantidad":2},{"codigo":"SCH-BOMB","cantidad":1},{"codigo":"CO-CENTRAL","cantidad":1,"modo":"propio"},{"codigo":"CO-DET","cantidad":6,"modo":"propio"}]}]}"#,
         )
         .unwrap();
         let v = valorar(&b, &k).unwrap();
@@ -393,7 +398,7 @@ mod tests {
         let otros = d["otros_sistemas"].as_array().unwrap();
         assert_eq!(otros.len(), 1);
         assert!(otros[0]["titulo"].as_str().unwrap().contains("cuartos técnicos"));
-        assert_eq!(otros[0]["equipos"].as_array().unwrap().len(), 3);
+        assert_eq!(otros[0]["equipos"].as_array().unwrap().len(), 5);
         let sch = d["sistemas"]
             .as_array()
             .unwrap()
@@ -401,5 +406,24 @@ mod tests {
             .find(|s| s["codigo"] == "SCH")
             .unwrap();
         assert!(sch["norma_adicional"].as_str().unwrap().contains("12101-6"));
+        assert!(sch["norma_adicional"].as_str().unwrap().contains("bomberos"));
+        let grupos: Vec<&str> = otros[0]["grupos"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|g| g["periodicidad"].as_str().unwrap())
+            .collect();
+        assert_eq!(
+            grupos,
+            [
+                "En cada visita",
+                "Cada seis meses",
+                "Anual",
+                "Cada cinco años (fuera de la cuota anual)"
+            ]
+        );
+        // Las de cada 5 años del DB HS 3 no entran en la cuota: van aparte.
+        assert!(v.operaciones_aparte.iter().any(|o| o.operacion_id == "CTE-HS3-02"));
+        assert_eq!(b.operaciones.keys().filter(|k| k.starts_with("CTE-HS3")).count(), 8);
     }
 }

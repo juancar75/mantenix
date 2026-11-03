@@ -202,8 +202,11 @@ Cualquier equipo que se añada o retire durante la vigencia del contrato se comu
 
 #for o in otros [
   == #o.titulo
-  #block(sticky: true, above: 0.9em, below: 0.4em, text(weight: "bold", fill: azul)[#o.periodicidad])
-  #for t in o.operaciones [- #t]
+  #if "nota" in o { par(text(style: "italic")[#o.nota]) }
+  #for g in o.at("grupos", default: ((periodicidad: o.at("periodicidad", default: ""), operaciones: o.at("operaciones", default: ())),)) [
+    #block(sticky: true, above: 0.9em, below: 0.4em, text(weight: "bold", fill: azul)[#g.periodicidad])
+    #for t in g.operaciones [- #t]
+  ]
 ]
 
 = Visitas

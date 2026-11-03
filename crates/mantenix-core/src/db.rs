@@ -1020,21 +1020,16 @@ pub fn actualizar_catalogo(c: &mut Connection, normativa: &Path, empresa: &Path)
             ],
         )
         .map_err(e)?;
-        for t in b.tiempos.iter().filter(|t| t.codigo_equipo == q.codigo) {
-            tx.execute(
-                "INSERT OR IGNORE INTO tiempo VALUES (?1,?2,?3,?4,?5,?6,?7)",
-                params![
-                    t.codigo_equipo,
-                    t.operacion_id,
-                    t.minutos,
-                    t.tecnicos,
-                    t.consumibles_eur,
-                    t.estado,
-                    t.nota
-                ],
-            )
-            .map_err(e)?;
-        }
+    }
+    // Tiempos de los equipos nuevos y de las operaciones nuevas sobre equipos ya existentes.
+    for t in b.tiempos.iter().filter(|t| {
+        eq_nuevos.iter().any(|q| q.codigo == t.codigo_equipo) || ops_nuevas.iter().any(|o| o.id == t.operacion_id)
+    }) {
+        tx.execute(
+            "INSERT OR IGNORE INTO tiempo SELECT ?1,?2,?3,?4,?5,?6,?7 WHERE EXISTS (SELECT 1 FROM equipo WHERE codigo=?1)",
+            params![t.codigo_equipo, t.operacion_id, t.minutos, t.tecnicos, t.consumibles_eur, t.estado, t.nota],
+        )
+        .map_err(e)?;
     }
     tx.commit().map_err(e)?;
     match anterior {

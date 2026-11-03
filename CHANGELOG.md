@@ -5,12 +5,16 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Añadido
-- **Catálogo ampliado** (11 equipos, con tiempos estándar, operaciones y tasa de avisos):
-  - Ventilación: extractor de garaje que no es de humos (`VENT-GAR`) y extractor de cuartos técnicos, trasteros o basuras (`VENT-CT`), con revisión en cada visita y limpieza anual (CTE DB HS 3 / fabricante).
-  - Kit de sobrepresión de escalera (`SOBREP-KIT`), dentro del sistema de control de humos del RIPCI, más la medición anual de presión diferencial y velocidad en puerta (UNE-EN 12101-6).
+- **Catálogo ampliado** (13 equipos, con tiempos estándar, operaciones y tasa de avisos):
+  - Ventilación: extractor de garaje que no es de humos (`VENT-GAR`), extractor de cuartos técnicos, trasteros o basuras (`VENT-CT`) y cuadro de maniobra de ventilación (`VENT-CUADRO`).
+  - Control de humos: cuadro de mando de bomberos (`SCH-BOMB`) y kit de sobrepresión de escalera (`SOBREP-KIT`), con las operaciones del RIPCI para control de humos y, en el kit, la medición anual de presión diferencial y velocidad en puerta (UNE-EN 12101-6).
   - Climatización: bomba de calor geotérmica o agua-agua, deshumectadora, humidificador, cortina de aire, depósito de inercia, intercambiador de placas, emisores (radiadores) y suelo radiante por colector.
-- El asistente pregunta por todos ellos (también por el ventilador de climatización `VENT`, que faltaba) y el contrato tipo los incluye: bloque «Ventilación del garaje y de cuartos técnicos» y nota UNE-EN 12101-6 en control de humos.
-- Las bases ya creadas reciben los equipos nuevos al abrirse (o con `mantenix init`), sin tocar los tiempos ni los equipos editados.
+- **Tabla 7.1 del CTE DB HS 3** (`datos/semilla/normativa/cte_hs3_tabla_7_1_operaciones.csv`): limpieza anual de conductos, aberturas y extractores, revisión semestral de filtros y automatismos, y comprobaciones cada 5 años, que se listan fuera de la cuota. Pendiente de cotejo con el texto vigente.
+- El asistente pregunta por todos ellos (también por el ventilador de climatización `VENT`, que faltaba) y el contrato tipo los incluye: bloque «Ventilación del garaje y de cuartos técnicos» con sus operaciones agrupadas por periodicidad, y notas de UNE-EN 12101-6 y del cuadro de bomberos en control de humos.
+- Las bases ya creadas reciben los equipos y operaciones nuevos al abrirse (o con `mantenix init`), sin tocar los tiempos ni los equipos editados.
+
+### Corregido
+- Textos de operaciones de fabricante que se cortaban por contener un punto y coma (sustitución de filtros de fancoil).
 
 ## [0.2.0] - 2026-11-03
 

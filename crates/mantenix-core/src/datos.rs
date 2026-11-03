@@ -178,6 +178,16 @@ struct FilaRipci {
 }
 
 #[derive(Deserialize)]
+struct FilaCteHs3 {
+    id: String,
+    operacion: String,
+    periodicidad: String,
+    referencia: String,
+    fuente: String,
+    verificado: String,
+}
+
+#[derive(Deserialize)]
 struct FilaFabricante {
     id: String,
     periodicidad: String,
@@ -268,6 +278,25 @@ impl Biblioteca {
                     verificado: r.verificado,
                 },
             );
+        }
+        // CTE DB HS 3, tabla 7.1 (ventilación de garajes, trasteros y cuartos técnicos).
+        let hs3 = bib.join("cte_hs3_tabla_7_1_operaciones.csv");
+        if hs3.exists() {
+            for r in leer::<FilaCteHs3>(&hs3)? {
+                b.operaciones.insert(
+                    r.id.clone(),
+                    Operacion {
+                        id: r.id,
+                        texto: r.operacion,
+                        periodicidad: r.periodicidad,
+                        tipo: "preventivo".into(),
+                        referencia: r.referencia,
+                        sistema: "VENT".into(),
+                        fuente: r.fuente,
+                        verificado: r.verificado,
+                    },
+                );
+            }
         }
         for r in leer::<FilaFabricante>(&bib.join("operaciones_fabricante.csv"))? {
             b.operaciones.insert(

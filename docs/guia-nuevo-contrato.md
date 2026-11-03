@@ -15,7 +15,7 @@ Lleve esta lista (o imprímala):
 - [ ] Radiadores de zonas comunes y colectores de suelo radiante.
 - [ ] Climatizadores (UTA), fancoils, splits o unidades interiores, ventiladores, cortinas de aire, deshumectadoras y humidificadores.
 - [ ] Extintores por tipo, detectores, pulsadores, sirenas, central de incendios, BIE, grupo de presión.
-- [ ] Garaje: central y detectores de CO, ventiladores de humos (F400/F300) y extractores normales.
+- [ ] Garaje: central y detectores de CO, ventiladores de humos (F400/F300) y extractores normales, cuadros de maniobra de ventilación y cuadro de bomberos (si lo hay).
 - [ ] Escaleras presurizadas: un kit de sobrepresión por escalera.
 - [ ] Extractores de cuartos técnicos, trasteros y cuartos de basuras.
 - [ ] Luces de emergencia.
@@ -29,7 +29,7 @@ Menú **Nuevo contrato (asistente)**. Son 8 pasos; arriba se ve en cuál está. 
 3. **Edificio** — nombre y dirección (obligatorios), uso, antigüedad, km y minutos desde la base (solo ida).
 4. **Climatización** — si no hay, marque *No hay*. Si hay: potencia total en kW (suma de placas), meses de funcionamiento y la cantidad de cada equipo. Puede añadir marca y modelo.
 5. **Incendios** — quién hace las revisiones (subcontrata o nosotros) y la cantidad de cada equipo.
-6. **Garaje y emergencias** — detectores de CO, extractores de garaje que no sean de humos, extractores de cuartos técnicos y luces de emergencia. Si no hay, deje 0. (Los kits de sobrepresión de escalera van en el paso 5, en *Control de humos y sobrepresión*.)
+6. **Garaje y emergencias** — detectores de CO, extractores de garaje que no sean de humos, extractores de cuartos técnicos y luces de emergencia. Si no hay, deje 0. Cuente los cuadros de maniobra de ventilación. (El cuadro de bomberos y los kits de sobrepresión de escalera van en el paso 5, en *Control de humos y sobrepresión*.)
 7. **Avisos y condiciones** — normalmente deje todo como está: *bolsa de avisos* y el resto vacío. Solo rellene el precio actual si el cliente ya paga otro mantenimiento.
 8. **Resultado** — precio anual y por visita, avisos incluidos y avisos a revisar. Botones *Contrato en PDF* y *Hoja de costes (interna)*.
 

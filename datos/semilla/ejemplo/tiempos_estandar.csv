@@ -106,10 +106,6 @@ DESHUM;RITE-T33-02;20;1;0;estimacion_borrador;producto limpieza batería
 DESHUM;RITE-T33-04;15;1;0;estimacion_borrador;
 DESHUM;RITE-T33-26;20;1;0;estimacion_borrador;
 HUMID;RITE-T33-21;20;1;0;estimacion_borrador;
-VENT-GAR;VENT-REV;20;1;0;estimacion_borrador;
-VENT-GAR;VENT-LIMP;30;1;0;estimacion_borrador;
-VENT-CT;VENT-REV;10;1;0;estimacion_borrador;
-VENT-CT;VENT-LIMP;15;1;0;estimacion_borrador;
 SOBREP-KIT;RIPCI-TI-50;10;1;0;estimacion_borrador;
 SOBREP-KIT;RIPCI-TI-51;10;1;0;estimacion_borrador;
 SOBREP-KIT;RIPCI-TI-52;20;1;0;estimacion_borrador;
@@ -119,3 +115,24 @@ SOBREP-KIT;RIPCI-TII-39;10;1;0;estimacion_borrador;
 SOBREP-KIT;RIPCI-TII-40;10;1;0;estimacion_borrador;
 SOBREP-KIT;RIPCI-TII-41;15;1;0;estimacion_borrador;
 SOBREP-KIT;SOBREP-MED;45;1;0;estimacion_borrador;Manómetro diferencial y anemómetro
+VENT-GAR;VENT-REV;20;1;0;estimacion_borrador;Fabricante, cada visita
+VENT-GAR;CTE-HS3-04;20;1;0;estimacion_borrador;
+VENT-GAR;CTE-HS3-05;30;1;0;estimacion_borrador;
+VENT-GAR;CTE-HS3-01;30;1;0;estimacion_borrador;Conductos y rejillas de su ramal
+VENT-GAR;CTE-HS3-02;30;1;0;estimacion_borrador;Conductos y rejillas de su ramal
+VENT-GAR;CTE-HS3-03;10;1;0;estimacion_borrador;Conductos y rejillas de su ramal
+VENT-CT;VENT-REV;10;1;0;estimacion_borrador;Fabricante, cada visita
+VENT-CT;CTE-HS3-04;10;1;0;estimacion_borrador;
+VENT-CT;CTE-HS3-05;15;1;0;estimacion_borrador;
+VENT-CT;CTE-HS3-01;15;1;0;estimacion_borrador;Conductos y rejillas de su ramal
+VENT-CT;CTE-HS3-02;15;1;0;estimacion_borrador;Conductos y rejillas de su ramal
+VENT-CT;CTE-HS3-03;5;1;0;estimacion_borrador;Conductos y rejillas de su ramal
+CO-CENTRAL;CTE-HS3-08;15;1;0;estimacion_borrador;Automatismos de la ventilación por CO
+SUELO-RAD;RITE-T33-17;5;1;0;estimacion_borrador;Termostato de seguridad de la mezcladora
+VENT-CUADRO;VENT-CUADRO-REV;15;1;0;estimacion_borrador;
+VENT-CUADRO;CTE-HS3-08;15;1;0;estimacion_borrador;Maniobra automática por CO u horario
+SCH-BOMB;RIPCI-TI-51;5;1;0;estimacion_borrador;
+SCH-BOMB;RIPCI-TI-52;15;1;0;estimacion_borrador;Prueba de cada mando de bomberos
+SCH-BOMB;RIPCI-TII-37;15;1;0;estimacion_borrador;Prioridad del mando de bomberos sobre la maniobra normal
+SCH-BOMB;RIPCI-TII-39;10;1;0;estimacion_borrador;
+SCH-BOMB;RIPCI-TII-41;10;1;0;estimacion_borrador;

@@ -54,6 +54,8 @@ pub const TASAS: &[(&str, f64)] = &[
     ("VENT-GAR", 0.2),
     ("VENT-CT", 0.1),
     ("SOBREP-KIT", 0.3),
+    ("VENT-CUADRO", 0.1),
+    ("SCH-BOMB", 0.05),
 ];
 
 /// Tasa de un equipo sin entrada en [`TASAS`] (difusores, extintores, señales…).

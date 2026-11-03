@@ -73,3 +73,5 @@ HUMID;RITE;Humidificador;ud;;;propio;
 VENT-GAR;PCI;Extractor de ventilación de garaje (no de humos);ud;VENT;;propio;
 VENT-CT;PCI;Extractor de cuarto técnico, trasteros o basuras;ud;VENT;;propio;
 SOBREP-KIT;PCI;Kit de sobrepresión de escalera (ventilador, alivio y cuadro);ud;SCH;;propio;
+VENT-CUADRO;PCI;Cuadro de maniobra de ventilación (garaje, cuartos técnicos);ud;VENT;;propio;
+SCH-BOMB;PCI;Cuadro de mando de bomberos (ventilación y control de humos);ud;SCH;;propio;

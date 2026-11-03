@@ -355,6 +355,20 @@ pub fn valorar(b: &Biblioteca, c: &Contrato) -> Result<Valoracion, Error> {
                         continue;
                     }
                     let base = veces_anio(&op.periodicidad, ins.temporada_meses, visitas);
+                    if base == 0.0 && op.periodicidad.trim().ends_with('a') {
+                        // Operaciones de varios años (p. ej. CTE DB HS 3 cada 5 años): fuera de la cuota.
+                        aparte.entry(op.id.clone()).or_insert(OperacionAparte {
+                            sistema: if op.sistema.is_empty() {
+                                eq.familia.clone()
+                            } else {
+                                op.sistema.clone()
+                            },
+                            operacion_id: op.id.clone(),
+                            periodicidad: op.periodicidad.clone(),
+                            texto: op.texto.clone(),
+                        });
+                        continue;
+                    }
                     let mut veces = if rite_le70 && op.periodicidad == "t" {
                         // ≤70 kW: las operaciones de temporada siguen la frecuencia de la tabla 3.1
                         // (una vez al año, o cada 2-4 años según equipo y uso).
