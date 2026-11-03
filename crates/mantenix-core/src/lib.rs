@@ -418,6 +418,7 @@ mod tests {
             .find(|s| s["codigo"] == "SCH")
             .unwrap();
         assert!(sch["norma_adicional"].as_str().unwrap().contains("12101-6"));
+        assert!(sch["norma_adicional"].as_str().unwrap().contains("UNE 23584"));
         assert!(sch["norma_adicional"].as_str().unwrap().contains("bomberos"));
         let grupos: Vec<&str> = otros[0]["grupos"]
             .as_array()
@@ -459,7 +460,7 @@ mod tests {
             r#"{"nombre":"ins","anio":2026,"uso":"viviendas","desplazamiento":{"km_ida":10,"minutos_ida":20},
             "instalaciones":[
               {"familia":"RITE","potencia_kw":200,"equipos":[{"codigo":"CALD-GAS","cantidad":2}]},
-              {"familia":"PCI","equipos":[{"codigo":"EXT-POLVO","cantidad":10},{"codigo":"CO-DET","cantidad":4,"modo":"propio"}]}]}"#,
+              {"familia":"PCI","equipos":[{"codigo":"EXT-POLVO","cantidad":10},{"codigo":"BIE-25","cantidad":4},{"codigo":"CO-DET","cantidad":4,"modo":"propio"}]}]}"#,
         )
         .unwrap();
         let sug = inspecciones::sugeridas(&b, &k);

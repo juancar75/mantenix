@@ -134,13 +134,10 @@ pub fn sugeridas(b: &Biblioteca, k: &Contrato) -> Vec<String> {
     {
         v.extend(["INSP-RITE-PARC", "INSP-RITE-COMP"]);
     }
+    // Solo extintores, señalización o alumbrado de emergencia no obligan a inspección (art. 22.2).
     let hay_pci = k.instalaciones.iter().flat_map(|i| &i.equipos).any(|l| {
         b.catalogo.get(&l.codigo).is_some_and(|e| {
-            e.familia == "PCI"
-                && !e.sistema_ripci.is_empty()
-                && e.sistema_ripci != "CO"
-                && e.sistema_ripci != "VENT"
-                && e.sistema_ripci != "AE"
+            e.familia == "PCI" && !["", "CO", "VENT", "AE", "EXT", "SEN"].contains(&e.sistema_ripci.as_str())
         })
     });
     if hay_pci && (garaje || k.uso != "viviendas") {

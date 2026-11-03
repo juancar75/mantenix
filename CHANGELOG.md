@@ -20,6 +20,9 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 - **Instalaciones de 70 kW o menos**: todas las operaciones se hacen con la frecuencia de revisión de la tabla 3.1 del RITE (anual o cada 2-4 años según equipo y uso). Las periodicidades de la tabla 3.3 se aplican solo por encima de 70 kW. Revisadas todas contra la tabla 3.3: coinciden.
 - DB HS 3: la revisión de automatismos de los sistemas de control es cada 2 años (no semestral).
 
+- **RIPCI cotejado** con la Guía técnica de aplicación v4 (junio 2025, texto del RD 513/2017 con el RD 164/2025): las 97 operaciones del anexo II (tablas I, II y III) coinciden en texto y periodicidad. El art. 22 queda verificado: exentos el residencial vivienda y los usos pequeños, pero el aparcamiento de 500 m² o más se inspecciona aunque el edificio sea de viviendas; con solo extintores o alumbrado de emergencia no hay inspección.
+- Control de humos: el mantenimiento sigue además la UNE 23584 en edificios de una planta, con atrios, con escaleras y subterráneos (no solo subterráneos); la sobrepresión de escaleras, UNE-EN 12101-6 y UNE 23584.
+
 ### Corregido
 - Textos de operaciones de fabricante que se cortaban por contener un punto y coma (sustitución de filtros de fancoil).
 

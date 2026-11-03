@@ -346,12 +346,12 @@ pub fn datos_contrato(b: &Biblioteca, k: &Contrato, v: &Valoracion, partes: &Val
                 "modo": if *sub { "subcontrata" } else { "propio" }, "equipos": equipos,
             });
             if c == "SCH" {
-                let mut nota = String::from("Según la Guía técnica de aplicación del RIPCI, en emplazamientos subterráneos el mantenimiento se realizará conforme a la norma UNE 23584.");
+                let mut nota = String::from("Conforme al anexo I del RIPCI, el mantenimiento de los sistemas de control de humos en edificios de una planta, multiplanta con atrios o con escaleras y en emplazamientos subterráneos se realizará además según la norma UNE 23584.");
                 if hay_codigo("SCH-BOMB") {
                     nota.push_str(" Se comprobará en cada revisión que el cuadro de mando de bomberos tiene prioridad sobre la maniobra normal y que cada mando actúa sobre los ventiladores y compuertas que le corresponden.");
                 }
                 if hay_codigo("SOBREP-KIT") {
-                    nota.push_str(" Los sistemas de presión diferencial de escaleras se comprobarán, además, conforme a la norma UNE-EN 12101-6 y a las instrucciones del fabricante (presión diferencial con puertas cerradas y velocidad del aire en la puerta abierta).");
+                    nota.push_str(" En los sistemas de presión diferencial de escaleras (UNE-EN 12101-6 y UNE 23584) se medirán anualmente la presión diferencial con puertas cerradas y la velocidad del aire en la puerta abierta.");
                 }
                 s["norma_adicional"] = json!(nota);
             }
