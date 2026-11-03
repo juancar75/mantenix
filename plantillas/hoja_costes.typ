@@ -74,6 +74,31 @@
   )
 ]
 
+#if val.at("limpiezas", default: ()).len() > 0 [
+  = Limpiezas que se presupuestan aparte (no incluidas en la cuota)
+  Precio orientativo con los mismos costes, indirectos, contingencia y margen del contrato; no incluye desplazamiento (se hacen aprovechando una visita) ni material.
+  #table(columns: (1fr, 1.6fr, auto, auto, auto, auto), align: (left, left, center, right, right, right),
+    table.header[Equipo][Limpieza][Period.][Veces/año][Precio/interv.][Precio/año],
+    ..val.limpiezas.map(o => (
+      text(8pt, o.descripcion + " (× " + num(o.cantidad, d: 0) + ")"), text(8pt, o.texto), o.periodicidad,
+      num(o.veces_anio, d: 2), eur(o.precio_intervencion), eur(o.precio_anio),
+    )).flatten(),
+    table.cell(colspan: 5, align: right)[*Total orientativo al año*], [*#eur(t.limpiezas_anio)*],
+  )
+]
+
+#if val.at("inspecciones", default: ()).len() > 0 [
+  = Inspecciones reglamentarias (aparte)
+  #table(columns: (1fr, auto, auto, auto, auto, auto), align: (left, center, center, right, right, right),
+    table.header[Inspección][Cada][Próxima][Horas][Acompañ.][Organismo],
+    ..val.inspecciones.map(i => (
+      text(8pt, i.reglamento + " — " + i.texto), str(i.periodicidad_anios) + " años",
+      if i.proxima != none { str(i.proxima) } else { "—" }, num(i.horas_acompanamiento, d: 1),
+      eur(i.precio_acompanamiento), if i.precio_organismo != none { eur(i.precio_organismo) } else { "—" },
+    )).flatten(),
+  )
+]
+
 #if val.operaciones_aparte.len() > 0 [
   = Fuera de la cuota (ofertar aparte según fechas del inventario)
   #table(columns: (auto, auto, 1fr), table.header[Sistema][Period.][Operación],

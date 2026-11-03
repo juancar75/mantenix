@@ -55,6 +55,13 @@ enum Orden {
         #[arg(default_value_t = 1)]
         tecnicos: u32,
     },
+    /// Indica si una operación de un equipo va en la cuota o se presupuesta aparte (limpiezas).
+    Cobro {
+        equipo: String,
+        operacion: String,
+        /// `cuota` o `aparte`.
+        cobro: String,
+    },
     /// Muestra el registro de cambios.
     Historial {
         #[arg(long)]
@@ -171,6 +178,14 @@ fn main() -> Result<()> {
         } => {
             db::fijar_tiempo(&c, &equipo, &operacion, minutos, tecnicos)?;
             println!("{equipo} · {operacion} = {minutos} min × {tecnicos}");
+        }
+        Orden::Cobro {
+            equipo,
+            operacion,
+            cobro,
+        } => {
+            db::fijar_cobro(&c, &equipo, &operacion, &cobro)?;
+            println!("{equipo} · {operacion} → {cobro}");
         }
         Orden::Historial { tabla, limite } => {
             for h in db::historial(&c, tabla.as_deref(), limite)? {

@@ -10,7 +10,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
 import { save } from "@tauri-apps/plugin-dialog";
-import { api, eur, num, type Contrato, type EquipoVista, type Valoracion } from "../api";
+import { api, eur, num, type Contrato, type EquipoVista, type InspeccionPeriodica, type Valoracion } from "../api";
 
 const emit = defineEmits<{ cambio: [] }>();
 
@@ -66,7 +66,25 @@ const f = reactive({
   },
 });
 
-onMounted(async () => { catalogo.value = await api.catalogo(); });
+// Inspecciones reglamentarias: marcadas = se incluyen en el contrato (valoradas aparte).
+const tablaInsp = ref<InspeccionPeriodica[]>([]);
+const insp = reactive<Record<string, { si: boolean; ultima: number | null; precio: number | null; sugerida: boolean }>>({});
+let sugeridasCargadas = false;
+
+onMounted(async () => {
+  catalogo.value = await api.catalogo();
+  tablaInsp.value = await api.inspeccionesCatalogo();
+  for (const i of tablaInsp.value) insp[i.id] = { si: false, ultima: null, precio: null, sugerida: false };
+});
+
+async function sugerirInspecciones() {
+  if (sugeridasCargadas) return;
+  try {
+    const ids = await api.inspeccionesSugeridas(contrato());
+    for (const id of ids) if (insp[id]) { insp[id].si = true; insp[id].sugerida = true; }
+    sugeridasCargadas = true;
+  } catch (e) { error.value = String(e); }
+}
 const desc = (codigo: string) => catalogo.value.find((e) => e.codigo === codigo)?.descripcion ?? codigo;
 const total = (q: Record<string, number>) => Object.values(q).reduce((a, n) => a + (Number(n) || 0), 0);
 
@@ -92,6 +110,7 @@ function siguiente() {
   if (falta.value.length) { error.value = `Falta ${falta.value.join(" y ")}.`; return; }
   if (paso.value === 6) { calcular(); return; }
   paso.value++;
+  if (paso.value === 6) sugerirInspecciones();
   window.scrollTo(0, 0);
 }
 function anterior() { error.value = ""; if (paso.value > 0) paso.value--; }
@@ -115,6 +134,7 @@ function contrato(): Contrato {
     visitas_contratadas: c.visitas || null,
     desplazamiento: { km_ida: Number(f.edificio.km) || 0, minutos_ida: Number(f.edificio.minutos) || 0 },
     instalaciones, margen_pct: c.margen || null, precio_actual_anual: c.precio_actual || null,
+    inspecciones: Object.entries(insp).filter(([, v]) => v.si).map(([id, v]) => ({ id, ultima: v.ultima || null, precio_organismo: v.precio || null })),
     avisos: { modalidad: c.modalidad, bolsa: c.modalidad === "bolsa" ? c.bolsa || null : null, antiguedad: f.edificio.antiguedad, servicio_24h: f.edificio.uso === "24h", horas_por_aviso: 1.5 },
     partes: {
       contrato: { referencia: c.referencia.trim() || `MTO-${hoy.getFullYear()}-${String(Date.now()).slice(-4)}`, lugar_fecha: `${c.lugar}, ${hoy.getDate()} de ${MESES[hoy.getMonth()]} de ${hoy.getFullYear()}` },
@@ -333,6 +353,22 @@ function empezarOtro() {
       <label class="campo" style="flex: 1">Duración<input v-model="f.condiciones.duracion" /></label>
     </div>
     <p class="ayuda">El pago se fija solo según las visitas: mensual con 12, trimestral con 4, etc.</p>
+
+    <h2>Inspecciones reglamentarias (se cobran aparte)</h2>
+    <p class="ayuda">Inspecciones de OCA/EICI, distribuidora o empresa habilitada. No entran en la cuota: el contrato dice que avisamos, acompañamos y cobramos el acompañamiento aparte. Vienen marcadas las que parecen corresponder por los equipos (<b>sugerida</b>); compruebe la condición y desmarque las que no apliquen. Si sabe el año de la última y el precio del organismo, póngalos.</p>
+    <table class="insp">
+      <thead><tr><th></th><th>Inspección</th><th>Cada</th><th>Última (año)</th><th>Precio organismo €</th></tr></thead>
+      <tbody>
+        <tr v-for="i in tablaInsp" :key="i.id" :class="{ con: insp[i.id]?.si }">
+          <td><input type="checkbox" v-model="insp[i.id].si" /></td>
+          <td>{{ i.texto }} <span v-if="insp[i.id]?.sugerida" class="bueno pequeño">sugerida</span>
+            <div class="pequeño">{{ i.reglamento }} · {{ i.condicion }} · {{ i.agente }}</div></td>
+          <td>{{ i.periodicidad_anios }} años</td>
+          <td><input class="num" type="number" v-model.number="insp[i.id].ultima" :disabled="!insp[i.id]?.si" placeholder="—" /></td>
+          <td><input class="num" type="number" v-model.number="insp[i.id].precio" :disabled="!insp[i.id]?.si" placeholder="según oferta" /></td>
+        </tr>
+      </tbody>
+    </table>
   </div>
 
   <!-- 7. Resultado -->
@@ -355,6 +391,8 @@ function empezarOtro() {
           <tr><td>Avisos incluidos ({{ valoracion.avisos_averia.incluidos }} × {{ eur(valoracion.avisos_averia.coste_aviso) }})</td><td class="der">{{ eur(valoracion.totales.avisos) }}</td></tr>
           <tr><td><b>Coste total</b> (con indirectos)</td><td class="der"><b>{{ eur(valoracion.totales.coste_total) }}</b></td></tr>
           <tr><td><b>Precio de venta</b> (margen {{ valoracion.totales.margen_pct }} %)</td><td class="der"><b>{{ eur(valoracion.totales.precio_anual) }}</b></td></tr>
+          <tr v-if="valoracion.totales.limpiezas_anio"><td>Limpiezas que se presupuestan aparte (orientativo, no incluido)</td><td class="der">{{ eur(valoracion.totales.limpiezas_anio) }}</td></tr>
+          <tr v-for="i in valoracion.inspecciones" :key="i.id"><td>Inspección aparte: {{ i.texto }} (cada {{ i.periodicidad_anios }} años{{ i.proxima ? ", próxima " + i.proxima : "" }})</td><td class="der">{{ eur(i.precio_total) }}{{ i.precio_organismo == null ? " + organismo" : "" }}</td></tr>
         </tbody>
       </table>
     </div>
@@ -380,6 +418,8 @@ function empezarOtro() {
 </template>
 
 <style scoped>
+.insp td { vertical-align: top; }
+.insp tr.con td { background: var(--azul-claro); }
 .pasos { list-style: none; display: flex; flex-wrap: wrap; gap: 6px; padding: 0; margin: 0 0 14px; }
 .pasos li { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--gris); padding: 4px 10px 4px 4px; border-radius: 14px; background: white; border: 1px solid var(--borde); }
 .pasos .n { display: inline-flex; width: 20px; height: 20px; border-radius: 50%; align-items: center; justify-content: center; background: var(--fondo); font-weight: 700; font-size: 11px; }

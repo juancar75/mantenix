@@ -249,6 +249,17 @@ El importe anual del presente contrato asciende a *#datos.economia.importe_anual
 
 El pago se realizará #datos.condiciones.forma_pago.
 
+#let limpiezas = datos.at("limpiezas", default: ())
+#if limpiezas.len() > 0 [
+  Las operaciones de limpieza señaladas en el programa de mantenimiento como _(se presupuesta aparte)_ son obligatorias según la normativa, pero *no están incluidas en el importe anual*. La empresa mantenedora presentará el presupuesto correspondiente antes de realizarlas y se ejecutarán, una vez aceptado, aprovechando la visita en que corresponda. Como referencia, su importe orientativo es el siguiente (IVA no incluido; el material, aparte):
+
+  #table(columns: (1fr, auto, auto), align: (left, right, right), stroke: 0.4pt + luma(200),
+    table.header[*Limpieza*][*Por intervención*][*Al año*],
+    ..limpiezas.map(l => (text(9pt, l.texto), l.precio_intervencion, l.precio_anio)).flatten(),
+    table.cell(colspan: 2, align: right)[*Total orientativo al año*], [*#datos.limpiezas_anio*],
+  )
+]
+
 #if av != none [
   = Avisos de avería
 
@@ -265,13 +276,29 @@ El pago se realizará #datos.condiciones.forma_pago.
   En todos los casos, los materiales y repuestos se facturarán aparte, previa aceptación del presupuesto correspondiente, salvo urgencia para la seguridad de las personas o de la instalación. Las intervenciones fuera del horario establecido tendrán el recargo que indique la tarifa vigente.
 ]
 
+#let inspecciones = datos.at("inspecciones", default: ())
+#if inspecciones.len() > 0 [
+  = Inspecciones reglamentarias
+
+  Las inspecciones y revisiones periódicas que exigen los reglamentos de seguridad industrial son obligación del titular y *no están incluidas en el importe anual*. La empresa mantenedora avisará al titular con antelación suficiente, coordinará la inspección con el organismo de control (OCA/EICI), la distribuidora o la empresa habilitada que corresponda, la acompañará con sus técnicos y presupuestará la subsanación de los defectos que se señalen. El acompañamiento se facturará al importe indicado y el precio del organismo se repercutirá sin recargo (IVA no incluido):
+
+  #show table: set par(justify: false)
+  #table(columns: (2.2fr, 1.5fr, 1.8cm, 2.1cm, 2.3cm), align: (left, left, center, right, right), stroke: 0.4pt + luma(200),
+    table.header[*Inspección*][*Quién la hace*][*Próxima*][*Acompañ.*][*Organismo*],
+    ..inspecciones.map(i => (
+      [#text(9pt, i.texto) \ #text(8pt, fill: luma(90))[#i.reglamento · #i.periodicidad]],
+      text(8.5pt, i.agente), text(9pt, i.proxima), i.acompanamiento, text(9pt, i.organismo),
+    )).flatten(),
+  )
+]
+
 = Condiciones generales
 
 #set enum(numbering: "1.", spacing: 0.8em)
 + *Duración.* El contrato tendrá una duración de #datos.condiciones.duracion y se prorrogará tácitamente por periodos iguales. Cualquiera de las partes podrá resolverlo comunicándolo por escrito con una antelación mínima de #datos.condiciones.preaviso.
 + *Revisión de precios.* #datos.condiciones.revision_precios
 + *Reparaciones.* Las reparaciones y sustituciones necesarias se realizarán previa aceptación por escrito del presupuesto correspondiente. Los materiales se facturarán según la tarifa vigente de la empresa mantenedora.
-+ *Exclusiones.* Quedan fuera del importe: los materiales y repuestos, el refrigerante, los productos químicos y de tratamiento, #if hay-pci [las operaciones de periodicidad superior a un año, las recargas de extintores por uso, las sustituciones por fin de vida útil, ]las inspecciones periódicas por organismo de control que en su caso resulten exigibles y las actuaciones fuera del horario establecido.
++ *Exclusiones.* Quedan fuera del importe: los materiales y repuestos, el refrigerante, los productos químicos y de tratamiento, #if limpiezas.len() > 0 [las limpiezas que se presupuestan aparte, ]las operaciones de periodicidad superior a un año, #if hay-pci [las recargas de extintores por uso, las sustituciones por fin de vida útil, ]las inspecciones y revisiones reglamentarias periódicas (organismo de control, distribuidora o empresa habilitada) que en su caso resulten exigibles y las actuaciones fuera del horario establecido.
 + *Horario.* Los trabajos se realizarán #m.horario.
 + *Subcontratación.* La empresa mantenedora podrá encargar parte de las operaciones a empresas habilitadas para ello, respondiendo ante el titular del cumplimiento del contrato.
 + *Obligaciones del titular.* Facilitar el acceso a las instalaciones, comunicar cualquier anomalía o modificación de los locales, no manipular los equipos, realizar las operaciones que el RITE y el RIPCI atribuyen al usuario y conservar la documentación del mantenimiento.

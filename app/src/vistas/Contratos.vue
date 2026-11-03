@@ -201,6 +201,7 @@ const margenClase = (v: Valoracion) =>
             <tr><td><b>Coste directo</b></td><td></td><td class="der"><b>{{ eur(valoracion.totales.directo) }}</b></td></tr>
             <tr><td>Indirectos + contingencia</td><td></td><td class="der">{{ eur(valoracion.totales.indirectos + valoracion.totales.contingencia) }}</td></tr>
             <tr><td><b>Precio de venta</b></td><td></td><td class="der"><b>{{ eur(valoracion.totales.precio_anual) }}</b></td></tr>
+            <tr v-if="valoracion.totales.limpiezas_anio"><td>Limpiezas aparte (orientativo, no incluido)</td><td></td><td class="der">{{ eur(valoracion.totales.limpiezas_anio) }}</td></tr>
           </tbody>
         </table>
 
@@ -217,6 +218,39 @@ const margenClase = (v: Valoracion) =>
             </tr>
           </tbody>
         </table>
+
+        <template v-if="valoracion.inspecciones.length">
+          <h2>Inspecciones reglamentarias (aparte)</h2>
+          <table>
+            <thead><tr><th>Inspección</th><th>Cada</th><th>Próxima</th><th class="der">Acompañamiento</th><th class="der">Organismo</th></tr></thead>
+            <tbody>
+              <tr v-for="i in valoracion.inspecciones" :key="i.id">
+                <td>{{ i.texto }}<div class="pequeño">{{ i.reglamento }} · {{ i.agente }}</div></td>
+                <td>{{ i.periodicidad_anios }} años</td><td>{{ i.proxima ?? "—" }}</td>
+                <td class="der">{{ eur(i.precio_acompanamiento) }}</td>
+                <td class="der">{{ i.precio_organismo != null ? eur(i.precio_organismo) : "según oferta" }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </template>
+
+        <template v-if="valoracion.limpiezas.length">
+          <h2>Limpiezas que se presupuestan aparte</h2>
+          <p class="pequeño">Las exige la normativa pero no entran en la cuota. Precio orientativo con los costes, indirectos y margen del contrato; sin desplazamiento ni material. Se cambia en «Catálogo y tiempos» (columna Cobro).</p>
+          <table>
+            <thead><tr><th>Equipo</th><th>Limpieza</th><th>Period.</th><th class="der">Veces/año</th><th class="der">Por intervención</th><th class="der">Al año</th></tr></thead>
+            <tbody>
+              <tr v-for="(l, k) in valoracion.limpiezas" :key="k">
+                <td>{{ l.descripcion }} <span class="pequeño">× {{ l.cantidad }}</span></td>
+                <td>{{ l.texto }}</td><td>{{ l.periodicidad }}</td>
+                <td class="der">{{ num(l.veces_anio) }}</td>
+                <td class="der">{{ eur(l.precio_intervencion) }}</td>
+                <td class="der">{{ eur(l.precio_anio) }}</td>
+              </tr>
+              <tr><td colspan="5"><b>Total orientativo al año</b></td><td class="der"><b>{{ eur(valoracion.totales.limpiezas_anio) }}</b></td></tr>
+            </tbody>
+          </table>
+        </template>
       </template>
     </div>
     <div v-else class="panel pequeño">Seleccione un contrato o cree uno nuevo.</div>

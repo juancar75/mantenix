@@ -30,6 +30,10 @@ pub struct Contrato {
     /// forma que espera [`crate::documento::datos_contrato`]). Vacío si aún no se han rellenado.
     #[serde(default)]
     pub partes: serde_json::Value,
+    /// Inspecciones reglamentarias periódicas (OCA/EICI, distribuidora…) que se avisan y
+    /// valoran aparte.
+    #[serde(default)]
+    pub inspecciones: Vec<crate::inspecciones::InspeccionContrato>,
 }
 
 /// Cómo se atienden los avisos de avería y con qué datos se estiman.

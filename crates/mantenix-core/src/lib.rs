@@ -30,6 +30,7 @@ pub mod datos;
 pub mod db;
 pub mod documento;
 pub mod empresa;
+pub mod inspecciones;
 pub mod modelo;
 pub mod motor;
 pub mod presupuesto;
@@ -117,10 +118,21 @@ mod tests {
         let v = valorar(&b, &c).unwrap();
         let t = &v.totales;
         assert!((t.precio_anual - t.coste_total / 0.75).abs() < 0.02);
-        // Split interior ≤12 kW, otros usos: tabla 3.1 = cada 2 años → evaporador (t) 0,5 veces/año;
-        // filtros (m) y revisión (2t) limitados a la única visita contratada: 10 + 20×0,5 + 15 = 35 min
-        let esperado_mo = 35.0 / 60.0 * 28.72;
+        // Split interior ≤12 kW, otros usos: tabla 3.1 = revisión cada 2 años → todas las
+        // operaciones 0,5 veces/año: filtros 10 + revisión 15 = 25 min × 0,5 = 12,5 min.
+        // La limpieza del evaporador (20 min) se presupuesta aparte.
+        let esperado_mo = 12.5 / 60.0 * 28.72;
         assert!((t.mano_obra - esperado_mo).abs() < 0.02, "{}", t.mano_obra);
+        assert_eq!(v.limpiezas.len(), 1);
+        let l = &v.limpiezas[0];
+        assert_eq!(l.operacion_id, "RITE-T33-01");
+        assert_eq!(l.veces_anio, 0.5);
+        let precio = 20.0 / 60.0 * 28.72 * 1.17 / 0.75;
+        assert!(
+            (l.precio_intervencion - precio).abs() < 0.02,
+            "{}",
+            l.precio_intervencion
+        );
     }
 
     #[test]
@@ -417,13 +429,65 @@ mod tests {
             grupos,
             [
                 "En cada visita",
-                "Cada seis meses",
                 "Anual",
+                "Cada dos años (fuera de la cuota anual)",
                 "Cada cinco años (fuera de la cuota anual)"
             ]
         );
         // Las de cada 5 años del DB HS 3 no entran en la cuota: van aparte.
         assert!(v.operaciones_aparte.iter().any(|o| o.operacion_id == "CTE-HS3-02"));
+        // Limpiezas (DB HS 3, baterías…) fuera de la cuota, marcadas en el contrato y con precio.
+        assert!(v.limpiezas.iter().any(|l| l.operacion_id == "CTE-HS3-01"));
+        assert!(v
+            .limpiezas
+            .iter()
+            .any(|l| l.operacion_id == "RITE-T33-02" && l.codigo == "DESHUM"));
+        assert!(v.totales.limpiezas_anio > 0.0);
+        assert!(!d["limpiezas"].as_array().unwrap().is_empty());
+        let anual = otros[0]["grupos"][1]["operaciones"].as_array().unwrap();
+        assert!(anual
+            .iter()
+            .all(|t| t.as_str().unwrap().ends_with("(se presupuesta aparte)")));
         assert_eq!(b.operaciones.keys().filter(|k| k.starts_with("CTE-HS3")).count(), 8);
+    }
+
+    #[test]
+    fn inspecciones_reglamentarias_aparte() {
+        let b = biblioteca();
+        assert_eq!(inspecciones::catalogo().len(), 11);
+        let mut k: Contrato = serde_json::from_str(
+            r#"{"nombre":"ins","anio":2026,"uso":"viviendas","desplazamiento":{"km_ida":10,"minutos_ida":20},
+            "instalaciones":[
+              {"familia":"RITE","potencia_kw":200,"equipos":[{"codigo":"CALD-GAS","cantidad":2}]},
+              {"familia":"PCI","equipos":[{"codigo":"EXT-POLVO","cantidad":10},{"codigo":"CO-DET","cantidad":4,"modo":"propio"}]}]}"#,
+        )
+        .unwrap();
+        let sug = inspecciones::sugeridas(&b, &k);
+        for id in [
+            "INSP-RITE-PARC",
+            "INSP-RIPCI",
+            "INSP-REBT-RIESGO",
+            "INSP-REBT-ZC",
+            "INSP-GAS-RED",
+        ] {
+            assert!(sug.iter().any(|s| s == id), "{id} en {sug:?}");
+        }
+        let v = valorar(&b, &k).unwrap();
+        assert!(v.avisos.iter().any(|a| a.contains("Posible inspección")));
+        let precio = v.totales.precio_anual;
+        k.inspecciones = vec![inspecciones::InspeccionContrato {
+            id: "INSP-RITE-PARC".into(),
+            ultima: Some(2023),
+            precio_organismo: Some(350.0),
+        }];
+        let v = valorar(&b, &k).unwrap();
+        assert_eq!(v.totales.precio_anual, precio, "no entra en la cuota");
+        let i = &v.inspecciones[0];
+        assert_eq!(i.proxima, Some(2028));
+        // 3 h × precio hora oficial de presupuestos (45 €) + organismo
+        assert_eq!(i.precio_acompanamiento, 135.0);
+        assert_eq!(i.precio_total, 485.0);
+        let d = documento::datos_contrato(&b, &k, &v, &serde_json::json!({}));
+        assert_eq!(d["inspecciones"].as_array().unwrap().len(), 1);
     }
 }

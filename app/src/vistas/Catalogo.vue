@@ -20,6 +20,12 @@ const visibles = computed(() => equipos.value.filter((e) =>
   (!familia.value || e.familia === familia.value) &&
   (`${e.codigo} ${e.descripcion}`.toLowerCase().includes(filtro.value.toLowerCase()))));
 
+async function cobro(e: EquipoVista, t: TiempoVista) {
+  error.value = "";
+  try { await api.fijarCobro(e.codigo, t.operacion_id, t.cobro); }
+  catch (x) { error.value = String(x); }
+}
+
 async function guardar(e: EquipoVista, t: TiempoVista) {
   error.value = "";
   try { await api.fijarTiempo(e.codigo, t.operacion_id, t.minutos, t.tecnicos); t.estado = "revisado"; }
@@ -41,13 +47,14 @@ async function guardar(e: EquipoVista, t: TiempoVista) {
       <span class="pequeño">· {{ e.familia }} · por {{ e.unidad }} · {{ e.modo_defecto }}{{ e.partida_subcontrata ? " (" + e.partida_subcontrata + ")" : "" }}</span>
     </div>
     <table v-if="e.tiempos.length" style="margin-top: 8px">
-      <thead><tr><th>Operación</th><th>Period.</th><th class="der">Min/ud</th><th class="der">Técnicos</th><th>Estado</th><th>Fuente</th></tr></thead>
+      <thead><tr><th>Operación</th><th>Period.</th><th class="der">Min/ud</th><th class="der">Técnicos</th><th>Cobro</th><th>Estado</th><th>Fuente</th></tr></thead>
       <tbody>
         <tr v-for="t in e.tiempos" :key="t.operacion_id">
           <td>{{ t.texto }}<div class="pequeño">{{ t.operacion_id }} · {{ t.referencia }}</div></td>
           <td>{{ t.periodicidad }}</td>
           <td class="der"><input class="num" type="number" v-model.number="t.minutos" @change="guardar(e, t)" /></td>
           <td class="der"><input class="num" type="number" min="1" v-model.number="t.tecnicos" @change="guardar(e, t)" /></td>
+          <td><select v-model="t.cobro" @change="cobro(e, t)" title="En la cuota del contrato o presupuestada aparte (limpiezas)"><option value="cuota">En cuota</option><option value="aparte">Aparte</option></select></td>
           <td :class="t.estado === 'revisado' ? 'bueno' : 'pequeño'">{{ t.estado }}</td>
           <td class="pequeño" :title="t.fuente">{{ t.verificado === "no" ? "sin cotejar" : t.verificado }}</td>
         </tr>

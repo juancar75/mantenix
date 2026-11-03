@@ -396,6 +396,8 @@ struct TiempoVista {
     minutos: f64,
     tecnicos: u32,
     estado: String,
+    /// `cuota` o `aparte` (limpiezas que se presupuestan aparte).
+    cobro: String,
 }
 
 /// Equipo del catálogo con sus tiempos.
@@ -436,6 +438,7 @@ fn catalogo(base: State<Base>) -> R<Vec<EquipoVista>> {
                         minutos: t.minutos,
                         tecnicos: t.tecnicos,
                         estado: t.estado.clone(),
+                        cobro: t.cobro.clone(),
                     })
                 })
                 .collect(),
@@ -443,6 +446,24 @@ fn catalogo(base: State<Base>) -> R<Vec<EquipoVista>> {
         .collect();
     v.sort_by(|a, b| (a.familia.as_str(), a.codigo.as_str()).cmp(&(b.familia.as_str(), b.codigo.as_str())));
     Ok(v)
+}
+
+/// Tabla de inspecciones reglamentarias periódicas.
+#[tauri::command]
+fn inspecciones_catalogo() -> Vec<mantenix_core::inspecciones::InspeccionPeriodica> {
+    mantenix_core::inspecciones::catalogo()
+}
+
+/// Inspecciones que probablemente corresponden a un contrato según su inventario.
+#[tauri::command]
+fn inspecciones_sugeridas(base: State<Base>, contrato: Contrato) -> R<Vec<String>> {
+    let b = Biblioteca::desde_db(&base.conexion.lock().unwrap()).map_err(txt)?;
+    Ok(mantenix_core::inspecciones::sugeridas(&b, &contrato))
+}
+
+#[tauri::command]
+fn fijar_cobro(base: State<Base>, equipo: String, operacion: String, cobro: String) -> R<()> {
+    db::fijar_cobro(&base.conexion.lock().unwrap(), &equipo, &operacion, &cobro).map_err(txt)
 }
 
 #[tauri::command]
@@ -538,6 +559,9 @@ fn main() {
             ambitos,
             catalogo,
             fijar_tiempo,
+            fijar_cobro,
+            inspecciones_catalogo,
+            inspecciones_sugeridas,
             parametros,
             fijar_parametro,
             calcular_tarifa,

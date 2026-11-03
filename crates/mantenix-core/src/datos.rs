@@ -45,6 +45,34 @@ pub struct Tiempo {
     pub estado: String,
     /// Observaciones.
     pub nota: String,
+    /// `cuota` (incluida en el precio del contrato) o `aparte` (se presupuesta aparte, p. ej.
+    /// limpiezas de baterías, chimeneas o conductos). Vacío en el CSV = criterio por defecto.
+    #[serde(default)]
+    pub cobro: String,
+}
+
+/// Operaciones de limpieza que, por defecto, no entran en la cuota: se presupuestan aparte.
+/// (Limpieza de evaporadores y condensadores, torres, circuito y conductos de humos y chimeneas,
+/// y las limpiezas de conductos, aberturas y extractores del CTE DB HS 3.)
+pub const LIMPIEZAS_APARTE: &[&str] = &[
+    "RITE-T33-01",
+    "RITE-T33-02",
+    "RITE-T33-03",
+    "RITE-T33-05",
+    "RITE-T33-06",
+    "RITE-T33-35",
+    "CTE-HS3-01",
+    "CTE-HS3-03",
+    "CTE-HS3-04",
+];
+
+/// Cobro por defecto de una operación: `aparte` para las limpiezas de [`LIMPIEZAS_APARTE`].
+pub fn cobro_por_defecto(operacion_id: &str) -> &'static str {
+    if LIMPIEZAS_APARTE.contains(&operacion_id) {
+        "aparte"
+    } else {
+        "cuota"
+    }
 }
 
 /// Operación normativa o de fabricante, con su periodicidad.
@@ -248,6 +276,11 @@ impl Biblioteca {
             b.catalogo.insert(e.codigo.clone(), e);
         }
         b.tiempos = leer(&emp.join("tiempos_estandar.csv"))?;
+        for t in b.tiempos.iter_mut() {
+            if t.cobro.trim().is_empty() {
+                t.cobro = cobro_por_defecto(&t.operacion_id).into();
+            }
+        }
 
         for r in leer::<FilaRite33>(&bib.join("rite_tabla_3_3_operaciones.csv"))? {
             b.operaciones.insert(

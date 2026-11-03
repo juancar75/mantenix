@@ -13,6 +13,13 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 - El asistente pregunta por todos ellos (también por el ventilador de climatización `VENT`, que faltaba) y el contrato tipo los incluye: bloque «Ventilación del garaje y de cuartos técnicos» con sus operaciones agrupadas por periodicidad, y notas de UNE-EN 12101-6 y del cuadro de bomberos en control de humos.
 - Las bases ya creadas reciben los equipos y operaciones nuevos al abrirse (o con `mantenix init`), sin tocar los tiempos ni los equipos editados.
 
+- **Limpiezas aparte**: las limpiezas que exige la normativa (evaporadores y condensadores, torres, circuito y conductos de humos y chimeneas, biomasa, y las del DB HS 3) no entran en la cuota. Siguen en el programa del contrato marcadas *(se presupuesta aparte)*, con precio orientativo por intervención y al año (mismos costes, indirectos y margen). Se puede cambiar por equipo y operación en «Catálogo y tiempos» (columna *Cobro*) o con `mantenix cobro`.
+- **Inspecciones reglamentarias** (`datos/semilla/normativa/inspecciones_periodicas.csv`): RITE (eficiencia energética cada 5 años e instalación completa), RIPCI art. 22 (cada 10 años), REBT ITC-BT-05 (riesgo cada 5 años, zonas comunes > 100 kW cada 10), gas canalizado ITC-ICG 07 (5 años), depósitos de GLP (revisión 5 años, prueba 15 años) y gasóleo ITC MI-IP03 (revisión 5 o 10 años, inspección OCA 10 años). El asistente sugiere las que corresponden por el inventario; el contrato las lista con próxima fecha, acompañamiento (horas `horas_inspeccion`, 3 por defecto, a la hora de oficial) y precio del organismo, todo aparte. La valoración avisa de las que faltan.
+
+### Cambiado
+- **Instalaciones de 70 kW o menos**: todas las operaciones se hacen con la frecuencia de revisión de la tabla 3.1 del RITE (anual o cada 2-4 años según equipo y uso). Las periodicidades de la tabla 3.3 se aplican solo por encima de 70 kW. Revisadas todas contra la tabla 3.3: coinciden.
+- DB HS 3: la revisión de automatismos de los sistemas de control es cada 2 años (no semestral).
+
 ### Corregido
 - Textos de operaciones de fabricante que se cortaban por contener un punto y coma (sustitución de filtros de fancoil).
 

@@ -39,6 +39,7 @@ CREATE TABLE IF NOT EXISTS tiempo (
     codigo_equipo TEXT NOT NULL REFERENCES equipo(codigo), operacion_id TEXT NOT NULL REFERENCES operacion(id),
     minutos REAL NOT NULL, tecnicos INTEGER NOT NULL DEFAULT 1, consumibles_eur REAL NOT NULL DEFAULT 0,
     estado TEXT NOT NULL DEFAULT '', nota TEXT NOT NULL DEFAULT '',
+    cobro TEXT NOT NULL DEFAULT 'cuota',
     PRIMARY KEY (codigo_equipo, operacion_id));
 CREATE TABLE IF NOT EXISTS parametro (
     anio INTEGER NOT NULL, nombre TEXT NOT NULL, valor REAL NOT NULL, unidad TEXT NOT NULL DEFAULT '',
@@ -56,7 +57,7 @@ CREATE TABLE IF NOT EXISTS contrato (
     id TEXT PRIMARY KEY, cliente_id TEXT REFERENCES cliente(id), nombre TEXT NOT NULL UNIQUE,
     anio INTEGER NOT NULL, uso TEXT NOT NULL DEFAULT 'otros', visitas_contratadas INTEGER,
     km_ida REAL NOT NULL DEFAULT 0, minutos_ida REAL NOT NULL DEFAULT 0,
-    margen_pct REAL, precio_actual_anual REAL, avisos TEXT, partes TEXT,
+    margen_pct REAL, precio_actual_anual REAL, avisos TEXT, partes TEXT, inspecciones TEXT,
     actualizado TEXT NOT NULL DEFAULT (datetime('now')));
 CREATE TABLE IF NOT EXISTS instalacion (
     id TEXT PRIMARY KEY, contrato_id TEXT NOT NULL REFERENCES contrato(id) ON DELETE CASCADE,
@@ -154,6 +155,7 @@ const AUDITADAS: &[(&str, &[&str])] = &[
             "consumibles_eur",
             "estado",
             "nota",
+            "cobro",
         ],
     ),
     ("parametro", &["anio", "nombre", "valor", "unidad"]),
@@ -176,6 +178,7 @@ const AUDITADAS: &[(&str, &[&str])] = &[
             "margen_pct",
             "precio_actual_anual",
             "avisos",
+            "inspecciones",
             "partes",
         ],
     ),
@@ -231,7 +234,16 @@ fn migrar(c: &Connection) -> Result<(), Error> {
             .map_err(e)?;
         Ok(n > 0)
     };
-    for col in ["avisos", "partes"] {
+    if !tiene("tiempo", "cobro")? {
+        // Bases anteriores: las limpiezas pasan a presupuestarse aparte.
+        c.execute("ALTER TABLE tiempo ADD COLUMN cobro TEXT NOT NULL DEFAULT 'cuota'", [])
+            .map_err(e)?;
+        for id in crate::datos::LIMPIEZAS_APARTE {
+            c.execute("UPDATE tiempo SET cobro='aparte' WHERE operacion_id=?1", [id])
+                .map_err(e)?;
+        }
+    }
+    for col in ["avisos", "partes", "inspecciones"] {
         if !tiene("contrato", col)? {
             c.execute(&format!("ALTER TABLE contrato ADD COLUMN {col} TEXT"), [])
                 .map_err(e)?;
@@ -367,7 +379,7 @@ pub fn inicializar(c: &mut Connection, normativa: &Path, empresa: &Path) -> Resu
     }
     for t in &b.tiempos {
         tx.execute(
-            "INSERT INTO tiempo VALUES (?1,?2,?3,?4,?5,?6,?7)",
+            "INSERT INTO tiempo VALUES (?1,?2,?3,?4,?5,?6,?7,?8)",
             params![
                 t.codigo_equipo,
                 t.operacion_id,
@@ -375,7 +387,8 @@ pub fn inicializar(c: &mut Connection, normativa: &Path, empresa: &Path) -> Resu
                 t.tecnicos,
                 t.consumibles_eur,
                 t.estado,
-                t.nota
+                t.nota,
+                t.cobro
             ],
         )
         .map_err(e)?;
@@ -450,7 +463,7 @@ impl Biblioteca {
             b.catalogo.insert(q.codigo.clone(), q);
         }
 
-        let mut s = c.prepare("SELECT codigo_equipo,operacion_id,minutos,tecnicos,consumibles_eur,estado,nota FROM tiempo ORDER BY rowid").map_err(e)?;
+        let mut s = c.prepare("SELECT codigo_equipo,operacion_id,minutos,tecnicos,consumibles_eur,estado,nota,cobro FROM tiempo ORDER BY rowid").map_err(e)?;
         b.tiempos = s
             .query_map([], |r| {
                 Ok(Tiempo {
@@ -461,6 +474,7 @@ impl Biblioteca {
                     consumibles_eur: r.get(4)?,
                     estado: r.get(5)?,
                     nota: r.get(6)?,
+                    cobro: r.get(7)?,
                 })
             })
             .map_err(e)?
@@ -551,16 +565,17 @@ pub fn guardar_contrato(c: &mut Connection, k: &Contrato) -> Result<String, Erro
     tx.execute("DELETE FROM instalacion WHERE contrato_id=?1", [&id])
         .map_err(e)?;
     tx.execute(
-        "INSERT INTO contrato (id,nombre,anio,uso,visitas_contratadas,km_ida,minutos_ida,margen_pct,precio_actual_anual,avisos,partes)
-         VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11)
+        "INSERT INTO contrato (id,nombre,anio,uso,visitas_contratadas,km_ida,minutos_ida,margen_pct,precio_actual_anual,avisos,partes,inspecciones)
+         VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12)
          ON CONFLICT(id) DO UPDATE SET anio=excluded.anio, uso=excluded.uso,
            visitas_contratadas=excluded.visitas_contratadas, km_ida=excluded.km_ida, minutos_ida=excluded.minutos_ida,
            margen_pct=excluded.margen_pct, precio_actual_anual=excluded.precio_actual_anual, avisos=excluded.avisos,
-           partes=excluded.partes, actualizado=datetime('now')",
+           partes=excluded.partes, inspecciones=excluded.inspecciones, actualizado=datetime('now')",
         params![id, k.nombre, k.anio, k.uso, k.visitas_contratadas, k.desplazamiento.km_ida,
                 k.desplazamiento.minutos_ida, k.margen_pct, k.precio_actual_anual,
                 serde_json::to_string(&k.avisos).map_err(|x| Error::Db(x.to_string()))?,
-                if k.partes.is_null() { None } else { Some(k.partes.to_string()) }]).map_err(e)?;
+                if k.partes.is_null() { None } else { Some(k.partes.to_string()) },
+                serde_json::to_string(&k.inspecciones).map_err(|x| Error::Db(x.to_string()))?]).map_err(e)?;
     for (i, ins) in k.instalaciones.iter().enumerate() {
         let iid = uuid();
         tx.execute("INSERT INTO instalacion (id,contrato_id,orden,familia,titulo,potencia_kw,temporada_meses) VALUES (?1,?2,?3,?4,?5,?6,?7)",
@@ -577,13 +592,14 @@ pub fn guardar_contrato(c: &mut Connection, k: &Contrato) -> Result<String, Erro
 /// Carga un contrato por nombre.
 pub fn cargar_contrato(c: &Connection, nombre: &str) -> Result<(String, Contrato), Error> {
     let (id, mut k) = c.query_row(
-        "SELECT id,nombre,anio,uso,visitas_contratadas,km_ida,minutos_ida,margen_pct,precio_actual_anual,avisos,partes FROM contrato WHERE nombre=?1",
+        "SELECT id,nombre,anio,uso,visitas_contratadas,km_ida,minutos_ida,margen_pct,precio_actual_anual,avisos,partes,inspecciones FROM contrato WHERE nombre=?1",
         [nombre], |r| Ok((r.get::<_, String>(0)?, Contrato {
             nombre: r.get(1)?, anio: r.get(2)?, uso: r.get(3)?, visitas_contratadas: r.get(4)?,
             desplazamiento: Desplazamiento { km_ida: r.get(5)?, minutos_ida: r.get(6)? },
             margen_pct: r.get(7)?, precio_actual_anual: r.get(8)?, instalaciones: vec![],
             avisos: r.get::<_, Option<String>>(9)?.and_then(|t| serde_json::from_str(&t).ok()).unwrap_or_default(),
             partes: r.get::<_, Option<String>>(10)?.and_then(|t| serde_json::from_str(&t).ok()).unwrap_or_default(),
+            inspecciones: r.get::<_, Option<String>>(11)?.and_then(|t| serde_json::from_str(&t).ok()).unwrap_or_default(),
         }))).optional().map_err(e)?.ok_or_else(|| Error::NoEncontrado(nombre.to_string()))?;
     let mut si = c
         .prepare(
@@ -682,6 +698,23 @@ pub fn fijar_tiempo(
         "INSERT INTO tiempo (codigo_equipo, operacion_id, minutos, tecnicos, estado) VALUES (?1,?2,?3,?4,'revisado')
          ON CONFLICT(codigo_equipo, operacion_id) DO UPDATE SET minutos=excluded.minutos, tecnicos=excluded.tecnicos, estado='revisado'",
         params![codigo_equipo, operacion_id, minutos, tecnicos]).map_err(e)?;
+    Ok(())
+}
+
+/// Indica si una operación de un equipo entra en la cuota (`cuota`) o se presupuesta aparte (`aparte`).
+pub fn fijar_cobro(c: &Connection, codigo_equipo: &str, operacion_id: &str, cobro: &str) -> Result<(), Error> {
+    if cobro != "cuota" && cobro != "aparte" {
+        return Err(Error::Db(format!("cobro «{cobro}»: debe ser «cuota» o «aparte»")));
+    }
+    let n = c
+        .execute(
+            "UPDATE tiempo SET cobro=?3 WHERE codigo_equipo=?1 AND operacion_id=?2",
+            params![codigo_equipo, operacion_id, cobro],
+        )
+        .map_err(e)?;
+    if n == 0 {
+        return Err(Error::NoEncontrado(format!("{operacion_id} en {codigo_equipo}")));
+    }
     Ok(())
 }
 
@@ -1026,8 +1059,8 @@ pub fn actualizar_catalogo(c: &mut Connection, normativa: &Path, empresa: &Path)
         eq_nuevos.iter().any(|q| q.codigo == t.codigo_equipo) || ops_nuevas.iter().any(|o| o.id == t.operacion_id)
     }) {
         tx.execute(
-            "INSERT OR IGNORE INTO tiempo SELECT ?1,?2,?3,?4,?5,?6,?7 WHERE EXISTS (SELECT 1 FROM equipo WHERE codigo=?1)",
-            params![t.codigo_equipo, t.operacion_id, t.minutos, t.tecnicos, t.consumibles_eur, t.estado, t.nota],
+            "INSERT OR IGNORE INTO tiempo SELECT ?1,?2,?3,?4,?5,?6,?7,?8 WHERE EXISTS (SELECT 1 FROM equipo WHERE codigo=?1)",
+            params![t.codigo_equipo, t.operacion_id, t.minutos, t.tecnicos, t.consumibles_eur, t.estado, t.nota, t.cobro],
         )
         .map_err(e)?;
     }

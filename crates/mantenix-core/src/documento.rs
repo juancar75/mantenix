@@ -181,12 +181,16 @@ pub fn periodo_pago(visitas: u32) -> &'static str {
 }
 
 /// Texto de la periodicidad de una operación RITE en el contrato.
+/// Marca de las operaciones que exige la normativa pero se presupuestan aparte (limpiezas).
+const APARTE: &str = "(se presupuesta aparte)";
+
 fn periodicidad_ventilacion(p: &str) -> (u32, String) {
     match p.trim() {
         "visita" => (0, "En cada visita".into()),
         "3m" => (1, "Cada tres meses".into()),
         "6m" => (2, "Cada seis meses".into()),
         "t" | "1a" => (3, "Anual".into()),
+        "2a" => (4, "Cada dos años (fuera de la cuota anual)".into()),
         "5a" => (5, "Cada cinco años (fuera de la cuota anual)".into()),
         otro => (9, format!("Periodicidad {otro}")),
     }
@@ -276,6 +280,20 @@ pub fn datos_contrato(b: &Biblioteca, k: &Contrato, v: &Valoracion, partes: &Val
                 }
             }
         }
+        // Limpiezas obligatorias que se presupuestan aparte: aparecen en el programa, marcadas.
+        for lp in v
+            .limpiezas
+            .iter()
+            .filter(|l| l.instalacion == ins.titulo && l.veces_anio > 0.0)
+        {
+            let g = grupos
+                .entry(periodicidad_rite(&lp.periodicidad, lp.veces_anio))
+                .or_default();
+            let t = format!("{} {APARTE}", lp.texto);
+            if !g.contains(&t) {
+                g.push(t);
+            }
+        }
         rite.push(json!({
             "titulo": if ins.titulo.is_empty() { "Instalaciones térmicas".to_string() } else { ins.titulo.clone() },
             "potencia_kw": ins.potencia_kw,
@@ -363,7 +381,12 @@ pub fn datos_contrato(b: &Biblioteca, k: &Contrato, v: &Valoracion, partes: &Val
                 }
                 for t in b.tiempos_de(&l.codigo) {
                     if let Some(op) = b.operaciones.get(&t.operacion_id) {
-                        poner(&op.periodicidad, op.texto.clone());
+                        let texto = if t.cobro == "aparte" {
+                            format!("{} {APARTE}", op.texto)
+                        } else {
+                            op.texto.clone()
+                        };
+                        poner(&op.periodicidad, texto);
                     }
                 }
             }
@@ -483,6 +506,35 @@ pub fn datos_contrato(b: &Biblioteca, k: &Contrato, v: &Valoracion, partes: &Val
     o.insert("sistemas".into(), json!(sistemas_json));
     o.entry("excluir_operaciones").or_insert_with(|| json!([]));
     o.insert("otros_sistemas".into(), json!(otros_json));
+    // Limpiezas que se presupuestan aparte, agrupadas por operación, con precio orientativo.
+    let mut limpiezas: BTreeMap<String, (f64, f64)> = BTreeMap::new();
+    for l in &v.limpiezas {
+        let e = limpiezas.entry(l.texto.clone()).or_default();
+        e.0 += l.precio_intervencion;
+        e.1 += l.precio_anio;
+    }
+    o.insert(
+        "limpiezas".into(),
+        json!(limpiezas
+            .into_iter()
+            .map(|(t, (pi, pa))| json!({"texto": t, "precio_intervencion": euros(pi), "precio_anio": euros(pa)}))
+            .collect::<Vec<_>>()),
+    );
+    o.insert("limpiezas_anio".into(), json!(euros(v.totales.limpiezas_anio)));
+    o.insert(
+        "inspecciones".into(),
+        json!(v
+            .inspecciones
+            .iter()
+            .map(|i| json!({
+                "texto": i.texto, "reglamento": i.reglamento, "agente": i.agente,
+                "periodicidad": format!("Cada {} años", i.periodicidad_anios),
+                "proxima": i.proxima.map(|a| a.to_string()).unwrap_or_else(|| "Según la última".into()),
+                "acompanamiento": euros(i.precio_acompanamiento),
+                "organismo": i.precio_organismo.map(euros).unwrap_or_else(|| "Según oferta".into()),
+            }))
+            .collect::<Vec<_>>()),
+    );
     o.insert(
         "visitas".into(),
         json!({"anuales": v.visitas, "descripcion": descripcion_visitas}),
