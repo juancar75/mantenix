@@ -78,6 +78,14 @@ const pdf = () => intentar(async () => {
   mensaje.value = `PDF guardado en ${ruta}`;
 });
 
+const pdfContrato = () => intentar(async () => {
+  if (!nombreGuardado.value) return;
+  const ruta = await save({ defaultPath: `contrato-${nombreGuardado.value}.pdf`, filters: [{ name: "PDF", extensions: ["pdf"] }] });
+  if (!ruta) return;
+  await api.pdfContrato(nombreGuardado.value, ruta);
+  mensaje.value = `PDF guardado en ${ruta}`;
+});
+
 const borrar = () => intentar(async () => {
   if (!nombreGuardado.value || !confirm(`¿Borrar el contrato «${nombreGuardado.value}» y sus valoraciones?`)) return;
   await api.borrarContrato(nombreGuardado.value);
@@ -163,6 +171,7 @@ const margenClase = (v: Valoracion) =>
         <button @click="guardar">Guardar</button>
         <button class="primario" @click="valorar">Guardar y valorar</button>
         <button v-if="valoracion" @click="pdf">Hoja de costes PDF</button>
+        <button v-if="valoracion && contrato.partes" @click="pdfContrato">Contrato PDF</button>
       </div>
 
       <template v-if="valoracion">
@@ -188,6 +197,7 @@ const margenClase = (v: Valoracion) =>
             <tr><td>Desplazamiento y tiempo fijo</td><td class="der">{{ num(valoracion.totales.horas_desplazamiento) }}</td><td class="der">{{ eur(valoracion.totales.desplazamiento) }}</td></tr>
             <tr><td>Consumibles</td><td></td><td class="der">{{ eur(valoracion.totales.consumibles) }}</td></tr>
             <tr><td>Subcontrata ({{ eur(valoracion.subcontrata_visita_facturada) }}/visita × {{ valoracion.visitas_subcontrata }})</td><td></td><td class="der">{{ eur(valoracion.totales.subcontrata) }}</td></tr>
+            <tr v-if="valoracion.totales.avisos"><td>Avisos de avería incluidos ({{ valoracion.avisos_averia.incluidos }} × {{ eur(valoracion.avisos_averia.coste_aviso) }}; estimados {{ num(valoracion.avisos_averia.estimados) }})</td><td></td><td class="der">{{ eur(valoracion.totales.avisos) }}</td></tr>
             <tr><td><b>Coste directo</b></td><td></td><td class="der"><b>{{ eur(valoracion.totales.directo) }}</b></td></tr>
             <tr><td>Indirectos + contingencia</td><td></td><td class="der">{{ eur(valoracion.totales.indirectos + valoracion.totales.contingencia) }}</td></tr>
             <tr><td><b>Precio de venta</b></td><td></td><td class="der"><b>{{ eur(valoracion.totales.precio_anual) }}</b></td></tr>

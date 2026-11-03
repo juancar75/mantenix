@@ -56,7 +56,7 @@ CREATE TABLE IF NOT EXISTS contrato (
     id TEXT PRIMARY KEY, cliente_id TEXT REFERENCES cliente(id), nombre TEXT NOT NULL UNIQUE,
     anio INTEGER NOT NULL, uso TEXT NOT NULL DEFAULT 'otros', visitas_contratadas INTEGER,
     km_ida REAL NOT NULL DEFAULT 0, minutos_ida REAL NOT NULL DEFAULT 0,
-    margen_pct REAL, precio_actual_anual REAL,
+    margen_pct REAL, precio_actual_anual REAL, avisos TEXT, partes TEXT,
     actualizado TEXT NOT NULL DEFAULT (datetime('now')));
 CREATE TABLE IF NOT EXISTS instalacion (
     id TEXT PRIMARY KEY, contrato_id TEXT NOT NULL REFERENCES contrato(id) ON DELETE CASCADE,
@@ -175,6 +175,8 @@ const AUDITADAS: &[(&str, &[&str])] = &[
             "minutos_ida",
             "margen_pct",
             "precio_actual_anual",
+            "avisos",
+            "partes",
         ],
     ),
     (
@@ -203,11 +205,12 @@ fn disparadores(tabla: &str, cols: &[&str]) -> String {
     };
     let usuario = "(SELECT usuario FROM sesion LIMIT 1)";
     format!(
-        "CREATE TRIGGER IF NOT EXISTS aud_{t}_i AFTER INSERT ON {t} BEGIN \
+        "DROP TRIGGER IF EXISTS aud_{t}_i; DROP TRIGGER IF EXISTS aud_{t}_u; DROP TRIGGER IF EXISTS aud_{t}_d;
+         CREATE TRIGGER aud_{t}_i AFTER INSERT ON {t} BEGIN \
            INSERT INTO auditoria (usuario, tabla, accion, despues) VALUES ({u}, '{t}', 'alta', {n}); END;
-         CREATE TRIGGER IF NOT EXISTS aud_{t}_u AFTER UPDATE ON {t} BEGIN \
+         CREATE TRIGGER aud_{t}_u AFTER UPDATE ON {t} BEGIN \
            INSERT INTO auditoria (usuario, tabla, accion, antes, despues) VALUES ({u}, '{t}', 'cambio', {o}, {n}); END;
-         CREATE TRIGGER IF NOT EXISTS aud_{t}_d AFTER DELETE ON {t} BEGIN \
+         CREATE TRIGGER aud_{t}_d AFTER DELETE ON {t} BEGIN \
            INSERT INTO auditoria (usuario, tabla, accion, antes) VALUES ({u}, '{t}', 'baja', {o}); END;",
         t = tabla,
         u = usuario,
@@ -216,10 +219,32 @@ fn disparadores(tabla: &str, cols: &[&str]) -> String {
     )
 }
 
+/// Añade a una base creada con una versión anterior las columnas nuevas.
+fn migrar(c: &Connection) -> Result<(), Error> {
+    let tiene = |tabla: &str, col: &str| -> Result<bool, Error> {
+        let n: i64 = c
+            .query_row(
+                &format!("SELECT COUNT(*) FROM pragma_table_info('{tabla}') WHERE name=?1"),
+                [col],
+                |r| r.get(0),
+            )
+            .map_err(e)?;
+        Ok(n > 0)
+    };
+    for col in ["avisos", "partes"] {
+        if !tiene("contrato", col)? {
+            c.execute(&format!("ALTER TABLE contrato ADD COLUMN {col} TEXT"), [])
+                .map_err(e)?;
+        }
+    }
+    Ok(())
+}
+
 /// Abre (o crea) la base de datos y asegura el esquema y los disparadores de auditoría.
 pub fn abrir(ruta: &Path) -> Result<Connection, Error> {
     let c = Connection::open(ruta).map_err(e)?;
     c.execute_batch(ESQUEMA).map_err(e)?;
+    migrar(&c)?;
     for (t, cols) in AUDITADAS {
         c.execute_batch(&disparadores(t, cols)).map_err(e)?;
     }
@@ -526,13 +551,16 @@ pub fn guardar_contrato(c: &mut Connection, k: &Contrato) -> Result<String, Erro
     tx.execute("DELETE FROM instalacion WHERE contrato_id=?1", [&id])
         .map_err(e)?;
     tx.execute(
-        "INSERT INTO contrato (id,nombre,anio,uso,visitas_contratadas,km_ida,minutos_ida,margen_pct,precio_actual_anual)
-         VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9)
+        "INSERT INTO contrato (id,nombre,anio,uso,visitas_contratadas,km_ida,minutos_ida,margen_pct,precio_actual_anual,avisos,partes)
+         VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11)
          ON CONFLICT(id) DO UPDATE SET anio=excluded.anio, uso=excluded.uso,
            visitas_contratadas=excluded.visitas_contratadas, km_ida=excluded.km_ida, minutos_ida=excluded.minutos_ida,
-           margen_pct=excluded.margen_pct, precio_actual_anual=excluded.precio_actual_anual, actualizado=datetime('now')",
+           margen_pct=excluded.margen_pct, precio_actual_anual=excluded.precio_actual_anual, avisos=excluded.avisos,
+           partes=excluded.partes, actualizado=datetime('now')",
         params![id, k.nombre, k.anio, k.uso, k.visitas_contratadas, k.desplazamiento.km_ida,
-                k.desplazamiento.minutos_ida, k.margen_pct, k.precio_actual_anual]).map_err(e)?;
+                k.desplazamiento.minutos_ida, k.margen_pct, k.precio_actual_anual,
+                serde_json::to_string(&k.avisos).map_err(|x| Error::Db(x.to_string()))?,
+                if k.partes.is_null() { None } else { Some(k.partes.to_string()) }]).map_err(e)?;
     for (i, ins) in k.instalaciones.iter().enumerate() {
         let iid = uuid();
         tx.execute("INSERT INTO instalacion (id,contrato_id,orden,familia,titulo,potencia_kw,temporada_meses) VALUES (?1,?2,?3,?4,?5,?6,?7)",
@@ -549,11 +577,13 @@ pub fn guardar_contrato(c: &mut Connection, k: &Contrato) -> Result<String, Erro
 /// Carga un contrato por nombre.
 pub fn cargar_contrato(c: &Connection, nombre: &str) -> Result<(String, Contrato), Error> {
     let (id, mut k) = c.query_row(
-        "SELECT id,nombre,anio,uso,visitas_contratadas,km_ida,minutos_ida,margen_pct,precio_actual_anual FROM contrato WHERE nombre=?1",
+        "SELECT id,nombre,anio,uso,visitas_contratadas,km_ida,minutos_ida,margen_pct,precio_actual_anual,avisos,partes FROM contrato WHERE nombre=?1",
         [nombre], |r| Ok((r.get::<_, String>(0)?, Contrato {
             nombre: r.get(1)?, anio: r.get(2)?, uso: r.get(3)?, visitas_contratadas: r.get(4)?,
             desplazamiento: Desplazamiento { km_ida: r.get(5)?, minutos_ida: r.get(6)? },
             margen_pct: r.get(7)?, precio_actual_anual: r.get(8)?, instalaciones: vec![],
+            avisos: r.get::<_, Option<String>>(9)?.and_then(|t| serde_json::from_str(&t).ok()).unwrap_or_default(),
+            partes: r.get::<_, Option<String>>(10)?.and_then(|t| serde_json::from_str(&t).ok()).unwrap_or_default(),
         }))).optional().map_err(e)?.ok_or_else(|| Error::NoEncontrado(nombre.to_string()))?;
     let mut si = c
         .prepare(
