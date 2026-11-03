@@ -373,6 +373,7 @@ pub fn valorar(b: &Biblioteca, c: &Contrato) -> Result<Valoracion, Error> {
                     .meses_tabla_3_1(&eq.equipo_tabla_3_1, potencia, viviendas)
                     .map(|m| (12.0 / m).min(1.0))
                     .unwrap_or(1.0);
+                let biomasa = l.codigo == "CALD-BIO";
                 let tiempos: Vec<_> = b.tiempos_de(&l.codigo).collect();
                 if tiempos.is_empty() {
                     avisos.push(format!(
@@ -406,10 +407,11 @@ pub fn valorar(b: &Biblioteca, c: &Contrato) -> Result<Valoracion, Error> {
                         });
                         continue;
                     }
-                    let mut veces = if rite_le70 && op.periodicidad != "visita" && op.periodicidad != "S" {
+                    let mut veces = if rite_le70 && !biomasa && op.periodicidad != "visita" && op.periodicidad != "S" {
                         // ≤70 kW (IT 3.3, tablas 3.1 y 3.2): todas las operaciones se hacen en la
                         // revisión periódica de la tabla 3.1 (una vez al año, o cada 2-4 años según
-                        // equipo y uso); las periodicidades de la tabla 3.3 son solo para >70 kW.
+                        // equipo y uso); las periodicidades de la tabla 3.3 son solo para >70 kW,
+                        // salvo la biomasa, que sigue la tabla 3.3 en cualquier potencia.
                         rev_t31
                     } else {
                         base

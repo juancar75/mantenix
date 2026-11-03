@@ -484,8 +484,8 @@ mod tests {
         let v = valorar(&b, &k).unwrap();
         assert_eq!(v.totales.precio_anual, precio, "no entra en la cuota");
         let i = &v.inspecciones[0];
-        assert_eq!(i.proxima, Some(2028));
-        // 3 h × precio hora oficial de presupuestos (45 €) + organismo
+        assert_eq!(i.proxima, Some(2027)); // RITE IT 4.3.1: cada 4 años
+                                           // 3 h × precio hora oficial de presupuestos (45 €) + organismo
         assert_eq!(i.precio_acompanamiento, 135.0);
         assert_eq!(i.precio_total, 485.0);
         let d = documento::datos_contrato(&b, &k, &v, &serde_json::json!({}));

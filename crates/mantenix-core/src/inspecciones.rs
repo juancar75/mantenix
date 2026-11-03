@@ -132,7 +132,11 @@ pub fn sugeridas(b: &Biblioteca, k: &Contrato) -> Vec<String> {
         .iter()
         .any(|i| i.familia == "RITE" && i.potencia_kw.unwrap_or(0.0) > 70.0)
     {
-        v.extend(["INSP-RITE-PARC", "INSP-RITE-COMP"]);
+        v.push("INSP-RITE-PARC");
+        if k.avisos.antiguedad == "antigua" {
+            // más de 15 años
+            v.push("INSP-RITE-COMP");
+        }
     }
     // Solo extintores, señalización o alumbrado de emergencia no obligan a inspección (art. 22.2).
     let hay_pci = k.instalaciones.iter().flat_map(|i| &i.equipos).any(|l| {
