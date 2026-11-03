@@ -1,3 +1,11 @@
 id;sistema;periodicidad;operacion
 CO-REV;CO;visita;Comprobación de detectores y central de CO con gas de ensayo, puesta en marcha de ventiladores por nivel de CO (fabricante / CTE HS 3)
 FAB-FILTRO-SUST;;3m;Sustitución de los filtros de aire de las unidades terminales (criterio de la empresa / fabricante; el material se valora aparte si no está incluido)
+VENT-REV;VENT;visita;Revisión de ventiladores de extracción: funcionamiento y sentido de giro, ruidos y vibraciones, rodamientos, correas, anclajes y consumo eléctrico (fabricante / CTE DB HS 3)
+VENT-LIMP;VENT;1a;Limpieza de rejillas, compuertas y tramos accesibles de los conductos de extracción (fabricante / CTE DB HS 3)
+SOBREP-MED;SCH;1a;Medición de la presión diferencial entre escalera y planta con puertas cerradas y de la velocidad del aire en la puerta abierta, y ajuste de la compuerta de alivio (UNE-EN 12101-6 / fabricante)
+FAB-EMISOR;;t;Revisión de emisores: purgado, estanquidad de llaves y detentores y funcionamiento de las válvulas termostáticas (fabricante)
+FAB-SUELO-RAD;;t;Revisión de colectores de suelo radiante: purgado, caudalímetros, cabezales electrotérmicos, válvula mezcladora y temperatura de impulsión (fabricante)
+FAB-GEO;;t;Revisión del circuito de captación geotérmica: presiones, caudal, salto térmico y concentración del anticongelante (fabricante)
+FAB-DEPOSITO;;t;Revisión de depósitos de inercia: purga de aire, vaciado de lodos, protección catódica y estado exterior (fabricante)
+FAB-INTERC;;t;Revisión del intercambiador de placas: temperaturas, pérdida de carga y estanquidad de juntas; limpieza si procede (fabricante)

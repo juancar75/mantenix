@@ -335,4 +335,71 @@ mod tests {
         );
         assert!(recargo.is_some());
     }
+
+    #[test]
+    fn catalogo_nuevo_llega_a_bases_existentes() {
+        let mut c = db::abrir(std::path::Path::new(":memory:")).unwrap();
+        db::inicializar(&mut c, &normativa(), &ejemplo()).unwrap();
+        // Simula una base creada antes de los equipos nuevos.
+        for cod in ["SOBREP-KIT", "VENT-GAR", "BC-GEO"] {
+            c.execute("DELETE FROM tiempo WHERE codigo_equipo=?1", [cod]).unwrap();
+            c.execute("DELETE FROM equipo WHERE codigo=?1", [cod]).unwrap();
+        }
+        c.execute("DELETE FROM operacion WHERE id='SOBREP-MED'", []).unwrap();
+        c.execute(
+            "UPDATE tiempo SET minutos=99 WHERE codigo_equipo='UTA' AND operacion_id='RITE-T33-19'",
+            [],
+        )
+        .unwrap();
+        assert_eq!(db::actualizar_catalogo(&mut c, &normativa(), &ejemplo()).unwrap(), 3);
+        assert_eq!(db::actualizar_catalogo(&mut c, &normativa(), &ejemplo()).unwrap(), 0);
+        let b = Biblioteca::desde_db(&c).unwrap();
+        assert_eq!(b.tiempos.len(), biblioteca().tiempos.len());
+        assert_eq!(
+            b.tiempos_de("UTA")
+                .find(|t| t.operacion_id == "RITE-T33-19")
+                .unwrap()
+                .minutos,
+            99.0,
+            "no pisa lo editado"
+        );
+    }
+
+    #[test]
+    fn ventilacion_y_sobrepresion_en_el_contrato() {
+        let b = biblioteca();
+        let k: Contrato = serde_json::from_str(
+            r#"{"nombre":"vs","anio":2026,"visitas_contratadas":4,"desplazamiento":{"km_ida":10,"minutos_ida":20},
+            "instalaciones":[
+              {"familia":"RITE","potencia_kw":120,"equipos":[{"codigo":"BC-GEO","cantidad":1},{"codigo":"SUELO-RAD","cantidad":3},
+                {"codigo":"DEP-INERCIA","cantidad":1},{"codigo":"DESHUM","cantidad":1},{"codigo":"CORTINA","cantidad":2},
+                {"codigo":"HUMID","cantidad":1},{"codigo":"INTERC-PL","cantidad":1},{"codigo":"EMISOR","cantidad":10}]},
+              {"familia":"PCI","equipos":[{"codigo":"SOBREP-KIT","cantidad":2},{"codigo":"VENT-GAR","cantidad":4},
+                {"codigo":"VENT-CT","cantidad":3},{"codigo":"CO-DET","cantidad":6,"modo":"propio"}]}]}"#,
+        )
+        .unwrap();
+        let v = valorar(&b, &k).unwrap();
+        assert!(
+            !v.avisos
+                .iter()
+                .any(|a| a.contains("sin tiempos") || a.contains("no existe")),
+            "{:?}",
+            v.avisos
+        );
+        for l in &v.lineas {
+            assert!(l.horas_anio > 0.0, "{} sin horas", l.codigo);
+        }
+        let d = documento::datos_contrato(&b, &k, &v, &serde_json::json!({}));
+        let otros = d["otros_sistemas"].as_array().unwrap();
+        assert_eq!(otros.len(), 1);
+        assert!(otros[0]["titulo"].as_str().unwrap().contains("cuartos técnicos"));
+        assert_eq!(otros[0]["equipos"].as_array().unwrap().len(), 3);
+        let sch = d["sistemas"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|s| s["codigo"] == "SCH")
+            .unwrap();
+        assert!(sch["norma_adicional"].as_str().unwrap().contains("12101-6"));
+    }
 }

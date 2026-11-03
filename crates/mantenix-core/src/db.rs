@@ -948,3 +948,100 @@ pub fn cargar_modelos_semilla(c: &Connection, fichero: &Path) -> Result<usize, E
     }
     Ok(modelos.len())
 }
+
+/// Añade a una base ya creada los equipos nuevos del catálogo semilla (con sus tiempos) y las
+/// operaciones que falten. No toca nada de lo que ya existe: los equipos, tiempos y operaciones
+/// que el usuario haya editado se respetan. Devuelve cuántos equipos añadió.
+pub fn actualizar_catalogo(c: &mut Connection, normativa: &Path, empresa: &Path) -> Result<usize, Error> {
+    let n: i64 = c
+        .query_row("SELECT count(*) FROM operacion", [], |r| r.get(0))
+        .map_err(e)?;
+    if n == 0 || !empresa.join("catalogo_equipos.csv").exists() {
+        return Ok(0);
+    }
+    let b = Biblioteca::desde_csv(normativa, empresa)?;
+    let existe = |tabla: &str, col: &str, id: &str| -> Result<bool, Error> {
+        let n: i64 = c
+            .query_row(&format!("SELECT count(*) FROM {tabla} WHERE {col}=?1"), [id], |r| {
+                r.get(0)
+            })
+            .map_err(e)?;
+        Ok(n > 0)
+    };
+    let mut ops_nuevas = Vec::new();
+    for o in b.operaciones.values() {
+        if !existe("operacion", "id", &o.id)? {
+            ops_nuevas.push(o.clone());
+        }
+    }
+    let mut eq_nuevos = Vec::new();
+    for q in b.catalogo.values() {
+        if !existe("equipo", "codigo", &q.codigo)? {
+            eq_nuevos.push(q.clone());
+        }
+    }
+    if ops_nuevas.is_empty() && eq_nuevos.is_empty() {
+        return Ok(0);
+    }
+    let anterior: Option<String> = c
+        .query_row("SELECT usuario FROM sesion LIMIT 1", [], |r| r.get(0))
+        .optional()
+        .map_err(e)?;
+    fijar_usuario(c, "semilla")?;
+    let tx = c.transaction().map_err(e)?;
+    for o in &ops_nuevas {
+        tx.execute(
+            "INSERT INTO operacion VALUES (?1,?2,?3,?4,?5,?6,?7,?8)",
+            params![
+                o.id,
+                o.texto,
+                o.periodicidad,
+                o.tipo,
+                o.referencia,
+                o.sistema,
+                o.fuente,
+                o.verificado
+            ],
+        )
+        .map_err(e)?;
+    }
+    for q in &eq_nuevos {
+        tx.execute(
+            "INSERT INTO equipo VALUES (?1,?2,?3,?4,?5,?6,?7,?8)",
+            params![
+                q.codigo,
+                q.familia,
+                q.descripcion,
+                q.unidad,
+                q.sistema_ripci,
+                q.equipo_tabla_3_1,
+                q.modo_defecto,
+                q.partida_subcontrata
+            ],
+        )
+        .map_err(e)?;
+        for t in b.tiempos.iter().filter(|t| t.codigo_equipo == q.codigo) {
+            tx.execute(
+                "INSERT OR IGNORE INTO tiempo VALUES (?1,?2,?3,?4,?5,?6,?7)",
+                params![
+                    t.codigo_equipo,
+                    t.operacion_id,
+                    t.minutos,
+                    t.tecnicos,
+                    t.consumibles_eur,
+                    t.estado,
+                    t.nota
+                ],
+            )
+            .map_err(e)?;
+        }
+    }
+    tx.commit().map_err(e)?;
+    match anterior {
+        Some(u) => fijar_usuario(c, &u)?,
+        None => {
+            c.execute("DELETE FROM sesion", []).map_err(e)?;
+        }
+    }
+    Ok(eq_nuevos.len())
+}

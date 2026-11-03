@@ -17,11 +17,13 @@ const emit = defineEmits<{ cambio: [] }>();
 // ── Grupos de equipos que se preguntan en cada paso ──────────────────────────
 const GRUPOS_RITE = [
   { titulo: "Producción de calor y frío", ayuda: "Calderas, bombas de calor, enfriadoras y unidades exteriores. Se cuentan en la sala de calderas, en cubierta o en los patios.",
-    codigos: ["CALD-GAS", "CALD-GASOLEO", "CALD-MURAL", "CALD-BIO", "ENFRIADORA", "ROOFTOP", "VRF-EXT", "SPLIT-EXT", "TORRE"] },
-  { titulo: "Bombas y circuitos", ayuda: "Bombas circuladoras (cada bomba cuenta, también las de reserva), vasos de expansión y tratamientos de agua.",
-    codigos: ["BOMBA", "VASO-EXP", "TRAT-AGUA", "FILTRO-AGUA", "CIRC-HIDR"] },
-  { titulo: "Equipos interiores y aire", ayuda: "Climatizadores (UTA), recuperadores, fancoils y unidades interiores. Si hay muchos, cuente por plantas.",
-    codigos: ["UTA", "RECUP", "FANCOIL", "VRF-INT", "VRF-BS", "SPLIT-INT", "PURIF", "DIFUSOR", "CONDUCTOS"] },
+    codigos: ["CALD-GAS", "CALD-GASOLEO", "CALD-MURAL", "CALD-BIO", "ENFRIADORA", "BC-GEO", "ROOFTOP", "VRF-EXT", "SPLIT-EXT", "TORRE"] },
+  { titulo: "Bombas y circuitos", ayuda: "Bombas circuladoras (cada bomba cuenta, también las de reserva), vasos de expansión, depósitos de inercia, intercambiadores de placas y tratamientos de agua.",
+    codigos: ["BOMBA", "VASO-EXP", "DEP-INERCIA", "INTERC-PL", "TRAT-AGUA", "FILTRO-AGUA", "CIRC-HIDR"] },
+  { titulo: "Emisores de calor", ayuda: "Radiadores y suelo radiante de zonas comunes o del edificio (no los de dentro de las viviendas si no entran en el contrato). El suelo radiante se cuenta por colector.",
+    codigos: ["EMISOR", "SUELO-RAD"] },
+  { titulo: "Equipos interiores y aire", ayuda: "Climatizadores (UTA), recuperadores, fancoils, unidades interiores, ventiladores de climatización, cortinas de aire, deshumectadoras y humidificadores. Si hay muchos, cuente por plantas.",
+    codigos: ["UTA", "RECUP", "FANCOIL", "VRF-INT", "VRF-BS", "SPLIT-INT", "VENT", "CORTINA", "DESHUM", "HUMID", "PURIF", "DIFUSOR", "CONDUCTOS"] },
   { titulo: "Agua caliente sanitaria y solar", ayuda: "Acumuladores o interacumuladores de ACS, calentadores, bombas de calor de ACS y captadores solares.",
     codigos: ["ACS-SIS", "BC-ACS", "CALENT-GAS", "SOLAR-CAMPO", "SOLAR-CAPT"] },
   { titulo: "Regulación", ayuda: "Centralitas de regulación o sistema de gestión del edificio.", codigos: ["CONTROL", "CAL-AMB"] },
@@ -32,11 +34,11 @@ const GRUPOS_PCI = [
     codigos: ["DET-CENTRAL-CONV", "DET-CENTRAL-ANA", "DET-OPT", "DET-TERM", "DET-MULTI", "DET-PULS", "DET-SIR", "DET-SIR-OA", "DET-FA", "DET-MOD", "DET-RETEN"] },
   { titulo: "Agua contra incendios", ayuda: "Bocas de incendio (armarios con manguera), grupo de presión y aljibe, hidrantes y columna seca.",
     codigos: ["BIE-25", "BIE-45", "GP-S", "GP-M", "GP-L", "ALJIBE", "HID-EXT", "HID-COL", "CS-S", "CS-M"] },
-  { titulo: "Control de humos", ayuda: "Ventiladores de extracción de humos del garaje (marcados F400 o F300) y su cuadro.", codigos: ["SCTEH-SIS", "SCTEH-VENT", "SCTEH-CUADRO"] },
+  { titulo: "Control de humos y sobrepresión", ayuda: "Ventiladores de extracción de humos del garaje (marcados F400 o F300) y su cuadro. Kits de sobrepresión de escalera: ventilador de impulsión (normalmente en cubierta o en la base de la escalera), compuerta de alivio y cuadro; cuente uno por escalera presurizada.", codigos: ["SCTEH-SIS", "SCTEH-VENT", "SCTEH-CUADRO", "SOBREP-KIT"] },
   { titulo: "Señalización", ayuda: "Señales fotoluminiscentes de evacuación y de medios de extinción.", codigos: ["SEN-UD"] },
 ];
 const GRUPOS_OTROS = [
-  { titulo: "Ventilación del garaje por CO", ayuda: "Central de detección de monóxido de carbono y sus detectores (en las paredes del garaje, a 1,5 m del suelo aprox.).", codigos: ["CO-CENTRAL", "CO-DET"] },
+  { titulo: "Ventilación del garaje y cuartos técnicos", ayuda: "Central de detección de monóxido de carbono y sus detectores (en las paredes del garaje, a 1,5 m del suelo aprox.). Extractores de garaje que no sean de humos (si son F400/F300, van en «Control de humos» del paso anterior) y extractores de cuartos técnicos, trasteros o cuartos de basuras.", codigos: ["CO-CENTRAL", "CO-DET", "VENT-GAR", "VENT-CT"] },
   { titulo: "Alumbrado de emergencia", ayuda: "Luminarias de emergencia (con piloto verde encendido) en escaleras, pasillos y garaje.", codigos: ["AE-UD"] },
 ];
 

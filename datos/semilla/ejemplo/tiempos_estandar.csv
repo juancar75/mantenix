@@ -88,3 +88,34 @@ SCTEH-CUADRO;RIPCI-TI-52;10;1;0;estimacion_borrador;
 CO-CENTRAL;CO-REV;20;1;0;estimacion_borrador;
 CO-DET;CO-REV;5;1;0;estimacion_borrador;
 FANCOIL;FAB-FILTRO-SUST;5;1;0;estimacion_borrador;Sustitución trimestral (la comprobación mensual es RITE-T33-19)
+EMISOR;FAB-EMISOR;5;1;0;estimacion_borrador;Solo emisores de zonas comunes
+SUELO-RAD;FAB-SUELO-RAD;20;1;0;estimacion_borrador;
+SUELO-RAD;RITE-T33-14;5;1;0;estimacion_borrador;
+BC-GEO;RITE-T33-04;30;1;0;estimacion_borrador;
+BC-GEO;RITE-T33-17;15;1;0;estimacion_borrador;
+BC-GEO;FAB-GEO;30;1;0;estimacion_borrador;anticongelante aparte
+DEP-INERCIA;FAB-DEPOSITO;20;1;0;estimacion_borrador;
+DEP-INERCIA;RITE-T33-29;10;1;0;estimacion_borrador;
+INTERC-PL;FAB-INTERC;30;1;0;estimacion_borrador;Desmontaje y limpieza de placas aparte
+CORTINA;RITE-T33-19;10;1;0;estimacion_borrador;filtros
+CORTINA;RITE-T33-20;10;1;0;estimacion_borrador;
+CORTINA;RITE-T33-27;10;1;0;estimacion_borrador;
+DESHUM;RITE-T33-19;15;1;0;estimacion_borrador;filtros
+DESHUM;RITE-T33-01;20;1;0;estimacion_borrador;producto limpieza batería
+DESHUM;RITE-T33-02;20;1;0;estimacion_borrador;producto limpieza batería
+DESHUM;RITE-T33-04;15;1;0;estimacion_borrador;
+DESHUM;RITE-T33-26;20;1;0;estimacion_borrador;
+HUMID;RITE-T33-21;20;1;0;estimacion_borrador;
+VENT-GAR;VENT-REV;20;1;0;estimacion_borrador;
+VENT-GAR;VENT-LIMP;30;1;0;estimacion_borrador;
+VENT-CT;VENT-REV;10;1;0;estimacion_borrador;
+VENT-CT;VENT-LIMP;15;1;0;estimacion_borrador;
+SOBREP-KIT;RIPCI-TI-50;10;1;0;estimacion_borrador;
+SOBREP-KIT;RIPCI-TI-51;10;1;0;estimacion_borrador;
+SOBREP-KIT;RIPCI-TI-52;20;1;0;estimacion_borrador;
+SOBREP-KIT;RIPCI-TI-53;15;1;0;estimacion_borrador;
+SOBREP-KIT;RIPCI-TII-37;45;2;0;estimacion_borrador;Prueba con puertas abiertas en varias plantas
+SOBREP-KIT;RIPCI-TII-39;10;1;0;estimacion_borrador;
+SOBREP-KIT;RIPCI-TII-40;10;1;0;estimacion_borrador;
+SOBREP-KIT;RIPCI-TII-41;15;1;0;estimacion_borrador;
+SOBREP-KIT;SOBREP-MED;45;1;0;estimacion_borrador;Manómetro diferencial y anemómetro

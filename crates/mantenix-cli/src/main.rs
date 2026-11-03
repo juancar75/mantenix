@@ -131,7 +131,15 @@ fn main() -> Result<()> {
             if db::inicializar(&mut c, &normativa, &empresa)? {
                 println!("Base creada en {} (empresa: {}).", cli.db.display(), empresa.display());
             } else {
-                println!("La base {} ya tenía datos; no se toca.", cli.db.display());
+                let n = db::actualizar_catalogo(&mut c, &normativa, &empresa)?;
+                if n > 0 {
+                    println!(
+                        "La base {} ya tenía datos: {n} equipos nuevos añadidos al catálogo.",
+                        cli.db.display()
+                    );
+                } else {
+                    println!("La base {} ya tenía datos; no se toca.", cli.db.display());
+                }
             }
         }
         Orden::Importar { inventario } => {

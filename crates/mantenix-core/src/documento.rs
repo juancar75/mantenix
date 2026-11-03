@@ -275,6 +275,12 @@ pub fn datos_contrato(b: &Biblioteca, k: &Contrato, v: &Valoracion, partes: &Val
         }));
     }
 
+    let hay_codigo = |codigo: &str| {
+        k.instalaciones
+            .iter()
+            .any(|i| i.equipos.iter().any(|l| l.codigo == codigo && l.cantidad > 0.0))
+    };
+
     // Protección contra incendios y otros sistemas
     let mut sistemas: BTreeMap<String, (Vec<String>, Vec<Value>, bool)> = BTreeMap::new();
     let mut otros: BTreeMap<&str, Vec<Value>> = BTreeMap::new();
@@ -285,6 +291,7 @@ pub fn datos_contrato(b: &Biblioteca, k: &Contrato, v: &Valoracion, partes: &Val
             let modo = l.modo.clone().unwrap_or_else(|| eq.modo_defecto.clone());
             match eq.sistema_ripci.as_str() {
                 "CO" => otros.entry("CO").or_default().push(fila),
+                "VENT" => otros.entry("VENT").or_default().push(fila),
                 "AE" => otros.entry("AE").or_default().push(fila),
                 "" => otros.entry("OTRO").or_default().push(fila),
                 sub => {
@@ -310,7 +317,11 @@ pub fn datos_contrato(b: &Biblioteca, k: &Contrato, v: &Valoracion, partes: &Val
                 "modo": if *sub { "subcontrata" } else { "propio" }, "equipos": equipos,
             });
             if c == "SCH" {
-                s["norma_adicional"] = json!("Según la Guía técnica de aplicación del RIPCI, en emplazamientos subterráneos el mantenimiento se realizará conforme a la norma UNE 23584.");
+                let mut nota = String::from("Según la Guía técnica de aplicación del RIPCI, en emplazamientos subterráneos el mantenimiento se realizará conforme a la norma UNE 23584.");
+                if hay_codigo("SOBREP-KIT") {
+                    nota.push_str(" Los sistemas de presión diferencial de escaleras se comprobarán, además, conforme a la norma UNE-EN 12101-6 y a las instrucciones del fabricante (presión diferencial con puertas cerradas y velocidad del aire en la puerta abierta).");
+                }
+                s["norma_adicional"] = json!(nota);
             }
             s
         })
@@ -320,14 +331,42 @@ pub fn datos_contrato(b: &Biblioteca, k: &Contrato, v: &Valoracion, partes: &Val
         .get("CO-REV")
         .map(|o| o.texto.clone())
         .unwrap_or_else(|| "Comprobación de detectores y central de CO con gas de ensayo y de la puesta en marcha de la ventilación por niveles.".into());
+    let texto_op = |id: &str, defecto: &str| {
+        b.operaciones
+            .get(id)
+            .map(|o| o.texto.clone())
+            .unwrap_or_else(|| defecto.into())
+    };
     let mut otros_json = Vec::new();
-    if let Some(eq) = otros.remove("CO") {
+    let co = otros.remove("CO");
+    let vent = otros.remove("VENT");
+    if co.is_some() || vent.is_some() {
+        let mut equipos = co.clone().unwrap_or_default();
+        equipos.extend(vent.clone().unwrap_or_default());
+        let mut ops: Vec<String> = Vec::new();
+        if co.is_some() {
+            ops.push(co_op);
+            ops.push("Comprobación de la puesta en marcha de los ventiladores por niveles de CO y de la señalización de alarma.".into());
+        }
+        if vent.is_some() {
+            ops.push(texto_op("VENT-REV", "Revisión de ventiladores de extracción: funcionamiento, ruidos, vibraciones, rodamientos, correas y consumo eléctrico."));
+            ops.push(format!(
+                "Anual: {}",
+                texto_op(
+                    "VENT-LIMP",
+                    "Limpieza de rejillas, compuertas y tramos accesibles de los conductos de extracción."
+                )
+            ));
+        }
+        ops.push("Revisión del cuadro eléctrico de ventilación: contactores, protecciones térmicas y maniobra, conforme al REBT.".into());
+        let titulo = if hay_codigo("VENT-CT") {
+            "Ventilación del garaje y de cuartos técnicos (CTE DB HS 3)"
+        } else {
+            "Ventilación del garaje (CTE DB HS 3)"
+        };
         otros_json.push(json!({
-            "titulo": "Ventilación del garaje por monóxido de carbono (CTE DB HS 3)",
-            "equipos": eq, "periodicidad": "En cada visita",
-            "operaciones": [co_op,
-                "Comprobación de la puesta en marcha de los ventiladores por niveles de CO y de la señalización de alarma.",
-                "Revisión del cuadro eléctrico de ventilación: contactores, protecciones térmicas y maniobra, conforme al REBT."],
+            "titulo": titulo, "equipos": equipos, "periodicidad": "En cada visita",
+            "operaciones": ops,
         }));
     }
     if let Some(eq) = otros.remove("AE") {
@@ -385,7 +424,11 @@ pub fn datos_contrato(b: &Biblioteca, k: &Contrato, v: &Valoracion, partes: &Val
     for o in &otros_json {
         let t = o["titulo"].as_str().unwrap_or("");
         if t.starts_with("Ventilación") {
-            titulos.push("ventilación del garaje");
+            titulos.push(if t.contains("cuartos técnicos") {
+                "ventilación del garaje y de cuartos técnicos"
+            } else {
+                "ventilación del garaje"
+            });
         } else if t.starts_with("Alumbrado") {
             titulos.push("alumbrado de emergencia");
         } else {

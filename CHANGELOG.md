@@ -4,18 +4,21 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ## [Sin publicar]
 
-### Cambiado
-- Las bases de versiones anteriores se actualizan solas al abrirse (columnas nuevas y disparadores de auditoría).
+### Añadido
+- **Catálogo ampliado** (11 equipos, con tiempos estándar, operaciones y tasa de avisos):
+  - Ventilación: extractor de garaje que no es de humos (`VENT-GAR`) y extractor de cuartos técnicos, trasteros o basuras (`VENT-CT`), con revisión en cada visita y limpieza anual (CTE DB HS 3 / fabricante).
+  - Kit de sobrepresión de escalera (`SOBREP-KIT`), dentro del sistema de control de humos del RIPCI, más la medición anual de presión diferencial y velocidad en puerta (UNE-EN 12101-6).
+  - Climatización: bomba de calor geotérmica o agua-agua, deshumectadora, humidificador, cortina de aire, depósito de inercia, intercambiador de placas, emisores (radiadores) y suelo radiante por colector.
+- El asistente pregunta por todos ellos (también por el ventilador de climatización `VENT`, que faltaba) y el contrato tipo los incluye: bloque «Ventilación del garaje y de cuartos técnicos» y nota UNE-EN 12101-6 en control de humos.
+- Las bases ya creadas reciben los equipos nuevos al abrirse (o con `mantenix init`), sin tocar los tiempos ni los equipos editados.
+
+## [0.2.0] - 2026-11-03
 
 ### Añadido
 - **Asistente de nuevo contrato** en la app: 8 pasos guiados (cliente, edificio, climatización, incendios, garaje y emergencias, avisos y condiciones, resultado) con ayuda en cada pantalla; al final, precio, hoja de costes y contrato en PDF. Guía en `docs/guia-nuevo-contrato.md`.
 - Los datos del documento (cliente, edificio, firmante, referencia) se guardan con el contrato; botón *Contrato PDF* también en «Contratos».
 - **Contrato tipo** generado desde el inventario y la valoración (`mantenix contrato-pdf <contrato> --partes <json> --pdf`): instalaciones térmicas (operaciones del RITE con su periodicidad), protección contra incendios (anexo II del RIPCI), ventilación por CO y alumbrado de emergencia; importe en cifras y letras, pago según la periodicidad de las visitas y cláusula de avisos.
 - **Avisos de avería** en la valoración: estimación por equipo, antigüedad y uso; modalidades bolsa (por defecto), incluidos y aparte. Ejemplo `datos/semilla/ejemplo/contratos/edificio-tipo.json`.
-
-## [0.2.0] - 2026-10-19
-
-### Añadido
 - **Presupuestos** de reparación (correctivo) y de pequeñas obras o mejoras, con numeración automática `P-AAAA-NNN`, estados (borrador, enviado, aceptado, rechazado) y registro de cambios.
 - **Carta presupuesto** en PDF: explica qué se ha roto o desgastado, las consecuencias de no actuar y el repuesto o trabajo propuesto; importe desglosado con IVA, condiciones estándar y espacio para la aceptación del cliente. No muestra costes internos.
 - Líneas de repuesto, hora de oficial, hora de oficial + ayudante, desplazamiento y otras partidas, con coste interno y margen del presupuesto.
@@ -27,6 +30,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 - Órdenes `mantenix presupuesto <json> --pdf`, `mantenix presupuestos [--cliente] [--pdf]` y `mantenix logo <ámbito> <fichero>`. Ejemplo en `datos/semilla/ejemplo/presupuestos/`.
 
 ### Cambiado
+- Las bases de versiones anteriores se actualizan solas al abrirse (columnas nuevas y disparadores de auditoría).
 - La aplicación recuerda la última base de datos abierta y el último usuario identificado.
 
 ## [0.1.0] - 2026-10-13
