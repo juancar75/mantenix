@@ -100,6 +100,8 @@ export const api = {
   valorar: (nombre: string) => invoke<Valoracion>("valorar_contrato", { nombre }),
   pdfHojaCostes: (nombre: string, ruta: string) => invoke<void>("pdf_hoja_costes", { nombre, ruta }),
   pdfContrato: (nombre: string, ruta: string) => invoke<void>("pdf_contrato", { nombre, ruta }),
+  pdfVisitas: (nombre: string, mesInicio: number, ruta: string) => invoke<void>("pdf_visitas", { nombre, mesInicio, ruta }),
+  pdfCertificado: (nombre: string, anio: number, ruta: string) => invoke<void>("pdf_certificado", { nombre, anio, ruta }),
 
   listarPresupuestos: () => invoke<ResumenPresupuesto[]>("listar_presupuestos"),
   cargarPresupuesto: (numero: string) => invoke<Presupuesto>("cargar_presupuesto", { numero }),

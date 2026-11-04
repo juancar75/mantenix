@@ -162,14 +162,16 @@ async function calcular() {
   } catch (e) { error.value = String(e); }
 }
 
-async function pdf(tipo: "hoja" | "contrato") {
+async function pdf(tipo: "hoja" | "contrato" | "visitas" | "certificado") {
   if (!guardado.value) return;
   error.value = ""; mensaje.value = "";
   try {
-    const nombre = tipo === "hoja" ? `hoja-costes-${guardado.value}.pdf` : `contrato-${guardado.value}.pdf`;
-    const ruta = await save({ defaultPath: nombre, filters: [{ name: "PDF", extensions: ["pdf"] }] });
+    const nombres = { hoja: "hoja-costes", contrato: "contrato", visitas: "plan-y-visitas", certificado: "certificado-mantenimiento" };
+    const ruta = await save({ defaultPath: `${nombres[tipo]}-${guardado.value}.pdf`, filters: [{ name: "PDF", extensions: ["pdf"] }] });
     if (!ruta) return;
     if (tipo === "hoja") await api.pdfHojaCostes(guardado.value, ruta);
+    else if (tipo === "visitas") await api.pdfVisitas(guardado.value, 0, ruta);
+    else if (tipo === "certificado") await api.pdfCertificado(guardado.value, hoy.getFullYear(), ruta);
     else await api.pdfContrato(guardado.value, ruta);
     mensaje.value = `PDF guardado en ${ruta}`;
   } catch (e) { error.value = String(e); }
@@ -402,6 +404,8 @@ function empezarOtro() {
       <div class="fila">
         <button class="primario" @click="pdf('contrato')">Contrato en PDF</button>
         <button @click="pdf('hoja')">Hoja de costes (interna)</button>
+        <button @click="pdf('visitas')">Plan y hojas de visita</button>
+        <button v-if="f.rite.hay" @click="pdf('certificado')">Certificado anual RITE</button>
         <span style="flex: 1"></span>
         <button @click="paso = 1">Corregir datos</button>
         <button @click="empezarOtro">Otro contrato</button>

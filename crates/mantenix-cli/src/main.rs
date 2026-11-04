@@ -107,6 +107,35 @@ enum Orden {
         #[arg(long)]
         pdf: PathBuf,
     },
+    /// Plan anual de mantenimiento y hojas de visita del técnico de un contrato guardado.
+    Visitas {
+        nombre: String,
+        /// Mes de la primera visita (1-12). Si falta, el de la fecha del contrato o el actual.
+        #[arg(long)]
+        mes_inicio: Option<u32>,
+        /// Solo la hoja de esta visita (sin el plan anual).
+        #[arg(long)]
+        visita: Option<u32>,
+        /// JSON con las partes; si falta, se usan las guardadas con el contrato.
+        #[arg(long)]
+        partes: Option<PathBuf>,
+        #[arg(long)]
+        pdf: PathBuf,
+    },
+    /// Certificado anual de mantenimiento del RITE (art. 28) de un contrato guardado.
+    Certificado {
+        nombre: String,
+        /// Año certificado (por defecto, el del contrato).
+        #[arg(long)]
+        anio: Option<u32>,
+        /// JSON opcional con {periodo, visitas, consumos: {...}, aportaciones: {...}}.
+        #[arg(long)]
+        datos: Option<PathBuf>,
+        #[arg(long)]
+        partes: Option<PathBuf>,
+        #[arg(long)]
+        pdf: PathBuf,
+    },
     /// Genera el PDF de un contrato desde su JSON de datos (la empresa y las operaciones salen de la base).
     Contrato {
         datos: PathBuf,
@@ -279,6 +308,60 @@ fn main() -> Result<()> {
             };
             let datos = mantenix_core::documento::datos_contrato(&b, &k, &v, &partes);
             let bytes = mantenix_informes::contrato(&datos, &db::empresa(&c)?, b.operaciones.values())?;
+            std::fs::write(&pdf, bytes)?;
+            println!("PDF: {}", pdf.display());
+        }
+        Orden::Visitas {
+            nombre,
+            mes_inicio,
+            visita,
+            partes,
+            pdf,
+        } => {
+            let b = Biblioteca::desde_db(&c)?;
+            let (_, k) = db::cargar_contrato(&c, &nombre)?;
+            let v = valorar(&b, &k)?;
+            let partes = match partes {
+                Some(p) => leer_json(&p)?,
+                None => k.partes.clone(),
+            };
+            let mes = mes_inicio
+                .or_else(|| {
+                    partes["contrato"]["lugar_fecha"]
+                        .as_str()
+                        .and_then(mantenix_core::plan::mes_de_texto)
+                })
+                .unwrap_or(1);
+            let plan = mantenix_core::plan::plan(&k, &v, mes);
+            let bytes = mantenix_informes::hojas_visita(&plan, &partes, &db::empresa(&c)?, visita.unwrap_or(0))?;
+            std::fs::write(&pdf, bytes)?;
+            println!(
+                "{} visitas desde {}. PDF: {}",
+                plan.n_visitas,
+                mantenix_core::plan::MESES[(mes.clamp(1, 12) - 1) as usize],
+                pdf.display()
+            );
+        }
+        Orden::Certificado {
+            nombre,
+            anio,
+            datos,
+            partes,
+            pdf,
+        } => {
+            let b = Biblioteca::desde_db(&c)?;
+            let (_, k) = db::cargar_contrato(&c, &nombre)?;
+            let v = valorar(&b, &k)?;
+            let partes = match partes {
+                Some(p) => leer_json(&p)?,
+                None => k.partes.clone(),
+            };
+            let extra = match datos {
+                Some(p) => leer_json(&p)?,
+                None => serde_json::json!({}),
+            };
+            let cert = mantenix_core::documento::datos_certificado(&b, &k, &v, anio.unwrap_or(k.anio), &extra);
+            let bytes = mantenix_informes::certificado_rite(&cert, &partes, &db::empresa(&c)?)?;
             std::fs::write(&pdf, bytes)?;
             println!("PDF: {}", pdf.display());
         }

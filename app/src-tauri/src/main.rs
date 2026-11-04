@@ -215,6 +215,38 @@ fn pdf_contrato(base: State<Base>, nombre: String, ruta: String) -> R<()> {
     std::fs::write(ruta, pdf).map_err(txt)
 }
 
+/// Plan anual y hojas de visita del técnico. `mes_inicio` 0 = el de la fecha del contrato.
+#[tauri::command]
+fn pdf_visitas(base: State<Base>, nombre: String, mes_inicio: u32, ruta: String) -> R<()> {
+    let c = base.conexion.lock().unwrap();
+    let b = Biblioteca::desde_db(&c).map_err(txt)?;
+    let (_, k) = db::cargar_contrato(&c, &nombre).map_err(txt)?;
+    let v = valorar(&b, &k).map_err(txt)?;
+    let mes = if (1..=12).contains(&mes_inicio) {
+        mes_inicio
+    } else {
+        k.partes["contrato"]["lugar_fecha"]
+            .as_str()
+            .and_then(mantenix_core::plan::mes_de_texto)
+            .unwrap_or(1)
+    };
+    let plan = mantenix_core::plan::plan(&k, &v, mes);
+    let pdf = mantenix_informes::hojas_visita(&plan, &k.partes, &db::empresa(&c).map_err(txt)?, 0).map_err(txt)?;
+    std::fs::write(ruta, pdf).map_err(txt)
+}
+
+/// Certificado anual de mantenimiento del RITE (art. 28), con consumos en blanco para rellenar.
+#[tauri::command]
+fn pdf_certificado(base: State<Base>, nombre: String, anio: u32, ruta: String) -> R<()> {
+    let c = base.conexion.lock().unwrap();
+    let b = Biblioteca::desde_db(&c).map_err(txt)?;
+    let (_, k) = db::cargar_contrato(&c, &nombre).map_err(txt)?;
+    let v = valorar(&b, &k).map_err(txt)?;
+    let cert = mantenix_core::documento::datos_certificado(&b, &k, &v, anio, &serde_json::json!({}));
+    let pdf = mantenix_informes::certificado_rite(&cert, &k.partes, &db::empresa(&c).map_err(txt)?).map_err(txt)?;
+    std::fs::write(ruta, pdf).map_err(txt)
+}
+
 // ───────────────────────────── Presupuestos ─────────────────────────────
 
 #[tauri::command]
@@ -560,6 +592,8 @@ fn main() {
             catalogo,
             fijar_tiempo,
             fijar_cobro,
+            pdf_visitas,
+            pdf_certificado,
             inspecciones_catalogo,
             inspecciones_sugeridas,
             parametros,

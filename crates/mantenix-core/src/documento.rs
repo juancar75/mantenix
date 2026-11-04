@@ -597,3 +597,41 @@ mod tests {
         assert_eq!(periodo_pago(12), "mensual");
     }
 }
+
+/// Datos del certificado anual de mantenimiento del RITE (art. 28) para un contrato: instalaciones
+/// térmicas con su inventario, visitas, si el director de mantenimiento es preceptivo y los
+/// consumos y aportaciones (de `extra`, si se han recogido; si no, en blanco para rellenar).
+pub fn datos_certificado(b: &Biblioteca, k: &Contrato, v: &Valoracion, anio: u32, extra: &Value) -> Value {
+    let rite: Vec<_> = k.instalaciones.iter().filter(|i| i.familia == "RITE").collect();
+    let potencia: f64 = rite.iter().map(|i| i.potencia_kw.unwrap_or(0.0)).sum();
+    let hay_frio = rite
+        .iter()
+        .flat_map(|i| &i.equipos)
+        .any(|l| ["ENFRIADORA", "BC-GEO", "ROOFTOP", "VRF-EXT", "SPLIT-EXT", "TORRE"].contains(&l.codigo.as_str()));
+    let desc = |codigo: &str, d: &str| {
+        if d.is_empty() {
+            b.catalogo
+                .get(codigo)
+                .map(|e| e.descripcion.clone())
+                .unwrap_or_else(|| codigo.into())
+        } else {
+            d.to_string()
+        }
+    };
+    json!({
+        "anio": anio,
+        "periodo": extra.get("periodo").and_then(Value::as_str).map(str::to_string)
+            .unwrap_or_else(|| format!("1 de enero a 31 de diciembre de {anio}")),
+        "instalaciones": rite.iter().map(|i| json!({
+            "titulo": if i.titulo.is_empty() { "Instalación térmica".to_string() } else { i.titulo.clone() },
+            "potencia_kw": i.potencia_kw.unwrap_or(0.0),
+            "equipos": i.equipos.iter().map(|l| json!([desc(&l.codigo, &l.descripcion), l.cantidad])).collect::<Vec<_>>(),
+        })).collect::<Vec<_>>(),
+        "visitas": extra.get("visitas").and_then(Value::as_u64).unwrap_or(v.visitas as u64),
+        // Art. 26.6 c): más de 5.000 kW en calor o 1.000 kW en frío. Sin potencias separadas,
+        // se toma la total; con generadores de frío, el umbral de 1.000 kW.
+        "director": potencia > 5000.0 || (potencia > 1000.0 && hay_frio),
+        "consumos": extra.get("consumos").cloned().unwrap_or(json!({})),
+        "aportaciones": extra.get("aportaciones").cloned().unwrap_or(json!({})),
+    })
+}

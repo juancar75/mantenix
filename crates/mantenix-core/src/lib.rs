@@ -33,6 +33,7 @@ pub mod empresa;
 pub mod inspecciones;
 pub mod modelo;
 pub mod motor;
+pub mod plan;
 pub mod presupuesto;
 pub mod tarifa;
 
@@ -497,5 +498,46 @@ mod tests {
         assert_eq!(i.precio_total, 485.0);
         let d = documento::datos_contrato(&b, &k, &v, &serde_json::json!({}));
         assert_eq!(d["inspecciones"].as_array().unwrap().len(), 1);
+    }
+
+    #[test]
+    fn plan_de_visitas_y_certificado() {
+        let b = biblioteca();
+        let k: Contrato = serde_json::from_str(
+            r#"{"nombre":"sala","anio":2026,"uso":"viviendas","desplazamiento":{"km_ida":10,"minutos_ida":20},
+            "instalaciones":[{"familia":"RITE","titulo":"Calefacción","potencia_kw":300,"equipos":[
+              {"codigo":"CALD-GAS","cantidad":2},{"codigo":"BOMBA","cantidad":4},{"codigo":"CIRC-HIDR","cantidad":2},
+              {"codigo":"VASO-EXP","cantidad":1},{"codigo":"VALV-REG","cantidad":1},{"codigo":"CONTROL","cantidad":1}]}]}"#,
+        )
+        .unwrap();
+        let v = valorar(&b, &k).unwrap();
+        assert!(!v.avisos.iter().any(|a| a.contains("faltan")), "{:?}", v.avisos);
+        let p = plan::plan(&k, &v, 10);
+        assert_eq!(p.n_visitas, 12);
+        assert_eq!(p.visitas[0].mes_nombre, "octubre");
+        assert_eq!(p.visitas[3].mes_nombre, "enero");
+        let fila = |id: &str| p.filas.iter().find(|f| f.texto == b.operaciones[id].texto).unwrap();
+        assert_eq!(fila("RITE-T33-30").visitas, vec![1, 7]); // 2t: inicio y mitad
+        assert_eq!(fila("RITE-T33-12").visitas, vec![1]); // t: inicio de temporada
+        assert_eq!(fila("RITE-T33-08").visitas.len(), 12); // m
+                                                           // Medidas de calor (70-1000 kW): cada tres meses; contadores en todas.
+        let con_medidas: Vec<u32> = p
+            .visitas
+            .iter()
+            .filter(|v| !v.medidas.is_empty())
+            .map(|v| v.numero)
+            .collect();
+        assert_eq!(con_medidas, vec![1, 4, 7, 10]);
+        assert!(p.visitas.iter().all(|v| v.contadores));
+        let horas: f64 = p.visitas.iter().map(|v| v.horas).sum();
+        assert!(
+            (horas - v.totales.horas_equipos).abs() < 0.2,
+            "{horas} vs {}",
+            v.totales.horas_equipos
+        );
+        let c = documento::datos_certificado(&b, &k, &v, 2026, &serde_json::json!({}));
+        assert_eq!(c["director"], false);
+        assert_eq!(c["visitas"], 12);
+        assert_eq!(plan::mes_de_texto("Madrid, 3 de noviembre de 2026"), Some(11));
     }
 }

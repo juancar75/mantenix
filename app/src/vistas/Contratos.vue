@@ -86,6 +86,25 @@ const pdfContrato = () => intentar(async () => {
   mensaje.value = `PDF guardado en ${ruta}`;
 });
 
+const mesInicio = ref(0);
+const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+const pdfVisitas = () => intentar(async () => {
+  if (!nombreGuardado.value) return;
+  const ruta = await save({ defaultPath: `plan-y-visitas-${nombreGuardado.value}.pdf`, filters: [{ name: "PDF", extensions: ["pdf"] }] });
+  if (!ruta) return;
+  await api.pdfVisitas(nombreGuardado.value, mesInicio.value, ruta);
+  mensaje.value = `PDF guardado en ${ruta}`;
+});
+const pdfCertificado = () => intentar(async () => {
+  if (!nombreGuardado.value || !contrato.value) return;
+  const anio = contrato.value.anio;
+  const ruta = await save({ defaultPath: `certificado-mantenimiento-${anio}-${nombreGuardado.value}.pdf`, filters: [{ name: "PDF", extensions: ["pdf"] }] });
+  if (!ruta) return;
+  await api.pdfCertificado(nombreGuardado.value, anio, ruta);
+  mensaje.value = `PDF guardado en ${ruta}`;
+});
+const hayRite = computed(() => contrato.value?.instalaciones.some((i) => i.familia === "RITE") ?? false);
+
 const borrar = () => intentar(async () => {
   if (!nombreGuardado.value || !confirm(`¿Borrar el contrato «${nombreGuardado.value}» y sus valoraciones?`)) return;
   await api.borrarContrato(nombreGuardado.value);
@@ -173,6 +192,10 @@ const margenClase = (v: Valoracion) =>
         <button class="primario" @click="valorar">Guardar y valorar</button>
         <button v-if="valoracion" @click="pdf">Hoja de costes PDF</button>
         <button v-if="valoracion && contrato.partes" @click="pdfContrato">Contrato PDF</button>
+        <label v-if="valoracion" class="campo" title="Mes de la primera visita del plan">Primera visita
+          <select v-model.number="mesInicio"><option :value="0">fecha del contrato</option><option v-for="(m, i) in MESES" :key="m" :value="i + 1">{{ m }}</option></select></label>
+        <button v-if="valoracion" @click="pdfVisitas">Plan y hojas de visita PDF</button>
+        <button v-if="valoracion && hayRite" @click="pdfCertificado">Certificado RITE PDF</button>
       </div>
 
       <template v-if="valoracion">
