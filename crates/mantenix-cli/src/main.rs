@@ -136,6 +136,20 @@ enum Orden {
         #[arg(long)]
         pdf: PathBuf,
     },
+    /// Acta de mantenimiento de protección contra incendios (RIPCI): certificado y listas de comprobación.
+    ActaPci {
+        nombre: String,
+        /// `3m` (trimestral), `6m` (semestral) o `1a` (anual).
+        #[arg(long, default_value = "3m")]
+        tipo: String,
+        /// Incluir también los equipos que mantiene una subcontrata.
+        #[arg(long)]
+        todos: bool,
+        #[arg(long)]
+        partes: Option<PathBuf>,
+        #[arg(long)]
+        pdf: PathBuf,
+    },
     /// Genera el PDF de un contrato desde su JSON de datos (la empresa y las operaciones salen de la base).
     Contrato {
         datos: PathBuf,
@@ -364,6 +378,25 @@ fn main() -> Result<()> {
             let bytes = mantenix_informes::certificado_rite(&cert, &partes, &db::empresa(&c)?)?;
             std::fs::write(&pdf, bytes)?;
             println!("PDF: {}", pdf.display());
+        }
+        Orden::ActaPci {
+            nombre,
+            tipo,
+            todos,
+            partes,
+            pdf,
+        } => {
+            let b = Biblioteca::desde_db(&c)?;
+            let (_, k) = db::cargar_contrato(&c, &nombre)?;
+            let partes = match partes {
+                Some(p) => leer_json(&p)?,
+                None => k.partes.clone(),
+            };
+            let acta = mantenix_core::documento::datos_acta_ripci(&b, &k, &tipo, todos);
+            let n = acta["sistemas"].as_array().map(|a| a.len()).unwrap_or(0);
+            let bytes = mantenix_informes::acta_ripci(&acta, &partes, &db::empresa(&c)?)?;
+            std::fs::write(&pdf, bytes)?;
+            println!("{n} sistemas. PDF: {}", pdf.display());
         }
         Orden::Contrato { datos, pdf } => {
             let b = Biblioteca::desde_db(&c)?;

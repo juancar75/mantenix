@@ -247,6 +247,17 @@ fn pdf_certificado(base: State<Base>, nombre: String, anio: u32, ruta: String) -
     std::fs::write(ruta, pdf).map_err(txt)
 }
 
+/// Acta de mantenimiento de PCI (RIPCI) del tipo `3m`, `6m` o `1a`.
+#[tauri::command]
+fn pdf_acta_pci(base: State<Base>, nombre: String, tipo: String, todos: bool, ruta: String) -> R<()> {
+    let c = base.conexion.lock().unwrap();
+    let b = Biblioteca::desde_db(&c).map_err(txt)?;
+    let (_, k) = db::cargar_contrato(&c, &nombre).map_err(txt)?;
+    let acta = mantenix_core::documento::datos_acta_ripci(&b, &k, &tipo, todos);
+    let pdf = mantenix_informes::acta_ripci(&acta, &k.partes, &db::empresa(&c).map_err(txt)?).map_err(txt)?;
+    std::fs::write(ruta, pdf).map_err(txt)
+}
+
 // ───────────────────────────── Presupuestos ─────────────────────────────
 
 #[tauri::command]
@@ -594,6 +605,7 @@ fn main() {
             fijar_cobro,
             pdf_visitas,
             pdf_certificado,
+            pdf_acta_pci,
             inspecciones_catalogo,
             inspecciones_sugeridas,
             parametros,

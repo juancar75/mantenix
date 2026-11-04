@@ -21,7 +21,7 @@ use typst_as_lib::TypstEngine;
 use typst_layout::PagedDocument;
 
 /// Plantillas incrustadas: (nombre de fichero, contenido).
-const PLANTILLAS: [(&str, &str); 8] = [
+const PLANTILLAS: [(&str, &str); 9] = [
     ("comun.typ", include_str!("../../../plantillas/comun.typ")),
     ("hoja_costes.typ", include_str!("../../../plantillas/hoja_costes.typ")),
     ("tarifa.typ", include_str!("../../../plantillas/tarifa.typ")),
@@ -36,6 +36,7 @@ const PLANTILLAS: [(&str, &str); 8] = [
         "certificado_rite.typ",
         include_str!("../../../plantillas/certificado_rite.typ"),
     ),
+    ("acta_ripci.typ", include_str!("../../../plantillas/acta_ripci.typ")),
 ];
 
 /// Tipografía Inter (SIL OFL 1.1, ver `assets/fuentes/OFL.txt`).
@@ -243,6 +244,22 @@ pub fn certificado_rite(
         "certificado_rite.typ",
         &[
             ("cert", cert.to_string()),
+            ("datos", partes.to_string()),
+            ("empresa", empresa_sin_logos(empresa).to_string()),
+            ("membrete", m),
+        ],
+        logo,
+    )
+}
+
+/// Acta de mantenimiento de protección contra incendios (RIPCI, anexo II punto 5): certificado
+/// con la información general y listas de comprobación por sistema.
+pub fn acta_ripci(acta: &serde_json::Value, partes: &serde_json::Value, empresa: &Empresa) -> Result<Vec<u8>, Error> {
+    let (m, logo) = membrete(empresa, "PCI");
+    compilar_con(
+        "acta_ripci.typ",
+        &[
+            ("acta", acta.to_string()),
             ("datos", partes.to_string()),
             ("empresa", empresa_sin_logos(empresa).to_string()),
             ("membrete", m),

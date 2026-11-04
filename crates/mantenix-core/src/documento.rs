@@ -635,3 +635,81 @@ pub fn datos_certificado(b: &Biblioteca, k: &Contrato, v: &Valoracion, anio: u32
         "aportaciones": extra.get("aportaciones").cloned().unwrap_or(json!({})),
     })
 }
+
+/// Periodicidades del RIPCI que entran en un mantenimiento: el trimestral hace las de 3 meses; el
+/// semestral, las de 3 y 6 meses; el anual, las de 3 y 6 meses y las anuales (tablas I, II y III).
+pub fn periodicidades_acta(tipo: &str) -> &'static [&'static str] {
+    match tipo {
+        "6m" => &["3m", "6m"],
+        "1a" => &["3m", "6m", "1a"],
+        _ => &["3m"],
+    }
+}
+
+/// Datos del acta de mantenimiento del RIPCI (art. 17.e, art. 21.2 y anexo II, punto 5):
+/// certificado con la información general y listas de comprobación por sistema con las
+/// operaciones que tocan en el mantenimiento `tipo` (`3m`, `6m` o `1a`).
+///
+/// Solo entran los equipos que mantiene la propia empresa (`modo` propio), salvo que `todos` sea
+/// verdadero: las revisiones de una subcontrata llevan el acta de la subcontrata.
+pub fn datos_acta_ripci(b: &Biblioteca, k: &Contrato, tipo: &str, todos: bool) -> Value {
+    let pers = periodicidades_acta(tipo);
+    let mut sistemas: BTreeMap<String, (Vec<String>, Vec<Value>)> = BTreeMap::new();
+    for ins in k.instalaciones.iter().filter(|i| i.familia != "RITE") {
+        for l in ins.equipos.iter().filter(|l| l.cantidad > 0.0) {
+            let Some(eq) = b.catalogo.get(&l.codigo) else { continue };
+            let modo = l.modo.clone().unwrap_or_else(|| eq.modo_defecto.clone());
+            if (!todos && modo != "propio") || ["", "CO", "VENT", "AE"].contains(&eq.sistema_ripci.as_str()) {
+                continue;
+            }
+            let s = sistemas
+                .entry(sistema_ripci(&eq.sistema_ripci).to_string())
+                .or_default();
+            if !s.0.contains(&eq.sistema_ripci) {
+                s.0.push(eq.sistema_ripci.clone());
+            }
+            let d = if l.descripcion.is_empty() {
+                eq.descripcion.clone()
+            } else {
+                l.descripcion.clone()
+            };
+            s.1.push(json!({"descripcion": d, "cantidad": l.cantidad}));
+        }
+    }
+    let orden = ["EXT", "DET", "BIE", "HID", "CS", "ABAST", "SFE", "SCH", "SEN"];
+    let mut claves: Vec<_> = sistemas.keys().cloned().collect();
+    claves.sort_by_key(|c| orden.iter().position(|o| o == c).unwrap_or(99));
+    let lista: Vec<Value> = claves
+        .iter()
+        .map(|c| {
+            let (subs, productos) = &sistemas[c];
+            let mut ops: Vec<_> = b
+                .operaciones
+                .values()
+                .filter(|o| {
+                    o.id.starts_with("RIPCI")
+                        && o.tipo == "preventivo"
+                        && pers.contains(&o.periodicidad.as_str())
+                        && (subs.contains(&o.sistema) || o.sistema == *c)
+                })
+                .collect();
+            ops.sort_by(|a, b| a.id.cmp(&b.id));
+            json!({
+                "codigo": c, "titulo": titulo_sistema(c), "productos": productos,
+                "operaciones": ops.iter().map(|o| json!({"id": o.id, "texto": o.texto, "periodicidad": o.periodicidad})).collect::<Vec<_>>(),
+            })
+        })
+        .collect();
+    let ultima_inspeccion = k
+        .inspecciones
+        .iter()
+        .find(|i| i.id == "INSP-RIPCI")
+        .and_then(|i| i.ultima)
+        .map(|a| a.to_string());
+    json!({
+        "tipo": tipo,
+        "tipo_texto": match tipo { "6m" => "semestral", "1a" => "anual", _ => "trimestral" },
+        "sistemas": lista,
+        "ultima_inspeccion": ultima_inspeccion,
+    })
+}

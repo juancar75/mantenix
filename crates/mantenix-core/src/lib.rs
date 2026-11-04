@@ -540,4 +540,43 @@ mod tests {
         assert_eq!(c["visitas"], 12);
         assert_eq!(plan::mes_de_texto("Madrid, 3 de noviembre de 2026"), Some(11));
     }
+
+    #[test]
+    fn acta_ripci_por_tipo_de_mantenimiento() {
+        let b = biblioteca();
+        let k: Contrato = serde_json::from_str(
+            r#"{"nombre":"pci","anio":2026,"instalaciones":[{"familia":"PCI","equipos":[
+              {"codigo":"EXT-POLVO","cantidad":10,"modo":"propio"},{"codigo":"DET-OPT","cantidad":20,"modo":"propio"},
+              {"codigo":"DET-PULS","cantidad":4,"modo":"propio"},{"codigo":"BIE-25","cantidad":4},
+              {"codigo":"CO-DET","cantidad":5,"modo":"propio"}]}]}"#,
+        )
+        .unwrap();
+        let n_ops = |a: &serde_json::Value, cod: &str| {
+            a["sistemas"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .find(|s| s["codigo"] == cod)
+                .map(|s| s["operaciones"].as_array().unwrap().len())
+        };
+        let t = documento::datos_acta_ripci(&b, &k, "3m", false);
+        // BIE va por subcontrata (modo por defecto) y CO no es RIPCI: no entran.
+        assert_eq!(t["sistemas"].as_array().unwrap().len(), 2);
+        assert!(n_ops(&t, "BIE").is_none());
+        let a = documento::datos_acta_ripci(&b, &k, "1a", true);
+        assert!(n_ops(&a, "BIE").is_some());
+        assert!(n_ops(&a, "DET").unwrap() > n_ops(&t, "DET").unwrap());
+        // El anual incluye las de tres y seis meses y las anuales, nunca las de varios años.
+        let det = a["sistemas"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|s| s["codigo"] == "DET")
+            .unwrap();
+        assert!(det["operaciones"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|o| ["3m", "6m", "1a"].contains(&o["periodicidad"].as_str().unwrap())));
+    }
 }

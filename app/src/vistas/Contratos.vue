@@ -103,6 +103,16 @@ const pdfCertificado = () => intentar(async () => {
   await api.pdfCertificado(nombreGuardado.value, anio, ruta);
   mensaje.value = `PDF guardado en ${ruta}`;
 });
+const tipoActa = ref("3m");
+const pdfActaPci = () => intentar(async () => {
+  if (!nombreGuardado.value) return;
+  const nombres: Record<string, string> = { "3m": "trimestral", "6m": "semestral", "1a": "anual" };
+  const ruta = await save({ defaultPath: `acta-pci-${nombres[tipoActa.value]}-${nombreGuardado.value}.pdf`, filters: [{ name: "PDF", extensions: ["pdf"] }] });
+  if (!ruta) return;
+  await api.pdfActaPci(nombreGuardado.value, tipoActa.value, false, ruta);
+  mensaje.value = `PDF guardado en ${ruta}`;
+});
+const hayPci = computed(() => contrato.value?.instalaciones.some((i) => i.familia === "PCI") ?? false);
 const hayRite = computed(() => contrato.value?.instalaciones.some((i) => i.familia === "RITE") ?? false);
 
 const borrar = () => intentar(async () => {
@@ -196,6 +206,10 @@ const margenClase = (v: Valoracion) =>
           <select v-model.number="mesInicio"><option :value="0">fecha del contrato</option><option v-for="(m, i) in MESES" :key="m" :value="i + 1">{{ m }}</option></select></label>
         <button v-if="valoracion" @click="pdfVisitas">Plan y hojas de visita PDF</button>
         <button v-if="valoracion && hayRite" @click="pdfCertificado">Certificado RITE PDF</button>
+        <template v-if="hayPci">
+          <select v-model="tipoActa" title="Mantenimiento de PCI"><option value="3m">trimestral</option><option value="6m">semestral</option><option value="1a">anual</option></select>
+          <button @click="pdfActaPci">Acta PCI PDF</button>
+        </template>
       </div>
 
       <template v-if="valoracion">
