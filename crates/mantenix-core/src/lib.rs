@@ -281,6 +281,13 @@ mod tests {
         assert!((v.avisos_averia.coste_aviso - coste_aviso).abs() < 0.01);
         assert!((v.totales.avisos - 4.0 * coste_aviso).abs() < 0.05);
 
+        // Aparcamiento: se suma en cada salida (visitas y avisos).
+        let mut cp = c.clone();
+        cp.desplazamiento.aparcamiento = Some(5.0);
+        let vp = valorar(&b, &cp).unwrap();
+        assert!((vp.avisos_averia.coste_aviso - coste_aviso - 5.0).abs() < 0.01);
+        assert!((vp.totales.desplazamiento - v.totales.desplazamiento - 5.0 * v.visitas as f64).abs() < 0.01);
+
         c.avisos.modalidad = "aparte".into();
         let v2 = valorar(&b, &c).unwrap();
         assert_eq!(v2.totales.avisos, 0.0);
@@ -291,7 +298,7 @@ mod tests {
         c.avisos.antiguedad = "antigua".into();
         let v3 = valorar(&b, &c).unwrap();
         assert_eq!(v3.avisos_averia.incluidos, 2);
-        assert!(v3.avisos.iter().any(|a| a.contains("bolsa")));
+        assert!(v3.avisos.iter().any(|a| a.contains("margen baja")));
     }
 
     #[test]

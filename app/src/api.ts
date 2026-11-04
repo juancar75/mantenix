@@ -11,7 +11,7 @@ export interface LineaEquipo { codigo: string; cantidad: number; descripcion: st
 export interface Instalacion { familia: string; titulo: string; potencia_kw: number | null; temporada_meses: number; equipos: LineaEquipo[] }
 export interface Contrato {
   nombre: string; anio: number; uso: string; visitas_contratadas: number | null;
-  desplazamiento: { km_ida: number; minutos_ida: number };
+  desplazamiento: { km_ida: number; minutos_ida: number; aparcamiento?: number | null };
   instalaciones: Instalacion[]; margen_pct: number | null; precio_actual_anual: number | null;
   avisos?: AvisosContrato;
   /** Datos del documento: cliente, edificio, referencia, firmantes, condiciones. */

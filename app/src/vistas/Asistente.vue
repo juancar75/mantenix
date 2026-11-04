@@ -18,8 +18,8 @@ const emit = defineEmits<{ cambio: [] }>();
 const GRUPOS_RITE = [
   { titulo: "Producción de calor y frío", ayuda: "Calderas, bombas de calor, enfriadoras y unidades exteriores. Se cuentan en la sala de calderas, en cubierta o en los patios.",
     codigos: ["CALD-GAS", "CALD-GASOLEO", "CALD-MURAL", "CALD-BIO", "ENFRIADORA", "BC-GEO", "ROOFTOP", "VRF-EXT", "SPLIT-EXT", "TORRE"] },
-  { titulo: "Bombas y circuitos", ayuda: "Bombas circuladoras (cada bomba cuenta, también las de reserva), vasos de expansión, depósitos de inercia, intercambiadores de placas y tratamientos de agua.",
-    codigos: ["BOMBA", "VASO-EXP", "DEP-INERCIA", "INTERC-PL", "TRAT-AGUA", "FILTRO-AGUA", "CIRC-HIDR"] },
+  { titulo: "Bombas y circuitos", ayuda: "Bombas circuladoras (cada bomba cuenta, también las de reserva; una bomba doble son dos), vasos de expansión, válvulas de tres vías o de dos vías motorizadas, depósitos de inercia, intercambiadores de placas y tratamientos de agua. Circuitos: cuente uno por cada circuito (primario, cada secundario de calefacción, ACS).",
+    codigos: ["BOMBA", "VASO-EXP", "VALV-REG", "DEP-INERCIA", "INTERC-PL", "TRAT-AGUA", "FILTRO-AGUA", "CIRC-HIDR"] },
   { titulo: "Emisores de calor", ayuda: "Radiadores y suelo radiante de zonas comunes o del edificio (no los de dentro de las viviendas si no entran en el contrato). El suelo radiante se cuenta por colector.",
     codigos: ["EMISOR", "SUELO-RAD"] },
   { titulo: "Equipos interiores y aire", ayuda: "Climatizadores (UTA), recuperadores, fancoils, unidades interiores, ventiladores de climatización, cortinas de aire, deshumectadoras y humidificadores. Si hay muchos, cuente por plantas.",
@@ -56,7 +56,7 @@ const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "
 
 const f = reactive({
   cliente: { razon_social: "", cif: "", domicilio: "", firmante: "", cargo: "" },
-  edificio: { nombre: "", direccion: "", uso: "viviendas", antiguedad: "media", km: 0, minutos: 0 },
+  edificio: { nombre: "", direccion: "", uso: "viviendas", antiguedad: "media", km: 0, minutos: 0, aparcamiento: null as number | null },
   rite: { hay: true, potencia: null as number | null, meses: 7, cantidades: {} as Record<string, number>, descripciones: {} as Record<string, string> },
   pci: { hay: true, cantidades: {} as Record<string, number>, subcontrata: true },
   otros: { cantidades: {} as Record<string, number> },
@@ -132,7 +132,7 @@ function contrato(): Contrato {
     nombre: f.edificio.nombre.trim(), anio: hoy.getFullYear(),
     uso: f.edificio.uso === "viviendas" ? "viviendas" : "otros",
     visitas_contratadas: c.visitas || null,
-    desplazamiento: { km_ida: Number(f.edificio.km) || 0, minutos_ida: Number(f.edificio.minutos) || 0 },
+    desplazamiento: { km_ida: Number(f.edificio.km) || 0, minutos_ida: Number(f.edificio.minutos) || 0, aparcamiento: f.edificio.aparcamiento ?? null },
     instalaciones, margen_pct: c.margen || null, precio_actual_anual: c.precio_actual || null,
     inspecciones: Object.entries(insp).filter(([, v]) => v.si).map(([id, v]) => ({ id, ultima: v.ultima || null, precio_organismo: v.precio || null })),
     avisos: { modalidad: c.modalidad, bolsa: c.modalidad === "bolsa" ? c.bolsa || null : null, antiguedad: f.edificio.antiguedad, servicio_24h: f.edificio.uso === "24h", horas_por_aviso: 1.5 },
@@ -243,8 +243,9 @@ function empezarOtro() {
     <div class="fila">
       <label class="campo">Distancia desde la base (km, solo ida)<input class="num" type="number" v-model.number="f.edificio.km" /></label>
       <label class="campo">Tiempo de viaje (minutos, solo ida)<input class="num" type="number" v-model.number="f.edificio.minutos" /></label>
+      <label class="campo">Aparcamiento (€ por salida)<input class="num" type="number" v-model.number="f.edificio.aparcamiento" placeholder="del año" /></label>
     </div>
-    <p class="ayuda">Puede mirarlo en un navegador de mapas desde la nave hasta el edificio.</p>
+    <p class="ayuda">Puede mirarlo en un navegador de mapas desde la nave hasta el edificio. Aparcamiento: lo que cuesta aparcar en cada salida (zona SER u ORA, parking); vacío = el de «Parámetros por año».</p>
   </div>
 
   <!-- 3. Climatización -->
@@ -330,13 +331,13 @@ function empezarOtro() {
     <div class="opciones vertical">
       <span class="etiqueta">¿Cómo se atienden los avisos de avería?</span>
       <label :class="{ sel: f.condiciones.modalidad === 'bolsa' }"><input type="radio" v-model="f.condiciones.modalidad" value="bolsa" />
-        <span><b>Bolsa de avisos incluidos</b> (recomendado): el precio incluye un número de avisos al año; los que pasen se cobran por tarifa.</span></label>
+        <span><b>Avisos incluidos</b> (recomendado): el contrato dice que se atienden los avisos, sin número. El programa estima cuántos habrá y los mete en el precio; si hay más, perdemos, y si hay menos, ganamos.</span></label>
       <label :class="{ sel: f.condiciones.modalidad === 'incluidos' }"><input type="radio" v-model="f.condiciones.modalidad" value="incluidos" />
-        <span><b>Todos incluidos</b>: más cómodo para el cliente, más riesgo para nosotros.</span></label>
+        <span><b>Todos incluidos</b>: igual que el anterior, pero el número estimado no se puede ajustar a mano.</span></label>
       <label :class="{ sel: f.condiciones.modalidad === 'aparte' }"><input type="radio" v-model="f.condiciones.modalidad" value="aparte" />
         <span><b>Aparte</b>: cada aviso se cobra por horas y salida.</span></label>
     </div>
-    <label v-if="f.condiciones.modalidad === 'bolsa'" class="campo">Avisos incluidos al año
+    <label v-if="f.condiciones.modalidad === 'bolsa'" class="campo">Avisos que se valoran al año (interno, no sale en el contrato)
       <input class="num" type="number" v-model.number="f.condiciones.bolsa" placeholder="auto" />
       <span class="pequeño">Vacío = los que calcula el programa según los equipos, la antigüedad y el uso.</span></label>
     <div class="fila">

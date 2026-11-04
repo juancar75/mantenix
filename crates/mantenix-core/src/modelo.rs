@@ -93,6 +93,9 @@ pub struct Desplazamiento {
     #[serde(default)]
     /// Minutos de ida desde la base.
     pub minutos_ida: f64,
+    /// Aparcamiento por salida (€). Si falta, el parámetro del año `aparcamiento_salida`.
+    #[serde(default)]
+    pub aparcamiento: Option<f64>,
 }
 
 /// Instalación (RITE, PCI…) con sus equipos.

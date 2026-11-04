@@ -9,3 +9,4 @@ FAB-GEO;;t;Revisión del circuito de captación geotérmica: presiones, caudal, 
 FAB-DEPOSITO;;t;Revisión de depósitos de inercia: purga de aire, vaciado de lodos, protección catódica y estado exterior (fabricante)
 FAB-INTERC;;t;Revisión del intercambiador de placas: temperaturas, pérdida de carga y estanquidad de juntas, y limpieza si procede (fabricante)
 VENT-CUADRO-REV;VENT;visita;Revisión del cuadro de maniobra de ventilación: maniobra manual y automática, contactores, relés térmicos y protecciones, selectores, pilotos y temporizadores, y apriete de conexiones (REBT / fabricante)
+FAB-VALV-REG;;2t;Comprobación de las válvulas de regulación motorizadas: recorrido completo, respuesta del servomotor a la señal de control, posición en fallo y estanquidad del prensaestopas (fabricante)

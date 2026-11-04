@@ -265,10 +265,8 @@ El pago se realizará #datos.condiciones.forma_pago.
 
   La empresa mantenedora atenderá los avisos de avería comunicados por el titular en un plazo máximo de #datos.condiciones.plazo_respuesta_averias, y de #datos.condiciones.plazo_urgencias.
 
-  #if av.modalidad == "bolsa" [
-    El importe del contrato incluye *#av.incluidos avisos al año*, que comprenden el desplazamiento y la mano de obra de diagnóstico y reparación en horario normal. Los avisos que excedan de ese número se facturarán aparte según la tarifa de correctivo vigente#if av.precio_hora_oficial != none [ (hora de oficial #av.precio_hora_oficial, hora de oficial y ayudante #av.precio_hora_pareja, desplazamiento #av.precio_salida por salida, IVA no incluido)]. Los avisos no consumidos no se acumulan al año siguiente.
-  ] else if av.modalidad == "incluidos" [
-    El importe del contrato incluye el desplazamiento y la mano de obra de diagnóstico y reparación en horario normal de los avisos de avería.
+  #if av.modalidad == "bolsa" or av.modalidad == "incluidos" [
+    El importe del contrato incluye la atención de los avisos de avería, que comprende el desplazamiento y la mano de obra de diagnóstico y reparación en horario normal.
   ] else [
     Los avisos de avería se facturarán aparte según la tarifa de correctivo vigente#if av.precio_hora_oficial != none [ (hora de oficial #av.precio_hora_oficial, hora de oficial y ayudante #av.precio_hora_pareja, desplazamiento #av.precio_salida por salida, IVA no incluido)].
   ]

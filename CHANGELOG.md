@@ -5,10 +5,10 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Añadido
-- **Catálogo ampliado** (13 equipos, con tiempos estándar, operaciones y tasa de avisos):
+- **Catálogo ampliado** (14 equipos, con tiempos estándar, operaciones y tasa de avisos):
   - Ventilación: extractor de garaje que no es de humos (`VENT-GAR`), extractor de cuartos técnicos, trasteros o basuras (`VENT-CT`) y cuadro de maniobra de ventilación (`VENT-CUADRO`).
   - Control de humos: cuadro de mando de bomberos (`SCH-BOMB`) y kit de sobrepresión de escalera (`SOBREP-KIT`), con las operaciones del RIPCI para control de humos y, en el kit, la medición anual de presión diferencial y velocidad en puerta (UNE-EN 12101-6).
-  - Climatización: bomba de calor geotérmica o agua-agua, deshumectadora, humidificador, cortina de aire, depósito de inercia, intercambiador de placas, emisores (radiadores) y suelo radiante por colector.
+  - Climatización: válvula de regulación motorizada (`VALV-REG`, comprobación de recorrido y servomotor dos veces al año), bomba de calor geotérmica o agua-agua, deshumectadora, humidificador, cortina de aire, depósito de inercia, intercambiador de placas, emisores (radiadores) y suelo radiante por colector.
 - **Tabla 7.1 del CTE DB HS 3** (`datos/semilla/normativa/cte_hs3_tabla_7_1_operaciones.csv`): limpieza anual de conductos, aberturas y extractores, revisión semestral de filtros y automatismos, y comprobaciones cada 5 años, que se listan fuera de la cuota. Pendiente de cotejo con el texto vigente.
 - El asistente pregunta por todos ellos (también por el ventilador de climatización `VENT`, que faltaba) y el contrato tipo los incluye: bloque «Ventilación del garaje y de cuartos técnicos» con sus operaciones agrupadas por periodicidad, y notas de UNE-EN 12101-6 y del cuadro de bomberos en control de humos.
 - Las bases ya creadas reciben los equipos y operaciones nuevos al abrirse (o con `mantenix init`), sin tocar los tiempos ni los equipos editados.
@@ -23,6 +23,9 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 - **RITE cotejado con el BOE** (RD 1027/2007 consolidado): tablas 3.1 y 3.3 coinciden (corregidos los textos de las operaciones 39 y 42). Inspecciones de eficiencia energética **cada 4 años** (no 5) para generadores de calor o frío de más de 70 kW, e inspección de la instalación completa **cada 15 años** cuando tiene más de 15 años (no 10); exentas las de contrato de rendimiento energético o con automatización según la IT 1.2.4.3.5. La biomasa de 70 kW o menos sigue las periodicidades de la tabla 3.3, como dice la IT 3.3.
 - **RIPCI cotejado** con la Guía técnica de aplicación v4 (junio 2025, texto del RD 513/2017 con el RD 164/2025): las 97 operaciones del anexo II (tablas I, II y III) coinciden en texto y periodicidad. El art. 22 queda verificado: exentos el residencial vivienda y los usos pequeños, pero el aparcamiento de 500 m² o más se inspecciona aunque el edificio sea de viviendas; con solo extintores o alumbrado de emergencia no hay inspección.
 - Control de humos: el mantenimiento sigue además la UNE 23584 en edificios de una planta, con atrios, con escaleras y subterráneos (no solo subterráneos); la sobrepresión de escaleras, UNE-EN 12101-6 y UNE 23584.
+
+- **Avisos de avería**: el contrato ya no dice cuántos avisos incluye; dice que se atienden. El número estimado solo se usa para el precio (si hay más, se pierde; si hay menos, se gana).
+- **Aparcamiento por salida**: parámetro del año `aparcamiento_salida` o importe por contrato; se suma en cada visita y en cada aviso.
 
 ### Corregido
 - Textos de operaciones de fabricante que se cortaban por contener un punto y coma (sustitución de filtros de fancoil).

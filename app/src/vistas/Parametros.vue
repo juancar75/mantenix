@@ -17,6 +17,8 @@ const NOMBRES: Record<string, string> = {
   contingencia_pct: "Contingencia (%)",
   margen_pct: "Margen sobre venta (%)",
   minimo_visita_subcontrata: "Mínimo por visita de subcontrata (€)",
+  aparcamiento_salida: "Aparcamiento por salida (€), si el contrato no indica otro",
+  horas_inspeccion: "Horas de acompañamiento por inspección reglamentaria (h)",
   precio_hora_oficial: "Presupuestos: precio hora oficial (€/h)",
   precio_hora_pareja: "Presupuestos: precio hora oficial + ayudante (€/h)",
   precio_salida: "Presupuestos: precio por salida (€)",

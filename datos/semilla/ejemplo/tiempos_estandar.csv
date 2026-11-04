@@ -136,3 +136,5 @@ SCH-BOMB;RIPCI-TI-52;15;1;0;estimacion_borrador;Prueba de cada mando de bomberos
 SCH-BOMB;RIPCI-TII-37;15;1;0;estimacion_borrador;Prioridad del mando de bomberos sobre la maniobra normal
 SCH-BOMB;RIPCI-TII-39;10;1;0;estimacion_borrador;
 SCH-BOMB;RIPCI-TII-41;10;1;0;estimacion_borrador;
+VALV-REG;FAB-VALV-REG;10;1;0;estimacion_borrador;
+VALV-REG;RITE-T33-16;5;1;0;estimacion_borrador;Estanquidad del cierre

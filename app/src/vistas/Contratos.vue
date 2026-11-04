@@ -126,6 +126,7 @@ const margenClase = (v: Valoracion) =>
         <div class="fila" style="margin-top: 8px">
           <label class="campo">Km ida<input class="num" type="number" v-model.number="contrato.desplazamiento.km_ida" /></label>
           <label class="campo">Minutos ida<input class="num" type="number" v-model.number="contrato.desplazamiento.minutos_ida" /></label>
+          <label class="campo">Aparcamiento €/salida<input class="num" type="number" v-model.number="contrato.desplazamiento.aparcamiento" placeholder="del año" /></label>
           <label class="campo">Margen % (vacío = el del año)<input class="num" type="number" v-model.number="contrato.margen_pct" /></label>
           <label class="campo">Precio actual €/año<input class="num" type="number" v-model.number="contrato.precio_actual_anual" /></label>
         </div>

@@ -464,6 +464,40 @@ pub fn valorar(b: &Biblioteca, c: &Contrato) -> Result<Valoracion, Error> {
         }
     }
 
+    // Instalaciones térmicas con generadores pero sin los elementos de la sala: faltarían
+    // operaciones del RITE (niveles y estanquidad de circuitos, vasos, seguridad, aislamiento,
+    // regulación).
+    for ins in c.instalaciones.iter().filter(|i| i.familia == "RITE") {
+        let hay = |cods: &[&str]| {
+            ins.equipos
+                .iter()
+                .any(|l| l.cantidad > 0.0 && cods.contains(&l.codigo.as_str()))
+        };
+        if !hay(&["CALD-GAS", "CALD-GASOLEO", "CALD-BIO", "ENFRIADORA", "BC-GEO"]) {
+            continue;
+        }
+        let faltan: Vec<&str> = [
+            (&["CIRC-HIDR"][..], "circuitos hidráulicos"),
+            (&["VASO-EXP"][..], "vasos de expansión"),
+            (&["CONTROL"][..], "regulación"),
+        ]
+        .iter()
+        .filter(|(c, _)| !hay(c))
+        .map(|(_, n)| *n)
+        .collect();
+        if !faltan.is_empty() {
+            avisos.push(format!(
+                "{}: hay generadores pero faltan {} en el inventario; no se valoran sus operaciones del RITE.",
+                if ins.titulo.is_empty() {
+                    "Instalación térmica"
+                } else {
+                    &ins.titulo
+                },
+                faltan.join(", ")
+            ));
+        }
+    }
+
     // Avisos de avería: estimación por equipo y coste de los incluidos en la cuota.
     let mut estimados = 0.0;
     for ins in &c.instalaciones {
@@ -476,9 +510,15 @@ pub fn valorar(b: &Biblioteca, c: &Contrato) -> Result<Valoracion, Error> {
     estimados *=
         crate::avisos::factor_antiguedad(&av.antiguedad) * crate::avisos::factor_uso(viviendas, av.servicio_24h);
     let estimados = r2(estimados);
+    // Aparcamiento por salida (zona ORA, parking): del contrato o del parámetro del año.
+    let aparcamiento = c
+        .desplazamiento
+        .aparcamiento
+        .unwrap_or_else(|| p("aparcamiento_salida").unwrap_or(0.0));
     let coste_aviso = av.horas_por_aviso * coste_of
         + 2.0 * c.desplazamiento.minutos_ida / 60.0 * coste_of
-        + 2.0 * c.desplazamiento.km_ida * coste_km;
+        + 2.0 * c.desplazamiento.km_ida * coste_km
+        + aparcamiento;
     let incluidos = match av.modalidad.as_str() {
         "aparte" => 0,
         "incluidos" => estimados.ceil() as u32,
@@ -487,7 +527,7 @@ pub fn valorar(b: &Biblioteca, c: &Contrato) -> Result<Valoracion, Error> {
     let coste_avisos = incluidos as f64 * coste_aviso;
     if av.modalidad == "bolsa" && av.bolsa.is_some_and(|n| (n as f64) < estimados) {
         avisos.push(format!(
-            "La bolsa de {} avisos es menor que los {estimados} estimados: el exceso se facturará aparte.",
+            "Se valoran {} avisos y se estiman {estimados}: si salen los estimados, el margen baja.",
             av.bolsa.unwrap_or(0)
         ));
     }
@@ -501,7 +541,7 @@ pub fn valorar(b: &Biblioteca, c: &Contrato) -> Result<Valoracion, Error> {
     let (horas_desp, coste_desp) = if hay_propio {
         let h = visitas as f64 * (2.0 * c.desplazamiento.minutos_ida + fijo_min) / 60.0;
         let km = visitas as f64 * 2.0 * c.desplazamiento.km_ida;
-        (h, h * coste_of + km * coste_km)
+        (h, h * coste_of + km * coste_km + visitas as f64 * aparcamiento)
     } else {
         (0.0, 0.0)
     };
@@ -550,6 +590,7 @@ pub fn valorar(b: &Biblioteca, c: &Contrato) -> Result<Valoracion, Error> {
         ("contingencia_pct", cont_pct),
         ("margen_pct", margen_pct),
         ("minimo_visita_subcontrata", minimo_sub),
+        ("aparcamiento_salida", aparcamiento),
     ] {
         parametros.insert(k.to_string(), v);
     }
