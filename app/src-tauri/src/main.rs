@@ -64,6 +64,8 @@ fn abrir_o_crear(ruta: &Path, normativa: &Path, empresa: &Path) -> R<Connection>
     db::inicializar(&mut c, normativa, empresa).map_err(txt)?;
     // Equipos nuevos del catálogo semilla: también para bases ya existentes.
     db::actualizar_catalogo(&mut c, normativa, empresa).map_err(txt)?;
+    // Textos y periodicidades corregidos de la normativa (sin tocar lo editado por el usuario).
+    db::actualizar_normativa(&mut c, normativa, empresa).map_err(txt)?;
     // Modelos de presupuesto: también para bases ya existentes que aún no los tengan.
     if let Some(semilla) = normativa.parent() {
         db::cargar_modelos_semilla(&c, &semilla.join("presupuestos/modelos.json")).map_err(txt)?;

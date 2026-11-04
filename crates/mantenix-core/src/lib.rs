@@ -579,4 +579,33 @@ mod tests {
             .iter()
             .all(|o| ["3m", "6m", "1a"].contains(&o["periodicidad"].as_str().unwrap())));
     }
+
+    #[test]
+    fn normativa_corregida_llega_a_bases_existentes() {
+        let mut c = db::abrir(std::path::Path::new(":memory:")).unwrap();
+        db::inicializar(&mut c, &normativa(), &ejemplo()).unwrap();
+        // Base antigua: texto recortado y periodicidad distinta.
+        c.execute(
+            "UPDATE operacion SET texto='Purgado', periodicidad='t' WHERE id='RITE-T33-41'",
+            [],
+        )
+        .unwrap();
+        // Una operación que un usuario cambió a propósito: se respeta.
+        db::fijar_usuario(&c, "juancar").unwrap();
+        c.execute("UPDATE operacion SET texto='Texto propio' WHERE id='RITE-T33-42'", [])
+            .unwrap();
+        assert_eq!(db::actualizar_normativa(&mut c, &normativa(), &ejemplo()).unwrap(), 1);
+        let t = |id: &str| -> (String, String) {
+            c.query_row("SELECT texto, periodicidad FROM operacion WHERE id=?1", [id], |r| {
+                Ok((r.get(0)?, r.get(1)?))
+            })
+            .unwrap()
+        };
+        assert_eq!(
+            t("RITE-T33-41"),
+            ("Purgado del campo de captación".to_string(), "2t".to_string())
+        );
+        assert_eq!(t("RITE-T33-42").0, "Texto propio");
+        assert_eq!(db::actualizar_normativa(&mut c, &normativa(), &ejemplo()).unwrap(), 0);
+    }
 }

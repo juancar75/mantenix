@@ -181,6 +181,10 @@ fn main() -> Result<()> {
             if db::inicializar(&mut c, &normativa, &empresa)? {
                 println!("Base creada en {} (empresa: {}).", cli.db.display(), empresa.display());
             } else {
+                let t = db::actualizar_normativa(&mut c, &normativa, &empresa)?;
+                if t > 0 {
+                    println!("{t} operaciones o filas de la tabla 3.1 puestas al día con la normativa.");
+                }
                 let n = db::actualizar_catalogo(&mut c, &normativa, &empresa)?;
                 if n > 0 {
                     println!(

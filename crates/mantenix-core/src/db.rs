@@ -1079,3 +1079,104 @@ pub fn actualizar_catalogo(c: &mut Connection, normativa: &Path, empresa: &Path)
     }
     Ok(eq_nuevos.len())
 }
+
+/// Pone al día los textos y periodicidades de la normativa (operaciones y tabla 3.1 del RITE) de
+/// una base ya creada con los de la semilla, cuando cambian por una corrección o un cotejo con el
+/// BOE. No toca las operaciones que algún usuario haya modificado (según la tabla `auditoria`).
+/// Devuelve cuántas filas actualizó.
+pub fn actualizar_normativa(c: &mut Connection, normativa: &Path, empresa: &Path) -> Result<usize, Error> {
+    let n: i64 = c
+        .query_row("SELECT count(*) FROM operacion", [], |r| r.get(0))
+        .map_err(e)?;
+    if n == 0 || !empresa.join("catalogo_equipos.csv").exists() {
+        return Ok(0);
+    }
+    let b = Biblioteca::desde_csv(normativa, empresa)?;
+    let editada = |tabla: &str, id: &str| -> Result<bool, Error> {
+        let n: i64 = c
+            .query_row(
+                "SELECT count(*) FROM auditoria WHERE tabla=?1 AND accion='cambio'
+                   AND coalesce(usuario,'') NOT IN ('semilla','') AND json_extract(despues,'$.id')=?2",
+                params![tabla, id],
+                |r| r.get(0),
+            )
+            .map_err(e)?;
+        Ok(n > 0)
+    };
+    let mut ops = Vec::new();
+    for o in b.operaciones.values() {
+        let actual: Option<(String, String, String, String, String, String)> = c
+            .query_row(
+                "SELECT texto,periodicidad,tipo,referencia,fuente,verificado FROM operacion WHERE id=?1",
+                [&o.id],
+                |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?, r.get(4)?, r.get(5)?)),
+            )
+            .optional()
+            .map_err(e)?;
+        let Some(a) = actual else { continue };
+        let nueva = (
+            o.texto.clone(),
+            o.periodicidad.clone(),
+            o.tipo.clone(),
+            o.referencia.clone(),
+            o.fuente.clone(),
+            o.verificado.clone(),
+        );
+        if a != nueva && !editada("operacion", &o.id)? {
+            ops.push(o.clone());
+        }
+    }
+    let mut t31 = Vec::new();
+    for f in &b.tabla_3_1 {
+        let actual: Option<(String, Option<f64>, Option<f64>, f64, f64)> = c
+            .query_row(
+                "SELECT equipo,pn_min_kw,pn_max_kw,viviendas_meses,otros_usos_meses FROM tabla_3_1 WHERE id=?1",
+                [&f.id],
+                |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?, r.get(4)?)),
+            )
+            .optional()
+            .map_err(e)?;
+        let Some(a) = actual else { continue };
+        if a != (
+            f.equipo.clone(),
+            f.pn_min_kw,
+            f.pn_max_kw,
+            f.viviendas_meses,
+            f.otros_usos_meses,
+        ) && !editada("tabla_3_1", &f.id)?
+        {
+            t31.push(f.clone());
+        }
+    }
+    if ops.is_empty() && t31.is_empty() {
+        return Ok(0);
+    }
+    let anterior: Option<String> = c
+        .query_row("SELECT usuario FROM sesion LIMIT 1", [], |r| r.get(0))
+        .optional()
+        .map_err(e)?;
+    fijar_usuario(c, "semilla")?;
+    let tx = c.transaction().map_err(e)?;
+    for o in &ops {
+        tx.execute(
+            "UPDATE operacion SET texto=?2, periodicidad=?3, tipo=?4, referencia=?5, fuente=?6, verificado=?7 WHERE id=?1",
+            params![o.id, o.texto, o.periodicidad, o.tipo, o.referencia, o.fuente, o.verificado],
+        )
+        .map_err(e)?;
+    }
+    for f in &t31 {
+        tx.execute(
+            "UPDATE tabla_3_1 SET equipo=?2, pn_min_kw=?3, pn_max_kw=?4, viviendas_meses=?5, otros_usos_meses=?6 WHERE id=?1",
+            params![f.id, f.equipo, f.pn_min_kw, f.pn_max_kw, f.viviendas_meses, f.otros_usos_meses],
+        )
+        .map_err(e)?;
+    }
+    tx.commit().map_err(e)?;
+    match anterior {
+        Some(u) => fijar_usuario(c, &u)?,
+        None => {
+            c.execute("DELETE FROM sesion", []).map_err(e)?;
+        }
+    }
+    Ok(ops.len() + t31.len())
+}
