@@ -10,6 +10,7 @@
 -->
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from "vue";
+import { nav } from "../navegacion";
 import { save } from "@tauri-apps/plugin-dialog";
 import {
   api, eur, num,
@@ -96,6 +97,25 @@ onMounted(async () => {
   await cargarLista();
   await cargarModelos();
   contratos.value = (await api.listarContratos()).map((c) => c.nombre);
+  // Viene de «Registrar visita» con un defecto: correctivo ya rellenado.
+  const pend = nav.correctivo;
+  if (pend) {
+    nav.correctivo = null;
+    await nuevo("correctivo");
+    if (p.value) {
+      const k = await api.cargarContrato(pend.contrato).catch(() => null);
+      const partes = (k?.partes ?? {}) as Record<string, any>;
+      p.value.contrato = pend.contrato;
+      p.value.cliente = partes.cliente?.razon_social ?? pend.contrato;
+      p.value.cif = partes.cliente?.cif ?? "";
+      p.value.direccion = partes.edificio?.direccion ?? "";
+      p.value.equipo = pend.equipo;
+      p.value.titulo = `Reparación: ${pend.equipo}`;
+      p.value.deteccion = "Detectado en la visita de mantenimiento preventivo.";
+      p.value.averia = pend.averia;
+      if (!p.value.ambito) p.value.ambito = (k?.instalaciones ?? []).some((i) => i.familia === "RITE") ? "RITE" : "PCI";
+    }
+  }
 });
 
 async function intentar(f: () => Promise<void>) {

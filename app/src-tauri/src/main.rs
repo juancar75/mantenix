@@ -260,6 +260,113 @@ fn pdf_acta_pci(base: State<Base>, nombre: String, tipo: String, todos: bool, ru
     std::fs::write(ruta, pdf).map_err(txt)
 }
 
+// ───────────────────────────── Seguimiento: plan, registro y calendario ─────────────────────────────
+
+/// (año, mes, día) de hoy.
+fn hoy() -> (u32, u32, u32) {
+    let dias = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs() / 86_400)
+        .unwrap_or(0) as i64;
+    mantenix_core::registro::fecha_civil(dias)
+}
+
+/// Plan del año de un contrato con el estado de cada visita según el registro.
+#[derive(Serialize)]
+struct PlanVista {
+    plan: mantenix_core::plan::Plan,
+    estado: Vec<mantenix_core::registro::EstadoVisita>,
+    registros: Vec<mantenix_core::registro::Registro>,
+    hoy: String,
+}
+
+#[tauri::command]
+fn plan_contrato(base: State<Base>, nombre: String) -> R<PlanVista> {
+    let c = base.conexion.lock().unwrap();
+    let b = Biblioteca::desde_db(&c).map_err(txt)?;
+    let (_, k) = db::cargar_contrato(&c, &nombre).map_err(txt)?;
+    let v = valorar(&b, &k).map_err(txt)?;
+    let plan = mantenix_core::plan::plan(&k, &v, mantenix_core::plan::mes_inicio(&k));
+    let registros = db::listar_registros(&c, &nombre).map_err(txt)?;
+    let (a, m, d) = hoy();
+    let estado = mantenix_core::registro::estado(&plan, &registros, (a, m));
+    Ok(PlanVista {
+        plan,
+        estado,
+        registros,
+        hoy: format!("{a:04}-{m:02}-{d:02}"),
+    })
+}
+
+#[tauri::command]
+fn guardar_registro(base: State<Base>, registro: mantenix_core::registro::Registro) -> R<String> {
+    db::guardar_registro(&base.conexion.lock().unwrap(), &registro).map_err(txt)
+}
+
+#[tauri::command]
+fn borrar_registro(base: State<Base>, id: String) -> R<()> {
+    db::borrar_registro(&base.conexion.lock().unwrap(), &id).map_err(txt)
+}
+
+/// Parte de una visita registrada (hoja rellenada) en PDF.
+#[tauri::command]
+fn pdf_parte(base: State<Base>, nombre: String, id: String, ruta: String) -> R<()> {
+    let c = base.conexion.lock().unwrap();
+    let b = Biblioteca::desde_db(&c).map_err(txt)?;
+    let (_, k) = db::cargar_contrato(&c, &nombre).map_err(txt)?;
+    let v = valorar(&b, &k).map_err(txt)?;
+    let plan = mantenix_core::plan::plan(&k, &v, mantenix_core::plan::mes_inicio(&k));
+    let regs = db::listar_registros(&c, &nombre).map_err(txt)?;
+    let r = regs
+        .iter()
+        .find(|r| r.id == id)
+        .ok_or_else(|| format!("No existe el registro {id}"))?;
+    let pdf = mantenix_informes::parte_visita(
+        &plan,
+        &k.partes,
+        &db::empresa(&c).map_err(txt)?,
+        r.numero.max(1),
+        Some(r),
+    )
+    .map_err(txt)?;
+    std::fs::write(ruta, pdf).map_err(txt)
+}
+
+/// Fija el mes de la primera visita del plan de un contrato.
+#[tauri::command]
+fn fijar_mes_inicio(base: State<Base>, nombre: String, mes: u32) -> R<()> {
+    let mut c = base.conexion.lock().unwrap();
+    let (_, mut k) = db::cargar_contrato(&c, &nombre).map_err(txt)?;
+    if !k.partes.is_object() {
+        k.partes = serde_json::json!({});
+    }
+    k.partes["plan"] = serde_json::json!({ "mes_inicio": mes });
+    db::guardar_contrato(&mut c, &k).map(|_| ()).map_err(txt)
+}
+
+#[tauri::command]
+fn calendario(base: State<Base>, dia: u32) -> R<Vec<mantenix_core::calendario::Evento>> {
+    let c = base.conexion.lock().unwrap();
+    let b = Biblioteca::desde_db(&c).map_err(txt)?;
+    let (a, m, _) = hoy();
+    mantenix_core::calendario::de_todos(&c, &b, dia, (a, m)).map_err(txt)
+}
+
+/// Exporta el calendario a .ics (Outlook, Teams, Google Calendar).
+#[tauri::command]
+fn exportar_ics(base: State<Base>, dia: u32, ruta: String) -> R<usize> {
+    let c = base.conexion.lock().unwrap();
+    let b = Biblioteca::desde_db(&c).map_err(txt)?;
+    let (a, m, _) = hoy();
+    let ev = mantenix_core::calendario::de_todos(&c, &b, dia, (a, m)).map_err(txt)?;
+    let empresa = db::empresa(&c).map_err(txt)?["razon_social"]
+        .as_str()
+        .unwrap_or("")
+        .to_string();
+    std::fs::write(ruta, mantenix_core::calendario::ics(&ev, &empresa)).map_err(txt)?;
+    Ok(ev.len())
+}
+
 // ───────────────────────────── Presupuestos ─────────────────────────────
 
 #[tauri::command]
@@ -610,6 +717,13 @@ fn main() {
             pdf_visitas,
             pdf_certificado,
             pdf_acta_pci,
+            plan_contrato,
+            guardar_registro,
+            borrar_registro,
+            pdf_parte,
+            fijar_mes_inicio,
+            calendario,
+            exportar_ics,
             inspecciones_catalogo,
             inspecciones_sugeridas,
             parametros,

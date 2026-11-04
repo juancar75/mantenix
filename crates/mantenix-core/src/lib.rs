@@ -26,6 +26,7 @@
 #![warn(missing_docs)]
 
 pub mod avisos;
+pub mod calendario;
 pub mod datos;
 pub mod db;
 pub mod documento;

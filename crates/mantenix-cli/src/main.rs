@@ -161,6 +161,14 @@ enum Orden {
         #[arg(long)]
         pdf: Option<PathBuf>,
     },
+    /// Calendario de mantenimiento de todos los contratos; con --ics, fichero para Outlook o Teams.
+    Calendario {
+        /// Día del mes en que se prevén las visitas (se pasa al primer laborable).
+        #[arg(long, default_value_t = 5)]
+        dia: u32,
+        #[arg(long)]
+        ics: Option<PathBuf>,
+    },
     /// Genera el PDF de un contrato desde su JSON de datos (la empresa y las operaciones salen de la base).
     Contrato {
         datos: PathBuf,
@@ -454,6 +462,18 @@ fn main() -> Result<()> {
                     mantenix_informes::parte_visita(&plan, &k.partes, &db::empresa(&c)?, r.numero.max(1), Some(r))?;
                 std::fs::write(&pdf, bytes)?;
                 println!("PDF: {}", pdf.display());
+            }
+        }
+        Orden::Calendario { dia, ics } => {
+            let b = Biblioteca::desde_db(&c)?;
+            let ev = mantenix_core::calendario::de_todos(&c, &b, dia, chrono_hoy())?;
+            for e in &ev {
+                println!("  {} {:<11} {:<9} {}", e.fecha, e.tipo, e.estado, e.titulo);
+            }
+            if let Some(f) = ics {
+                let empresa = db::empresa(&c)?["razon_social"].as_str().unwrap_or("").to_string();
+                std::fs::write(&f, mantenix_core::calendario::ics(&ev, &empresa))?;
+                println!("{} eventos. ICS: {}", ev.len(), f.display());
             }
         }
         Orden::Contrato { datos, pdf } => {

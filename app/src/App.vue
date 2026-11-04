@@ -3,11 +3,14 @@
   Cada vista está en src/vistas/ y solo habla con el núcleo a través de src/api.ts.
 -->
 <script setup lang="ts">
-import { onMounted, ref, shallowRef } from "vue";
+import { computed, onMounted, ref } from "vue";
+import { nav } from "./navegacion";
 import { getVersion } from "@tauri-apps/api/app";
 import { check, type Update } from "@tauri-apps/plugin-updater";
 import { relaunch } from "@tauri-apps/plugin-process";
 import { api, type Estado } from "./api";
+import Inicio from "./vistas/Inicio.vue";
+import Visita from "./vistas/Visita.vue";
 import Asistente from "./vistas/Asistente.vue";
 import Contratos from "./vistas/Contratos.vue";
 import Presupuestos from "./vistas/Presupuestos.vue";
@@ -19,6 +22,8 @@ import BaseDatos from "./vistas/BaseDatos.vue";
 import Empresa from "./vistas/Empresa.vue";
 
 const vistas = [
+  { id: "inicio", titulo: "Qué toca · calendario", comp: Inicio },
+  { id: "visita", titulo: "Registrar visita (asistente)", comp: Visita },
   { id: "asistente", titulo: "Nuevo contrato (asistente)", comp: Asistente },
   { id: "contratos", titulo: "Contratos", comp: Contratos },
   { id: "presupuestos", titulo: "Presupuestos", comp: Presupuestos },
@@ -29,7 +34,7 @@ const vistas = [
   { id: "empresa", titulo: "Empresa y logos", comp: Empresa },
   { id: "base", titulo: "Base de datos", comp: BaseDatos },
 ];
-const activa = shallowRef(vistas[0]);
+const activa = computed(() => vistas.find((v) => v.id === nav.vista) ?? vistas[0]);
 const estado = ref<Estado | null>(null);
 
 async function refrescar() { estado.value = await api.estado(); }
@@ -76,7 +81,7 @@ onMounted(async () => {
   <div class="marco">
     <nav>
       <div class="marca">Mantenix</div>
-      <a v-for="v in vistas" :key="v.id" :class="{ activo: activa.id === v.id }" @click="activa = v">{{ v.titulo }}</a>
+      <a v-for="v in vistas" :key="v.id" :class="{ activo: activa.id === v.id }" @click="nav.vista = v.id">{{ v.titulo }}</a>
       <div class="pie" v-if="estado">
         <div>{{ estado.empresa || "Sin empresa" }}</div>
         <div>Usuario: <b>{{ estado.usuario || "sin identificar" }}</b></div>
@@ -97,7 +102,7 @@ onMounted(async () => {
           <button :disabled="!!actualizando" @click="nueva = null">Más tarde</button>
         </div>
       </div>
-      <component :is="activa.comp" @cambio="refrescar" />
+      <component :is="activa.comp" :key="activa.id" @cambio="refrescar" />
     </main>
   </div>
 </template>

@@ -1091,6 +1091,9 @@ pub fn actualizar_catalogo(c: &mut Connection, normativa: &Path, empresa: &Path)
     Ok(eq_nuevos.len())
 }
 
+/// Fila de la tabla 3.1 leída de la base: equipo, Pn mínima y máxima, meses viviendas y otros usos.
+type FilaT31Bd = (String, Option<f64>, Option<f64>, f64, f64);
+
 /// Pone al día los textos y periodicidades de la normativa (operaciones y tabla 3.1 del RITE) de
 /// una base ya creada con los de la semilla, cuando cambian por una corrección o un cotejo con el
 /// BOE. No toca las operaciones que algún usuario haya modificado (según la tabla `auditoria`).
@@ -1139,7 +1142,7 @@ pub fn actualizar_normativa(c: &mut Connection, normativa: &Path, empresa: &Path
     }
     let mut t31 = Vec::new();
     for f in &b.tabla_3_1 {
-        let actual: Option<(String, Option<f64>, Option<f64>, f64, f64)> = c
+        let actual: Option<FilaT31Bd> = c
             .query_row(
                 "SELECT equipo,pn_min_kw,pn_max_kw,viviendas_meses,otros_usos_meses FROM tabla_3_1 WHERE id=?1",
                 [&f.id],
