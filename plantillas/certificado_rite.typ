@@ -15,6 +15,7 @@
 
 #let cert = json(bytes(sys.inputs.cert))
 #let d = json(bytes(sys.inputs.datos))
+#let d = if d == none { (:) } else { d }
 #let empresa = json(bytes(sys.inputs.empresa))
 #let membrete = json(bytes(sys.inputs.membrete))
 #let c = d.at("cliente", default: (razon_social: "", cif: "", domicilio: ""))

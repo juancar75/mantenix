@@ -555,6 +555,8 @@ fn historial(base: State<Base>, tabla: Option<String>, limite: u32) -> R<Vec<db:
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
         .setup(|app| {
             // Se abre la última base usada; si no hay o ya no existe, la base por defecto de la
             // carpeta de datos del usuario (se crea con datos de ejemplo).

@@ -10,9 +10,20 @@
 
 #let plan = json(bytes(sys.inputs.plan))
 #let d = json(bytes(sys.inputs.datos))
+#let d = if d == none { (:) } else { d }
 #let empresa = json(bytes(sys.inputs.empresa))
 #let membrete = json(bytes(sys.inputs.membrete))
 #let solo = int(sys.inputs.solo)
+// Registro de la visita (si ya se hizo): rellena la hoja con lo anotado.
+#let reg = json(bytes(sys.inputs.at("registro", default: "null")))
+#let res(q, o) = if reg == none { none } else {
+  let r = reg.resultados.filter(x => x.operacion_id == o.operacion_id and x.equipo == q.descripcion)
+  if r.len() > 0 { r.first() } else { none }
+}
+#let marca(r, v) = if r != none and r.resultado == v {
+  box(width: 8pt, height: 8pt, stroke: 0.6pt + azul, radius: 1pt, fill: azul.lighten(80%), align(center + horizon, text(7pt, weight: "bold", fill: azul, "✕")))
+} else { box(width: 8pt, height: 8pt, stroke: 0.6pt + gris, radius: 1pt) }
+#let lleno(x, w) = if x != none and x != "" { box(width: w, stroke: (bottom: 0.5pt + gris), text(fill: azul, x)) } else { box(width: w, stroke: (bottom: 0.5pt + gris), height: 0.9em) }
 #let e = d.at("edificio", default: (nombre: plan.contrato, direccion: ""))
 #let ref = d.at("contrato", default: (:)).at("referencia", default: "")
 #let razon = empresa.at("razon_social", default: "")
@@ -71,8 +82,10 @@
   set page(flipped: false)
   cabecera("Hoja de visita " + str(vis.numero) + " de " + str(plan.n_visitas),
     "Prevista en " + vis.mes_nombre + " de " + str(plan.anio) + " · " + str(calc.round(vis.horas, digits: 1)).replace(".", ",") + " h previstas en equipos")
+  let r0 = if reg != none and reg.numero == vis.numero { reg } else { none }
+  let g(k) = if r0 == none { none } else { r0.at(k, default: none) }
   grid(columns: (1fr, 1fr, 1fr, 1fr), column-gutter: 8pt,
-    [Fecha: #en_blanco(2.2cm)], [Entrada: #en_blanco(1.4cm)], [Salida: #en_blanco(1.4cm)], [Técnico: #en_blanco(2.6cm)])
+    [Fecha: #lleno(g("fecha"), 2.2cm)], [Entrada: #lleno(g("entrada"), 1.4cm)], [Salida: #lleno(g("salida"), 1.4cm)], [Técnico: #lleno(g("tecnico"), 2.6cm)])
   v(2pt)
   [= Operaciones]
   text(7.5pt, fill: gris)[Marque cada operación: *B* bien · *D* defecto (anótelo abajo) · *NA* no aplica.]
@@ -82,9 +95,11 @@
     table.header([Operación], [B], [D], [NA]),
     ..vis.equipos.map(q => (
       table.cell(colspan: 4, fill: fondo, text(weight: "bold")[#q.descripcion (× #num(q.cantidad, d: 0))]),
-      ..q.operaciones.map(o => (
-        [#o.texto #if o.nota != "" { text(7pt, fill: gris)[ — #o.nota] }], caja, caja, caja,
-      )).flatten(),
+      ..q.operaciones.map(o => {
+        let r = if r0 == none { none } else { res(q, o) }
+        ([#o.texto #if o.nota != "" { text(7pt, fill: gris)[ — #o.nota] } #if r != none and r.nota != "" { text(7.5pt, fill: azul)[ · #r.nota] }],
+          marca(r, "B"), marca(r, "D"), marca(r, "NA"))
+      }).flatten(),
     )).flatten(),
   )
   if vis.subcontrata.len() > 0 {
@@ -96,17 +111,29 @@
     table(
       columns: (3.2cm,) + m.magnitudes.map(_ => 1fr),
       table.header([Generador], ..m.magnitudes.map(x => text(6.5pt, x))),
-      ..m.generadores.map(g => (text(7.5pt, g), ..m.magnitudes.map(_ => v(1.1em)))).flatten(),
+      ..m.generadores.map(gen => {
+        let med = if r0 == none { none } else { r0.medidas.find(x => x.generador == gen) }
+        (text(7.5pt, gen), ..m.magnitudes.map(mag => if med != none and med.valores.at(mag, default: "") != "" { text(fill: azul, med.valores.at(mag)) } else { v(1.1em) }))
+      }).flatten(),
     )
   }
   if vis.contadores {
     [= Lectura de contadores (IT 3.4.4)]
+    let ct = if r0 == none { (:) } else { r0.contadores }
+    let lect(k) = if ct.at(k, default: none) != none { text(fill: azul, str(ct.at(k)).replace(".", ",")) } else { v(1.1em) }
     table(columns: (1fr, 1fr, 1fr, 1fr, 1fr),
-      table.header([Combustible], [Electricidad], [Agua de llenado], [ACS], [Energía térmica]),
-      v(1.1em), [], [], [], [])
+      table.header([Combustible], [Electricidad (kWh)], [Agua de llenado (m³)], [ACS (m³)], [Energía térmica (kWh)]),
+      lect("combustible"), lect("electricidad"), lect("agua_llenado"), lect("acs"), lect("energia_termica"))
   }
   [= Defectos, reparaciones y material]
-  table(columns: (1fr,), ..range(4).map(_ => v(1.1em)))
+  if r0 != none and (r0.defectos != "" or r0.material != "" or r0.observaciones != "") {
+    table(columns: (1fr,),
+      [*Defectos y acciones propuestas:* #text(fill: azul, r0.defectos)],
+      [*Material:* #text(fill: azul, r0.material)],
+      [*Observaciones:* #text(fill: azul, r0.observaciones)])
+  } else {
+    table(columns: (1fr,), ..range(4).map(_ => v(1.1em)))
+  }
   v(6pt)
   grid(columns: (1fr, 1fr), column-gutter: 20pt,
     [*Técnico de la empresa mantenedora* \ Nombre y n.º de carné: \ #v(1.2cm) Firma],

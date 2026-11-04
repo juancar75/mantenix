@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Mantenix",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "identifier": "es.mantenix.app",
   "build": {
     "beforeDevCommand": "npm run dev",
@@ -11,16 +11,44 @@
   },
   "app": {
     "windows": [
-      { "title": "Mantenix", "width": 1280, "height": 820, "minWidth": 960, "minHeight": 600 }
+      {
+        "title": "Mantenix",
+        "width": 1280,
+        "height": 820,
+        "minWidth": 960,
+        "minHeight": 600
+      }
     ],
-    "security": { "csp": null }
+    "security": {
+      "csp": null
+    }
   },
   "bundle": {
     "active": true,
     "targets": "all",
-    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.icns", "icons/icon.ico"],
-    "resources": { "../../datos/semilla/": "semilla/" },
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "resources": {
+      "../../datos/semilla/": "semilla/"
+    },
     "shortDescription": "Valoración de contratos de mantenimiento RITE/RIPCI",
-    "category": "Business"
+    "category": "Business",
+    "createUpdaterArtifacts": true
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEQ1RUQzRDZFNjAxNzA3NDEKUldSQkJ4ZGdiajN0MWQ3SEVkdFhlcDRSbHZJcjBUVGEvRnU2eUZ0YS9aQ2J5MldscVVibmFaeisK",
+      "endpoints": [
+        "https://github.com/juancar75/mantenix/releases/latest/download/latest.json"
+      ],
+      "windows": {
+        "installMode": "passive"
+      }
+    }
   }
 }

@@ -150,6 +150,17 @@ enum Orden {
         #[arg(long)]
         pdf: PathBuf,
     },
+    /// Anota en el registro de mantenimiento una visita, aviso o reparación desde JSON.
+    Registrar { fichero: PathBuf },
+    /// Estado de las visitas del plan de un contrato (hechas, pendientes, atrasadas) y su registro.
+    Registro {
+        nombre: String,
+        /// Parte de una entrada del registro en PDF (su identificador).
+        #[arg(long)]
+        parte: Option<String>,
+        #[arg(long)]
+        pdf: Option<PathBuf>,
+    },
     /// Genera el PDF de un contrato desde su JSON de datos (la empresa y las operaciones salen de la base).
     Contrato {
         datos: PathBuf,
@@ -376,7 +387,10 @@ fn main() -> Result<()> {
             };
             let extra = match datos {
                 Some(p) => leer_json(&p)?,
-                None => serde_json::json!({}),
+                None => mantenix_core::registro::extra_certificado(
+                    &db::listar_registros(&c, &nombre)?,
+                    anio.unwrap_or(k.anio),
+                ),
             };
             let cert = mantenix_core::documento::datos_certificado(&b, &k, &v, anio.unwrap_or(k.anio), &extra);
             let bytes = mantenix_informes::certificado_rite(&cert, &partes, &db::empresa(&c)?)?;
@@ -401,6 +415,46 @@ fn main() -> Result<()> {
             let bytes = mantenix_informes::acta_ripci(&acta, &partes, &db::empresa(&c)?)?;
             std::fs::write(&pdf, bytes)?;
             println!("{n} sistemas. PDF: {}", pdf.display());
+        }
+        Orden::Registrar { fichero } => {
+            let r: mantenix_core::registro::Registro = serde_json::from_value(leer_json(&fichero)?)?;
+            let id = db::guardar_registro(&c, &r)?;
+            println!("Registrada {} del {} en «{}» ({id}).", r.tipo, r.fecha, r.contrato);
+        }
+        Orden::Registro { nombre, parte, pdf } => {
+            let b = Biblioteca::desde_db(&c)?;
+            let (_, k) = db::cargar_contrato(&c, &nombre)?;
+            let v = valorar(&b, &k)?;
+            let plan = mantenix_core::plan::plan(&k, &v, mantenix_core::plan::mes_inicio(&k));
+            let regs = db::listar_registros(&c, &nombre)?;
+            let hoy = chrono_hoy();
+            for e in mantenix_core::registro::estado(&plan, &regs, hoy) {
+                println!(
+                    "  Visita {:>2} ({:<10}) {:<9} {}{}",
+                    e.numero,
+                    e.mes_nombre,
+                    e.estado,
+                    e.fecha.unwrap_or_default(),
+                    if e.defectos > 0 {
+                        format!(" · {} defectos", e.defectos)
+                    } else {
+                        String::new()
+                    }
+                );
+            }
+            for r in regs.iter().filter(|r| r.tipo != "preventiva") {
+                println!("  {} {} {}", r.fecha, r.tipo, r.defectos);
+            }
+            if let (Some(id), Some(pdf)) = (parte, pdf) {
+                let r = regs
+                    .iter()
+                    .find(|r| r.id == id)
+                    .ok_or_else(|| anyhow::anyhow!("No existe el registro {id}"))?;
+                let bytes =
+                    mantenix_informes::parte_visita(&plan, &k.partes, &db::empresa(&c)?, r.numero.max(1), Some(r))?;
+                std::fs::write(&pdf, bytes)?;
+                println!("PDF: {}", pdf.display());
+            }
         }
         Orden::Contrato { datos, pdf } => {
             let b = Biblioteca::desde_db(&c)?;
@@ -458,4 +512,14 @@ fn imprimir_resumen(v: &mantenix_core::Valoracion) {
     for a in &v.avisos {
         println!("  ⚠ {a}");
     }
+}
+
+/// (año, mes) de hoy, sin dependencias: días desde 1970 → fecha civil.
+fn chrono_hoy() -> (u32, u32) {
+    let dias = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs() / 86_400)
+        .unwrap_or(0) as i64;
+    let (a, m, _) = mantenix_core::registro::fecha_civil(dias);
+    (a, m)
 }

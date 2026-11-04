@@ -351,3 +351,14 @@ pub fn plan(k: &Contrato, v: &Valoracion, mes_inicio: u32) -> Plan {
         filas,
     }
 }
+
+/// Mes de la primera visita de un contrato: el guardado en `partes.plan.mes_inicio`, si no el de
+/// la fecha del contrato (`partes.contrato.lugar_fecha`), y si no enero.
+pub fn mes_inicio(k: &Contrato) -> u32 {
+    k.partes["plan"]["mes_inicio"]
+        .as_u64()
+        .map(|m| m as u32)
+        .filter(|m| (1..=12).contains(m))
+        .or_else(|| k.partes["contrato"]["lugar_fecha"].as_str().and_then(mes_de_texto))
+        .unwrap_or(1)
+}

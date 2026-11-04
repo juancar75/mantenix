@@ -1,4 +1,7 @@
-# Genera los instaladores al publicar una etiqueta de versión (p. ej. v0.2.0) y crea un borrador de Release.
+# Genera los instaladores al publicar una etiqueta de versión (p. ej. v0.2.1) y los sube a su Release.
+# Firma además el paquete de actualización y publica latest.json, que la aplicación consulta al
+# arrancar para ofrecer la versión nueva. Necesita el secreto TAURI_SIGNING_PRIVATE_KEY (la clave
+# privada de firma; la pública está en app/src-tauri/tauri.conf.json).
 name: Publicar versión
 
 on:
@@ -31,9 +34,12 @@ jobs:
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ""
         with:
           projectPath: app
           tagName: ${{ github.ref_name }}
           releaseName: "Mantenix ${{ github.ref_name }}"
           releaseBody: "Ver CHANGELOG.md"
           releaseDraft: true
+          includeUpdaterJson: true

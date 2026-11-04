@@ -35,6 +35,7 @@ pub mod modelo;
 pub mod motor;
 pub mod plan;
 pub mod presupuesto;
+pub mod registro;
 pub mod tarifa;
 
 pub use datos::Biblioteca;
@@ -607,5 +608,64 @@ mod tests {
         );
         assert_eq!(t("RITE-T33-42").0, "Texto propio");
         assert_eq!(db::actualizar_normativa(&mut c, &normativa(), &ejemplo()).unwrap(), 0);
+    }
+
+    #[test]
+    fn registro_de_visitas_estado_y_consumos() {
+        use registro::{Registro, Resultado};
+        let b = biblioteca();
+        let mut c = db::abrir(std::path::Path::new(":memory:")).unwrap();
+        db::inicializar(&mut c, &normativa(), &ejemplo()).unwrap();
+        let k: Contrato = serde_json::from_str(
+            r#"{"nombre":"sala","anio":2026,"desplazamiento":{"km_ida":5,"minutos_ida":10},
+            "partes":{"contrato":{"lugar_fecha":"Madrid, 3 de octubre de 2026"}},
+            "instalaciones":[{"familia":"RITE","potencia_kw":200,"equipos":[{"codigo":"CALD-GAS","cantidad":1},
+              {"codigo":"CIRC-HIDR","cantidad":1},{"codigo":"VASO-EXP","cantidad":1},{"codigo":"CONTROL","cantidad":1}]}]}"#,
+        )
+        .unwrap();
+        assert_eq!(plan::mes_inicio(&k), 10);
+        let v = valorar(&b, &k).unwrap();
+        let p = plan::plan(&k, &v, plan::mes_inicio(&k));
+        let r1 = Registro {
+            contrato: "sala".into(),
+            anio: 2026,
+            numero: 1,
+            tipo: "preventiva".into(),
+            fecha: "2026-10-05".into(),
+            resultados: vec![Resultado {
+                operacion_id: "RITE-T33-08".into(),
+                resultado: "D".into(),
+                ..Default::default()
+            }],
+            contadores: [("combustible".to_string(), 1000.0)].into(),
+            ..Default::default()
+        };
+        let id = db::guardar_registro(&c, &r1).unwrap();
+        let r2 = Registro {
+            numero: 3,
+            fecha: "2026-12-04".into(),
+            resultados: vec![],
+            contadores: [("combustible".to_string(), 1850.5)].into(),
+            ..r1.clone()
+        };
+        db::guardar_registro(&c, &r2).unwrap();
+        let regs = db::listar_registros(&c, "sala").unwrap();
+        assert_eq!(regs.len(), 2);
+        let e = registro::estado(&p, &regs, (2026, 12));
+        assert_eq!(e[0].estado, "hecha");
+        assert_eq!(e[0].defectos, 1);
+        assert_eq!(e[1].estado, "atrasada"); // noviembre sin hacer
+        assert_eq!(e[2].estado, "hecha");
+        assert_eq!(e[3].estado, "pendiente"); // enero de 2027
+        assert_eq!(registro::consumos(&regs, 2026)["combustible"], 850.5);
+        let x = registro::extra_certificado(&regs, 2026);
+        assert_eq!(x["visitas"], 2);
+        assert_eq!(x["consumos"]["combustible"], "850,50");
+        // El registro no se borra con el contrato.
+        db::guardar_contrato(&mut c, &k).unwrap();
+        db::borrar_contrato(&c, "sala").unwrap();
+        assert_eq!(db::listar_registros(&c, "sala").unwrap().len(), 2);
+        db::borrar_registro(&c, &id).unwrap();
+        assert_eq!(registro::fecha_civil(20_000), (2024, 10, 4));
     }
 }

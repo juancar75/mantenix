@@ -21,6 +21,9 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 - **Acta de mantenimiento de PCI** (RIPCI art. 17.e y 21.2, anexo II punto 5; `mantenix acta-pci --tipo 3m|6m|1a`, botón en «Contratos»): certificado con la información general (a.1 a a.9) firmado por el responsable técnico y el titular, y una lista de comprobación por sistema con sus productos (marca, modelo, identificación) y las operaciones de las tablas I, II y III que tocan en ese mantenimiento (el anual incluye las trimestrales y semestrales), con resultado e incidencias. Solo entran los equipos mantenidos con medios propios; los de la subcontrata llevan su propia acta.
 
+- **Actualización automática**: al arrancar, la aplicación mira en GitHub si hay una versión nueva y pregunta si se instala (descarga firmada, se cierra y se vuelve a abrir sola; la base no se toca). También desde «buscar actualización» en el menú.
+- **Registro de mantenimiento** (RITE art. 27, RIPCI art. 21.2): cada visita, aviso o reparación con fecha, técnico, resultado de cada operación, medidas, contadores, defectos y material (`mantenix registrar`, `mantenix registro`). Indica qué visitas del plan están hechas, pendientes o atrasadas; el parte de la visita sale rellenado; el certificado anual toma las visitas y los consumos del registro. El registro no se borra al borrar el contrato.
+
 ### Cambiado
 - **Instalaciones de 70 kW o menos**: todas las operaciones se hacen con la frecuencia de revisión de la tabla 3.1 del RITE (anual o cada 2-4 años según equipo y uso). Las periodicidades de la tabla 3.3 se aplican solo por encima de 70 kW. Revisadas todas contra la tabla 3.3: coinciden.
 - DB HS 3: la revisión de automatismos de los sistemas de control es cada 2 años (no semestral).

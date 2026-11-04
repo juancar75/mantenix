@@ -92,6 +92,13 @@ CREATE TABLE IF NOT EXISTS modelo_presupuesto (
     json TEXT NOT NULL, actualizado TEXT NOT NULL DEFAULT (datetime('now')));
 
 -- Valoraciones guardadas (reproducibles: se guarda el resultado completo)
+-- Registro de operaciones de mantenimiento (RITE art. 27, RIPCI art. 21.2): no se borra con el contrato
+CREATE TABLE IF NOT EXISTS registro (
+    id TEXT PRIMARY KEY, contrato TEXT NOT NULL, anio INTEGER NOT NULL, numero INTEGER NOT NULL DEFAULT 0,
+    tipo TEXT NOT NULL, fecha TEXT NOT NULL, json TEXT NOT NULL,
+    actualizado TEXT NOT NULL DEFAULT (datetime('now')));
+CREATE INDEX IF NOT EXISTS registro_contrato ON registro(contrato, anio);
+
 CREATE TABLE IF NOT EXISTS valoracion (
     id TEXT PRIMARY KEY, contrato_id TEXT NOT NULL REFERENCES contrato(id) ON DELETE CASCADE,
     anio INTEGER NOT NULL, fecha TEXT NOT NULL DEFAULT (datetime('now')),
@@ -108,6 +115,10 @@ fn uuid() -> String {
 
 /// Tablas con registro de cambios y sus columnas.
 const AUDITADAS: &[(&str, &[&str])] = &[
+    (
+        "registro",
+        &["id", "contrato", "anio", "numero", "tipo", "fecha", "json"],
+    ),
     (
         "operacion",
         &[
@@ -1179,4 +1190,49 @@ pub fn actualizar_normativa(c: &mut Connection, normativa: &Path, empresa: &Path
         }
     }
     Ok(ops.len() + t31.len())
+}
+
+/// Guarda (o sustituye) una entrada del registro de mantenimiento y devuelve su identificador.
+pub fn guardar_registro(c: &Connection, r: &crate::registro::Registro) -> Result<String, Error> {
+    if r.fecha.len() < 10 || r.contrato.trim().is_empty() {
+        return Err(Error::Db("el registro necesita contrato y fecha (AAAA-MM-DD)".into()));
+    }
+    let mut r = r.clone();
+    if r.id.is_empty() {
+        r.id = uuid();
+    }
+    let json = serde_json::to_string(&r).map_err(|x| Error::Db(x.to_string()))?;
+    c.execute(
+        "INSERT INTO registro (id, contrato, anio, numero, tipo, fecha, json) VALUES (?1,?2,?3,?4,?5,?6,?7)
+         ON CONFLICT(id) DO UPDATE SET contrato=excluded.contrato, anio=excluded.anio, numero=excluded.numero,
+           tipo=excluded.tipo, fecha=excluded.fecha, json=excluded.json, actualizado=datetime('now')",
+        params![r.id, r.contrato, r.anio, r.numero, r.tipo, r.fecha, json],
+    )
+    .map_err(e)?;
+    Ok(r.id)
+}
+
+/// Registro de un contrato (todas las fechas), del más reciente al más antiguo.
+pub fn listar_registros(c: &Connection, contrato: &str) -> Result<Vec<crate::registro::Registro>, Error> {
+    let mut s = c
+        .prepare("SELECT json FROM registro WHERE contrato=?1 ORDER BY fecha DESC, numero DESC")
+        .map_err(e)?;
+    let filas = s
+        .query_map([contrato], |r| r.get::<_, String>(0))
+        .map_err(e)?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(e)?;
+    filas
+        .iter()
+        .map(|t| serde_json::from_str(t).map_err(|x| Error::Db(x.to_string())))
+        .collect()
+}
+
+/// Borra una entrada del registro (queda constancia en la auditoría).
+pub fn borrar_registro(c: &Connection, id: &str) -> Result<(), Error> {
+    let n = c.execute("DELETE FROM registro WHERE id=?1", [id]).map_err(e)?;
+    if n == 0 {
+        return Err(Error::NoEncontrado(id.to_string()));
+    }
+    Ok(())
 }

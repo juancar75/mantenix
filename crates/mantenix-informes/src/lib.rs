@@ -218,6 +218,18 @@ pub fn hojas_visita(
     empresa: &Empresa,
     solo: u32,
 ) -> Result<Vec<u8>, Error> {
+    parte_visita(plan, partes, empresa, solo, None)
+}
+
+/// Hoja de una visita rellenada con lo anotado en el registro (parte de trabajo para firmar o
+/// archivar). Con `registro` = `None` sale en blanco.
+pub fn parte_visita(
+    plan: &mantenix_core::plan::Plan,
+    partes: &serde_json::Value,
+    empresa: &Empresa,
+    solo: u32,
+    registro: Option<&mantenix_core::registro::Registro>,
+) -> Result<Vec<u8>, Error> {
     let (m, logo) = membrete(empresa, "RITE");
     compilar_con(
         "hoja_visita.typ",
@@ -227,6 +239,7 @@ pub fn hojas_visita(
             ("empresa", empresa_sin_logos(empresa).to_string()),
             ("membrete", m),
             ("solo", solo.to_string()),
+            ("registro", serde_json::to_string(&registro)?),
         ],
         logo,
     )
