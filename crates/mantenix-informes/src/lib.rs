@@ -21,7 +21,7 @@ use typst_as_lib::TypstEngine;
 use typst_layout::PagedDocument;
 
 /// Plantillas incrustadas: (nombre de fichero, contenido).
-const PLANTILLAS: [(&str, &str); 6] = [
+const PLANTILLAS: [(&str, &str); 9] = [
     ("comun.typ", include_str!("../../../plantillas/comun.typ")),
     ("hoja_costes.typ", include_str!("../../../plantillas/hoja_costes.typ")),
     ("tarifa.typ", include_str!("../../../plantillas/tarifa.typ")),
@@ -31,6 +31,12 @@ const PLANTILLAS: [(&str, &str); 6] = [
         "relacion_presupuestos.typ",
         include_str!("../../../plantillas/relacion_presupuestos.typ"),
     ),
+    ("hoja_visita.typ", include_str!("../../../plantillas/hoja_visita.typ")),
+    (
+        "certificado_rite.typ",
+        include_str!("../../../plantillas/certificado_rite.typ"),
+    ),
+    ("acta_ripci.typ", include_str!("../../../plantillas/acta_ripci.typ")),
 ];
 
 /// Tipografía Inter (SIL OFL 1.1, ver `assets/fuentes/OFL.txt`).
@@ -201,5 +207,76 @@ pub fn contrato<'a>(
             ("empresa", empresa.to_string()),
             ("operaciones", serde_json::to_string(&ops)?),
         ],
+    )
+}
+
+/// Plan anual de mantenimiento y hojas de visita para el técnico. `solo` = número de visita a
+/// imprimir (0 = el plan anual y todas las visitas).
+pub fn hojas_visita(
+    plan: &mantenix_core::plan::Plan,
+    partes: &serde_json::Value,
+    empresa: &Empresa,
+    solo: u32,
+) -> Result<Vec<u8>, Error> {
+    parte_visita(plan, partes, empresa, solo, None)
+}
+
+/// Hoja de una visita rellenada con lo anotado en el registro (parte de trabajo para firmar o
+/// archivar). Con `registro` = `None` sale en blanco.
+pub fn parte_visita(
+    plan: &mantenix_core::plan::Plan,
+    partes: &serde_json::Value,
+    empresa: &Empresa,
+    solo: u32,
+    registro: Option<&mantenix_core::registro::Registro>,
+) -> Result<Vec<u8>, Error> {
+    let (m, logo) = membrete(empresa, "RITE");
+    compilar_con(
+        "hoja_visita.typ",
+        &[
+            ("plan", serde_json::to_string(plan)?),
+            ("datos", partes.to_string()),
+            ("empresa", empresa_sin_logos(empresa).to_string()),
+            ("membrete", m),
+            ("solo", solo.to_string()),
+            ("registro", serde_json::to_string(&registro)?),
+        ],
+        logo,
+    )
+}
+
+/// Certificado anual de mantenimiento de instalaciones térmicas (RITE, art. 28).
+/// `cert` = {anio, periodo, instalaciones, visitas, director, consumos, aportaciones}.
+pub fn certificado_rite(
+    cert: &serde_json::Value,
+    partes: &serde_json::Value,
+    empresa: &Empresa,
+) -> Result<Vec<u8>, Error> {
+    let (m, logo) = membrete(empresa, "RITE");
+    compilar_con(
+        "certificado_rite.typ",
+        &[
+            ("cert", cert.to_string()),
+            ("datos", partes.to_string()),
+            ("empresa", empresa_sin_logos(empresa).to_string()),
+            ("membrete", m),
+        ],
+        logo,
+    )
+}
+
+/// Acta de mantenimiento de protección contra incendios (RIPCI, anexo II punto 5): certificado
+/// con la información general y listas de comprobación por sistema.
+pub fn acta_ripci(acta: &serde_json::Value, partes: &serde_json::Value, empresa: &Empresa) -> Result<Vec<u8>, Error> {
+    let (m, logo) = membrete(empresa, "PCI");
+    compilar_con(
+        "acta_ripci.typ",
+        &[
+            ("acta", acta.to_string()),
+            ("datos", partes.to_string()),
+            ("empresa", empresa_sin_logos(empresa).to_string()),
+            ("membrete", m),
+        ],
+        logo,
     )
 }

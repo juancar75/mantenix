@@ -4,18 +4,49 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ## [Sin publicar]
 
+### Añadido
+- **Catálogo ampliado** (14 equipos, con tiempos estándar, operaciones y tasa de avisos):
+  - Ventilación: extractor de garaje que no es de humos (`VENT-GAR`), extractor de cuartos técnicos, trasteros o basuras (`VENT-CT`) y cuadro de maniobra de ventilación (`VENT-CUADRO`).
+  - Control de humos: cuadro de mando de bomberos (`SCH-BOMB`) y kit de sobrepresión de escalera (`SOBREP-KIT`), con las operaciones del RIPCI para control de humos y, en el kit, la medición anual de presión diferencial y velocidad en puerta (UNE-EN 12101-6).
+  - Climatización: válvula de regulación motorizada (`VALV-REG`, comprobación de recorrido y servomotor dos veces al año), bomba de calor geotérmica o agua-agua, deshumectadora, humidificador, cortina de aire, depósito de inercia, intercambiador de placas, emisores (radiadores) y suelo radiante por colector.
+- **Tabla 7.1 del CTE DB HS 3** (`datos/semilla/normativa/cte_hs3_tabla_7_1_operaciones.csv`): limpieza anual de conductos, aberturas y extractores, revisión semestral de filtros y automatismos, y comprobaciones cada 5 años, que se listan fuera de la cuota. Pendiente de cotejo con el texto vigente.
+- El asistente pregunta por todos ellos (también por el ventilador de climatización `VENT`, que faltaba) y el contrato tipo los incluye: bloque «Ventilación del garaje y de cuartos técnicos» con sus operaciones agrupadas por periodicidad, y notas de UNE-EN 12101-6 y del cuadro de bomberos en control de humos.
+- Las bases ya creadas reciben los equipos y operaciones nuevos al abrirse (o con `mantenix init`), sin tocar los tiempos ni los equipos editados.
+
+- **Limpiezas aparte**: las limpiezas que exige la normativa (evaporadores y condensadores, torres, circuito y conductos de humos y chimeneas, biomasa, y las del DB HS 3) no entran en la cuota. Siguen en el programa del contrato marcadas *(se presupuesta aparte)*; el contrato no les pone precio (se presupuestan si hacen falta). La hoja de costes interna da un precio orientativo. Se puede cambiar por equipo y operación en «Catálogo y tiempos» (columna *Cobro*) o con `mantenix cobro`.
+- **Inspecciones reglamentarias** (`datos/semilla/normativa/inspecciones_periodicas.csv`): RITE (eficiencia energética cada 4 años e instalación completa cada 15), RIPCI art. 22 (cada 10 años), REBT ITC-BT-05 (riesgo cada 5 años, zonas comunes > 100 kW cada 10), gas canalizado ITC-ICG 07 (5 años), depósitos de GLP (revisión 5 años, prueba 15 años) y gasóleo ITC MI-IP03 (revisión 5 o 10 años, inspección OCA 10 años). El asistente sugiere las que corresponden por el inventario; el contrato las lista con quién las hace y la próxima fecha, sin precios; la hoja de costes interna valora el acompañamiento (`horas_inspeccion`, 3 por defecto, a la hora de oficial) y el precio del organismo. La valoración avisa de las que faltan.
+
+- **Plan anual y hojas de visita** (`mantenix visitas`, botón en «Contratos» y en el asistente): reparte las operaciones de la valoración entre las visitas del año (m, 3m, 2t/6m al inicio y a mitad de temporada, anuales al inicio), con el mes de cada visita. Cada hoja lleva casillas bien/defecto/no aplica, las medidas de rendimiento de generadores de la IT 3.4.1 y 3.4.2 cuando tocan, la lectura de contadores (IT 3.4.4, más de 70 kW), defectos y material, y firmas del técnico y del titular.
+- **Certificado anual de mantenimiento del RITE** (art. 28; `mantenix certificado`, botón en «Contratos»): identificación de la instalación y de la empresa, declaración conforme a la IT 3, visitas realizadas y resumen de consumos y aportaciones (en blanco o desde un JSON). Indica si el director de mantenimiento es preceptivo.
+
+- **Acta de mantenimiento de PCI** (RIPCI art. 17.e y 21.2, anexo II punto 5; `mantenix acta-pci --tipo 3m|6m|1a`, botón en «Contratos»): certificado con la información general (a.1 a a.9) firmado por el responsable técnico y el titular, y una lista de comprobación por sistema con sus productos (marca, modelo, identificación) y las operaciones de las tablas I, II y III que tocan en ese mantenimiento (el anual incluye las trimestrales y semestrales), con resultado e incidencias. Solo entran los equipos mantenidos con medios propios; los de la subcontrata llevan su propia acta.
+
+- **Actualización automática**: al arrancar, la aplicación mira en GitHub si hay una versión nueva y pregunta si se instala (descarga firmada, se cierra y se vuelve a abrir sola; la base no se toca). También desde «buscar actualización» en el menú.
+- **«Qué toca» y calendario** (pantalla de inicio): visitas atrasadas y de este mes, inspecciones y certificados próximos, y calendario mensual de todos los contratos coloreado por estado. Se exporta a **.ics** para importarlo en Outlook (se ve también en Teams) o Google Calendar (`mantenix calendario --ics`).
+- **Asistente «Registrar visita»**: contrato y visita → datos → operaciones una a una (bien / defecto / no aplica) → medidas y contadores → defectos y material → guardar; parte en PDF y, por cada defecto, presupuesto del correctivo ya rellenado. Sirve también para avisos y reparaciones.
+- **Registro de mantenimiento** (RITE art. 27, RIPCI art. 21.2): cada visita, aviso o reparación con fecha, técnico, resultado de cada operación, medidas, contadores, defectos y material (`mantenix registrar`, `mantenix registro`). Indica qué visitas del plan están hechas, pendientes o atrasadas; el parte de la visita sale rellenado; el certificado anual toma las visitas y los consumos del registro. El registro no se borra al borrar el contrato.
+
 ### Cambiado
-- Las bases de versiones anteriores se actualizan solas al abrirse (columnas nuevas y disparadores de auditoría).
+- **Instalaciones de 70 kW o menos**: todas las operaciones se hacen con la frecuencia de revisión de la tabla 3.1 del RITE (anual o cada 2-4 años según equipo y uso). Las periodicidades de la tabla 3.3 se aplican solo por encima de 70 kW. Revisadas todas contra la tabla 3.3: coinciden.
+- DB HS 3: la revisión de automatismos de los sistemas de control es cada 2 años (no semestral).
+
+- **RITE cotejado con el BOE** (RD 1027/2007 consolidado): tablas 3.1 y 3.3 coinciden (corregidos los textos de las operaciones 39 y 42). Inspecciones de eficiencia energética **cada 4 años** (no 5) para generadores de calor o frío de más de 70 kW, e inspección de la instalación completa **cada 15 años** cuando tiene más de 15 años (no 10); exentas las de contrato de rendimiento energético o con automatización según la IT 1.2.4.3.5. La biomasa de 70 kW o menos sigue las periodicidades de la tabla 3.3, como dice la IT 3.3.
+- **RIPCI cotejado** con la Guía técnica de aplicación v4 (junio 2025, texto del RD 513/2017 con el RD 164/2025): las 97 operaciones del anexo II (tablas I, II y III) coinciden en texto y periodicidad. El art. 22 queda verificado: exentos el residencial vivienda y los usos pequeños, pero el aparcamiento de 500 m² o más se inspecciona aunque el edificio sea de viviendas; con solo extintores o alumbrado de emergencia no hay inspección.
+- Control de humos: el mantenimiento sigue además la UNE 23584 en edificios de una planta, con atrios, con escaleras y subterráneos (no solo subterráneos); la sobrepresión de escaleras, UNE-EN 12101-6 y UNE 23584.
+
+- **Avisos de avería**: el contrato ya no dice cuántos avisos incluye; dice que se atienden. El número estimado solo se usa para el precio (si hay más, se pierde; si hay menos, se gana).
+- **Aparcamiento por salida**: parámetro del año `aparcamiento_salida` o importe por contrato; se suma en cada visita y en cada aviso.
+
+### Corregido
+- Textos de operaciones de fabricante que se cortaban por contener un punto y coma (sustitución de filtros de fancoil).
+
+## [0.2.0] - 2026-11-03
 
 ### Añadido
 - **Asistente de nuevo contrato** en la app: 8 pasos guiados (cliente, edificio, climatización, incendios, garaje y emergencias, avisos y condiciones, resultado) con ayuda en cada pantalla; al final, precio, hoja de costes y contrato en PDF. Guía en `docs/guia-nuevo-contrato.md`.
 - Los datos del documento (cliente, edificio, firmante, referencia) se guardan con el contrato; botón *Contrato PDF* también en «Contratos».
 - **Contrato tipo** generado desde el inventario y la valoración (`mantenix contrato-pdf <contrato> --partes <json> --pdf`): instalaciones térmicas (operaciones del RITE con su periodicidad), protección contra incendios (anexo II del RIPCI), ventilación por CO y alumbrado de emergencia; importe en cifras y letras, pago según la periodicidad de las visitas y cláusula de avisos.
 - **Avisos de avería** en la valoración: estimación por equipo, antigüedad y uso; modalidades bolsa (por defecto), incluidos y aparte. Ejemplo `datos/semilla/ejemplo/contratos/edificio-tipo.json`.
-
-## [0.2.0] - 2026-10-19
-
-### Añadido
 - **Presupuestos** de reparación (correctivo) y de pequeñas obras o mejoras, con numeración automática `P-AAAA-NNN`, estados (borrador, enviado, aceptado, rechazado) y registro de cambios.
 - **Carta presupuesto** en PDF: explica qué se ha roto o desgastado, las consecuencias de no actuar y el repuesto o trabajo propuesto; importe desglosado con IVA, condiciones estándar y espacio para la aceptación del cliente. No muestra costes internos.
 - Líneas de repuesto, hora de oficial, hora de oficial + ayudante, desplazamiento y otras partidas, con coste interno y margen del presupuesto.
@@ -27,6 +58,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 - Órdenes `mantenix presupuesto <json> --pdf`, `mantenix presupuestos [--cliente] [--pdf]` y `mantenix logo <ámbito> <fichero>`. Ejemplo en `datos/semilla/ejemplo/presupuestos/`.
 
 ### Cambiado
+- Las bases de versiones anteriores se actualizan solas al abrirse (columnas nuevas y disparadores de auditoría).
 - La aplicación recuerda la última base de datos abierta y el último usuario identificado.
 
 ## [0.1.0] - 2026-10-13

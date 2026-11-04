@@ -10,18 +10,20 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
 import { save } from "@tauri-apps/plugin-dialog";
-import { api, eur, num, type Contrato, type EquipoVista, type Valoracion } from "../api";
+import { api, eur, num, type Contrato, type EquipoVista, type InspeccionPeriodica, type Valoracion } from "../api";
 
 const emit = defineEmits<{ cambio: [] }>();
 
 // ── Grupos de equipos que se preguntan en cada paso ──────────────────────────
 const GRUPOS_RITE = [
   { titulo: "Producción de calor y frío", ayuda: "Calderas, bombas de calor, enfriadoras y unidades exteriores. Se cuentan en la sala de calderas, en cubierta o en los patios.",
-    codigos: ["CALD-GAS", "CALD-GASOLEO", "CALD-MURAL", "CALD-BIO", "ENFRIADORA", "ROOFTOP", "VRF-EXT", "SPLIT-EXT", "TORRE"] },
-  { titulo: "Bombas y circuitos", ayuda: "Bombas circuladoras (cada bomba cuenta, también las de reserva), vasos de expansión y tratamientos de agua.",
-    codigos: ["BOMBA", "VASO-EXP", "TRAT-AGUA", "FILTRO-AGUA", "CIRC-HIDR"] },
-  { titulo: "Equipos interiores y aire", ayuda: "Climatizadores (UTA), recuperadores, fancoils y unidades interiores. Si hay muchos, cuente por plantas.",
-    codigos: ["UTA", "RECUP", "FANCOIL", "VRF-INT", "VRF-BS", "SPLIT-INT", "PURIF", "DIFUSOR", "CONDUCTOS"] },
+    codigos: ["CALD-GAS", "CALD-GASOLEO", "CALD-MURAL", "CALD-BIO", "ENFRIADORA", "BC-GEO", "ROOFTOP", "VRF-EXT", "SPLIT-EXT", "TORRE"] },
+  { titulo: "Bombas y circuitos", ayuda: "Bombas circuladoras (cada bomba cuenta, también las de reserva; una bomba doble son dos), vasos de expansión, válvulas de tres vías o de dos vías motorizadas, depósitos de inercia, intercambiadores de placas y tratamientos de agua. Circuitos: cuente uno por cada circuito (primario, cada secundario de calefacción, ACS).",
+    codigos: ["BOMBA", "VASO-EXP", "VALV-REG", "DEP-INERCIA", "INTERC-PL", "TRAT-AGUA", "FILTRO-AGUA", "CIRC-HIDR"] },
+  { titulo: "Emisores de calor", ayuda: "Radiadores y suelo radiante de zonas comunes o del edificio (no los de dentro de las viviendas si no entran en el contrato). El suelo radiante se cuenta por colector.",
+    codigos: ["EMISOR", "SUELO-RAD"] },
+  { titulo: "Equipos interiores y aire", ayuda: "Climatizadores (UTA), recuperadores, fancoils, unidades interiores, ventiladores de climatización, cortinas de aire, deshumectadoras y humidificadores. Si hay muchos, cuente por plantas.",
+    codigos: ["UTA", "RECUP", "FANCOIL", "VRF-INT", "VRF-BS", "SPLIT-INT", "VENT", "CORTINA", "DESHUM", "HUMID", "PURIF", "DIFUSOR", "CONDUCTOS"] },
   { titulo: "Agua caliente sanitaria y solar", ayuda: "Acumuladores o interacumuladores de ACS, calentadores, bombas de calor de ACS y captadores solares.",
     codigos: ["ACS-SIS", "BC-ACS", "CALENT-GAS", "SOLAR-CAMPO", "SOLAR-CAPT"] },
   { titulo: "Regulación", ayuda: "Centralitas de regulación o sistema de gestión del edificio.", codigos: ["CONTROL", "CAL-AMB"] },
@@ -32,11 +34,11 @@ const GRUPOS_PCI = [
     codigos: ["DET-CENTRAL-CONV", "DET-CENTRAL-ANA", "DET-OPT", "DET-TERM", "DET-MULTI", "DET-PULS", "DET-SIR", "DET-SIR-OA", "DET-FA", "DET-MOD", "DET-RETEN"] },
   { titulo: "Agua contra incendios", ayuda: "Bocas de incendio (armarios con manguera), grupo de presión y aljibe, hidrantes y columna seca.",
     codigos: ["BIE-25", "BIE-45", "GP-S", "GP-M", "GP-L", "ALJIBE", "HID-EXT", "HID-COL", "CS-S", "CS-M"] },
-  { titulo: "Control de humos", ayuda: "Ventiladores de extracción de humos del garaje (marcados F400 o F300) y su cuadro.", codigos: ["SCTEH-SIS", "SCTEH-VENT", "SCTEH-CUADRO"] },
+  { titulo: "Control de humos y sobrepresión", ayuda: "Ventiladores de extracción de humos del garaje (marcados F400 o F300) y su cuadro. Cuadro de mando de bomberos: caja roja «uso exclusivo bomberos», normalmente en la entrada del garaje; cuente uno por cada cuadro aunque mande también la ventilación normal. Kits de sobrepresión de escalera: ventilador de impulsión (normalmente en cubierta o en la base de la escalera), compuerta de alivio y cuadro; cuente uno por escalera presurizada.", codigos: ["SCTEH-SIS", "SCTEH-VENT", "SCTEH-CUADRO", "SCH-BOMB", "SOBREP-KIT"] },
   { titulo: "Señalización", ayuda: "Señales fotoluminiscentes de evacuación y de medios de extinción.", codigos: ["SEN-UD"] },
 ];
 const GRUPOS_OTROS = [
-  { titulo: "Ventilación del garaje por CO", ayuda: "Central de detección de monóxido de carbono y sus detectores (en las paredes del garaje, a 1,5 m del suelo aprox.).", codigos: ["CO-CENTRAL", "CO-DET"] },
+  { titulo: "Ventilación del garaje y cuartos técnicos", ayuda: "Central de detección de monóxido de carbono y sus detectores (en las paredes del garaje, a 1,5 m del suelo aprox.). Extractores de garaje que no sean de humos (si son F400/F300, van en «Control de humos» del paso anterior) y extractores de cuartos técnicos, trasteros o cuartos de basuras. Cuente también los cuadros de maniobra de esos ventiladores (el cuadro de bomberos va en el paso anterior).", codigos: ["CO-CENTRAL", "CO-DET", "VENT-GAR", "VENT-CT", "VENT-CUADRO"] },
   { titulo: "Alumbrado de emergencia", ayuda: "Luminarias de emergencia (con piloto verde encendido) en escaleras, pasillos y garaje.", codigos: ["AE-UD"] },
 ];
 
@@ -54,7 +56,7 @@ const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "
 
 const f = reactive({
   cliente: { razon_social: "", cif: "", domicilio: "", firmante: "", cargo: "" },
-  edificio: { nombre: "", direccion: "", uso: "viviendas", antiguedad: "media", km: 0, minutos: 0 },
+  edificio: { nombre: "", direccion: "", uso: "viviendas", antiguedad: "media", km: 0, minutos: 0, aparcamiento: null as number | null },
   rite: { hay: true, potencia: null as number | null, meses: 7, cantidades: {} as Record<string, number>, descripciones: {} as Record<string, string> },
   pci: { hay: true, cantidades: {} as Record<string, number>, subcontrata: true },
   otros: { cantidades: {} as Record<string, number> },
@@ -64,9 +66,41 @@ const f = reactive({
   },
 });
 
-onMounted(async () => { catalogo.value = await api.catalogo(); });
+// Inspecciones reglamentarias: marcadas = se incluyen en el contrato (valoradas aparte).
+const tablaInsp = ref<InspeccionPeriodica[]>([]);
+const insp = reactive<Record<string, { si: boolean; ultima: number | null; precio: number | null; sugerida: boolean }>>({});
+let sugeridasCargadas = false;
+
+onMounted(async () => {
+  catalogo.value = await api.catalogo();
+  tablaInsp.value = await api.inspeccionesCatalogo();
+  for (const i of tablaInsp.value) insp[i.id] = { si: false, ultima: null, precio: null, sugerida: false };
+});
+
+async function sugerirInspecciones() {
+  if (sugeridasCargadas) return;
+  try {
+    const ids = await api.inspeccionesSugeridas(contrato());
+    for (const id of ids) if (insp[id]) { insp[id].si = true; insp[id].sugerida = true; }
+    sugeridasCargadas = true;
+  } catch (e) { error.value = String(e); }
+}
 const desc = (codigo: string) => catalogo.value.find((e) => e.codigo === codigo)?.descripcion ?? codigo;
 const total = (q: Record<string, number>) => Object.values(q).reduce((a, n) => a + (Number(n) || 0), 0);
+
+// ── Sala de máquinas: si hay generadores, el RITE exige revisar circuitos, vasos y regulación ──
+const GENERADORES = ["CALD-GAS", "CALD-GASOLEO", "CALD-BIO", "ENFRIADORA", "BC-GEO"];
+const ELEMENTOS_SALA = [
+  { codigo: "CIRC-HIDR", nombre: "circuitos hidráulicos (uno por circuito: primario, cada secundario, ACS)" },
+  { codigo: "VASO-EXP", nombre: "vasos de expansión" },
+  { codigo: "BOMBA", nombre: "bombas (una bomba doble son dos)" },
+  { codigo: "VALV-REG", nombre: "válvulas de tres vías o motorizadas" },
+  { codigo: "CONTROL", nombre: "regulación (centralita o sistema de control)" },
+];
+const conGeneradores = computed(() => f.rite.hay && GENERADORES.some((c) => (f.rite.cantidades[c] ?? 0) > 0));
+const faltaSala = computed(() => conGeneradores.value
+  ? ELEMENTOS_SALA.filter((e) => !((f.rite.cantidades[e.codigo] ?? 0) > 0)) : []);
+let avisoSalaVisto = false;
 
 // ── Validación de cada paso ─────────────────────────────────────────────────
 const falta = computed<string[]>(() => {
@@ -88,8 +122,15 @@ const falta = computed<string[]>(() => {
 function siguiente() {
   error.value = "";
   if (falta.value.length) { error.value = `Falta ${falta.value.join(" y ")}.`; return; }
+  if (paso.value === 3 && faltaSala.value.length && !avisoSalaVisto) {
+    avisoSalaVisto = true;
+    error.value = `Hay generadores pero no ha indicado ${faltaSala.value.map((e) => e.nombre.split(" (")[0]).join(", ")}. `
+      + "Sin ellos el contrato no incluye sus operaciones del RITE. Si de verdad no hay, pulse «Siguiente» otra vez.";
+    return;
+  }
   if (paso.value === 6) { calcular(); return; }
   paso.value++;
+  if (paso.value === 6) sugerirInspecciones();
   window.scrollTo(0, 0);
 }
 function anterior() { error.value = ""; if (paso.value > 0) paso.value--; }
@@ -111,8 +152,9 @@ function contrato(): Contrato {
     nombre: f.edificio.nombre.trim(), anio: hoy.getFullYear(),
     uso: f.edificio.uso === "viviendas" ? "viviendas" : "otros",
     visitas_contratadas: c.visitas || null,
-    desplazamiento: { km_ida: Number(f.edificio.km) || 0, minutos_ida: Number(f.edificio.minutos) || 0 },
+    desplazamiento: { km_ida: Number(f.edificio.km) || 0, minutos_ida: Number(f.edificio.minutos) || 0, aparcamiento: f.edificio.aparcamiento ?? null },
     instalaciones, margen_pct: c.margen || null, precio_actual_anual: c.precio_actual || null,
+    inspecciones: Object.entries(insp).filter(([, v]) => v.si).map(([id, v]) => ({ id, ultima: v.ultima || null, precio_organismo: v.precio || null })),
     avisos: { modalidad: c.modalidad, bolsa: c.modalidad === "bolsa" ? c.bolsa || null : null, antiguedad: f.edificio.antiguedad, servicio_24h: f.edificio.uso === "24h", horas_por_aviso: 1.5 },
     partes: {
       contrato: { referencia: c.referencia.trim() || `MTO-${hoy.getFullYear()}-${String(Date.now()).slice(-4)}`, lugar_fecha: `${c.lugar}, ${hoy.getDate()} de ${MESES[hoy.getMonth()]} de ${hoy.getFullYear()}` },
@@ -140,14 +182,16 @@ async function calcular() {
   } catch (e) { error.value = String(e); }
 }
 
-async function pdf(tipo: "hoja" | "contrato") {
+async function pdf(tipo: "hoja" | "contrato" | "visitas" | "certificado") {
   if (!guardado.value) return;
   error.value = ""; mensaje.value = "";
   try {
-    const nombre = tipo === "hoja" ? `hoja-costes-${guardado.value}.pdf` : `contrato-${guardado.value}.pdf`;
-    const ruta = await save({ defaultPath: nombre, filters: [{ name: "PDF", extensions: ["pdf"] }] });
+    const nombres = { hoja: "hoja-costes", contrato: "contrato", visitas: "plan-y-visitas", certificado: "certificado-mantenimiento" };
+    const ruta = await save({ defaultPath: `${nombres[tipo]}-${guardado.value}.pdf`, filters: [{ name: "PDF", extensions: ["pdf"] }] });
     if (!ruta) return;
     if (tipo === "hoja") await api.pdfHojaCostes(guardado.value, ruta);
+    else if (tipo === "visitas") await api.pdfVisitas(guardado.value, 0, ruta);
+    else if (tipo === "certificado") await api.pdfCertificado(guardado.value, hoy.getFullYear(), ruta);
     else await api.pdfContrato(guardado.value, ruta);
     mensaje.value = `PDF guardado en ${ruta}`;
   } catch (e) { error.value = String(e); }
@@ -221,8 +265,9 @@ function empezarOtro() {
     <div class="fila">
       <label class="campo">Distancia desde la base (km, solo ida)<input class="num" type="number" v-model.number="f.edificio.km" /></label>
       <label class="campo">Tiempo de viaje (minutos, solo ida)<input class="num" type="number" v-model.number="f.edificio.minutos" /></label>
+      <label class="campo">Aparcamiento (€ por salida)<input class="num" type="number" v-model.number="f.edificio.aparcamiento" placeholder="del año" /></label>
     </div>
-    <p class="ayuda">Puede mirarlo en un navegador de mapas desde la nave hasta el edificio.</p>
+    <p class="ayuda">Puede mirarlo en un navegador de mapas desde la nave hasta el edificio. Aparcamiento: lo que cuesta aparcar en cada salida (zona SER u ORA, parking); vacío = el de «Parámetros por año».</p>
   </div>
 
   <!-- 3. Climatización -->
@@ -245,6 +290,12 @@ function empezarOtro() {
       </div>
       <p class="ayuda">Potencia: sume la potencia de placa de todas las calderas, o la de calefacción de todas las bombas de calor
         o enfriadoras (la mayor de calor o frío). Con más de 70 kW el contrato es obligatorio y lleva certificado anual.</p>
+      <div v-if="faltaSala.length" class="aviso-sala">
+        <b>Sala de máquinas:</b> con calderas o enfriadoras hay que contar también lo que las acompaña, porque el RITE
+        exige revisarlo (niveles y estanquidad de circuitos, vasos, elementos de seguridad, aislamiento, regulación). Falta:
+        <ul><li v-for="e in faltaSala" :key="e.codigo">{{ e.nombre }}
+          <input class="num" type="number" min="0" v-model.number="f.rite.cantidades[e.codigo]" placeholder="0" /></li></ul>
+      </div>
       <div v-for="g in GRUPOS_RITE" :key="g.titulo" class="grupo">
         <h3>{{ g.titulo }}</h3>
         <p class="ayuda">{{ g.ayuda }}</p>
@@ -308,13 +359,13 @@ function empezarOtro() {
     <div class="opciones vertical">
       <span class="etiqueta">¿Cómo se atienden los avisos de avería?</span>
       <label :class="{ sel: f.condiciones.modalidad === 'bolsa' }"><input type="radio" v-model="f.condiciones.modalidad" value="bolsa" />
-        <span><b>Bolsa de avisos incluidos</b> (recomendado): el precio incluye un número de avisos al año; los que pasen se cobran por tarifa.</span></label>
+        <span><b>Avisos incluidos</b> (recomendado): el contrato dice que se atienden los avisos, sin número. El programa estima cuántos habrá y los mete en el precio; si hay más, perdemos, y si hay menos, ganamos.</span></label>
       <label :class="{ sel: f.condiciones.modalidad === 'incluidos' }"><input type="radio" v-model="f.condiciones.modalidad" value="incluidos" />
-        <span><b>Todos incluidos</b>: más cómodo para el cliente, más riesgo para nosotros.</span></label>
+        <span><b>Todos incluidos</b>: igual que el anterior, pero el número estimado no se puede ajustar a mano.</span></label>
       <label :class="{ sel: f.condiciones.modalidad === 'aparte' }"><input type="radio" v-model="f.condiciones.modalidad" value="aparte" />
         <span><b>Aparte</b>: cada aviso se cobra por horas y salida.</span></label>
     </div>
-    <label v-if="f.condiciones.modalidad === 'bolsa'" class="campo">Avisos incluidos al año
+    <label v-if="f.condiciones.modalidad === 'bolsa'" class="campo">Avisos que se valoran al año (interno, no sale en el contrato)
       <input class="num" type="number" v-model.number="f.condiciones.bolsa" placeholder="auto" />
       <span class="pequeño">Vacío = los que calcula el programa según los equipos, la antigüedad y el uso.</span></label>
     <div class="fila">
@@ -331,6 +382,22 @@ function empezarOtro() {
       <label class="campo" style="flex: 1">Duración<input v-model="f.condiciones.duracion" /></label>
     </div>
     <p class="ayuda">El pago se fija solo según las visitas: mensual con 12, trimestral con 4, etc.</p>
+
+    <h2>Inspecciones reglamentarias (se cobran aparte)</h2>
+    <p class="ayuda">Inspecciones de OCA/EICI, distribuidora o empresa habilitada. No entran en la cuota: el contrato dice que avisamos, acompañamos y cobramos el acompañamiento aparte. Vienen marcadas las que parecen corresponder por los equipos (<b>sugerida</b>); compruebe la condición y desmarque las que no apliquen. Si sabe el año de la última y el precio del organismo, póngalos.</p>
+    <table class="insp">
+      <thead><tr><th></th><th>Inspección</th><th>Cada</th><th>Última (año)</th><th>Precio organismo €</th></tr></thead>
+      <tbody>
+        <tr v-for="i in tablaInsp" :key="i.id" :class="{ con: insp[i.id]?.si }">
+          <td><input type="checkbox" v-model="insp[i.id].si" /></td>
+          <td>{{ i.texto }} <span v-if="insp[i.id]?.sugerida" class="bueno pequeño">sugerida</span>
+            <div class="pequeño">{{ i.reglamento }} · {{ i.condicion }} · {{ i.agente }}</div></td>
+          <td>{{ i.periodicidad_anios }} años</td>
+          <td><input class="num" type="number" v-model.number="insp[i.id].ultima" :disabled="!insp[i.id]?.si" placeholder="—" /></td>
+          <td><input class="num" type="number" v-model.number="insp[i.id].precio" :disabled="!insp[i.id]?.si" placeholder="según oferta" /></td>
+        </tr>
+      </tbody>
+    </table>
   </div>
 
   <!-- 7. Resultado -->
@@ -353,6 +420,8 @@ function empezarOtro() {
           <tr><td>Avisos incluidos ({{ valoracion.avisos_averia.incluidos }} × {{ eur(valoracion.avisos_averia.coste_aviso) }})</td><td class="der">{{ eur(valoracion.totales.avisos) }}</td></tr>
           <tr><td><b>Coste total</b> (con indirectos)</td><td class="der"><b>{{ eur(valoracion.totales.coste_total) }}</b></td></tr>
           <tr><td><b>Precio de venta</b> (margen {{ valoracion.totales.margen_pct }} %)</td><td class="der"><b>{{ eur(valoracion.totales.precio_anual) }}</b></td></tr>
+          <tr v-if="valoracion.totales.limpiezas_anio"><td>Limpiezas que se presupuestan aparte (orientativo, no incluido)</td><td class="der">{{ eur(valoracion.totales.limpiezas_anio) }}</td></tr>
+          <tr v-for="i in valoracion.inspecciones" :key="i.id"><td>Inspección aparte: {{ i.texto }} (cada {{ i.periodicidad_anios }} años{{ i.proxima ? ", próxima " + i.proxima : "" }})</td><td class="der">{{ eur(i.precio_total) }}{{ i.precio_organismo == null ? " + organismo" : "" }}</td></tr>
         </tbody>
       </table>
     </div>
@@ -361,6 +430,8 @@ function empezarOtro() {
       <div class="fila">
         <button class="primario" @click="pdf('contrato')">Contrato en PDF</button>
         <button @click="pdf('hoja')">Hoja de costes (interna)</button>
+        <button @click="pdf('visitas')">Plan y hojas de visita</button>
+        <button v-if="f.rite.hay" @click="pdf('certificado')">Certificado anual RITE</button>
         <span style="flex: 1"></span>
         <button @click="paso = 1">Corregir datos</button>
         <button @click="empezarOtro">Otro contrato</button>
@@ -378,6 +449,12 @@ function empezarOtro() {
 </template>
 
 <style scoped>
+.insp td { vertical-align: top; }
+.aviso-sala { background: #fff6e0; border: 1px solid #e8c56b; border-radius: 6px; padding: 8px 12px; margin: 8px 0; }
+.aviso-sala ul { margin: 6px 0 0; padding-left: 18px; }
+.aviso-sala li { margin: 3px 0; }
+.aviso-sala input { margin-left: 8px; width: 70px; }
+.insp tr.con td { background: var(--azul-claro); }
 .pasos { list-style: none; display: flex; flex-wrap: wrap; gap: 6px; padding: 0; margin: 0 0 14px; }
 .pasos li { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--gris); padding: 4px 10px 4px 4px; border-radius: 14px; background: white; border: 1px solid var(--borde); }
 .pasos .n { display: inline-flex; width: 20px; height: 20px; border-radius: 50%; align-items: center; justify-content: center; background: var(--fondo); font-weight: 700; font-size: 11px; }

@@ -62,3 +62,17 @@ CO-CENTRAL;PCI;Central de detección de CO;ud;CO;;subcontrata;SUB-PCI-004
 CO-DET;PCI;Detector de CO;ud;CO;;subcontrata;SUB-PCI-009
 AE-UD;PCI;Alumbrado de emergencia;ud;AE;;subcontrata;SUB-PCI-072
 SEN-UD;PCI;Señal fotoluminiscente;ud;SEN;;subcontrata;SUB-PCI-073
+EMISOR;RITE;Emisor de agua (radiador, convector, toallero);ud;;;propio;
+SUELO-RAD;RITE;Suelo radiante (por colector);colector;;;propio;
+BC-GEO;RITE;Bomba de calor geotérmica / agua-agua;ud;;Aire acondicionado;propio;
+DEP-INERCIA;RITE;Depósito de inercia;ud;;;propio;
+INTERC-PL;RITE;Intercambiador de placas (piscina, separación de circuitos);ud;;;propio;
+CORTINA;RITE;Cortina de aire;ud;;;propio;
+DESHUM;RITE;Deshumectadora (piscina, locales húmedos);ud;;Aire acondicionado;propio;
+HUMID;RITE;Humidificador;ud;;;propio;
+VENT-GAR;PCI;Extractor de ventilación de garaje (no de humos);ud;VENT;;propio;
+VENT-CT;PCI;Extractor de cuarto técnico, trasteros o basuras;ud;VENT;;propio;
+SOBREP-KIT;PCI;Kit de sobrepresión de escalera (ventilador, alivio y cuadro);ud;SCH;;propio;
+VENT-CUADRO;PCI;Cuadro de maniobra de ventilación (garaje, cuartos técnicos);ud;VENT;;propio;
+SCH-BOMB;PCI;Cuadro de mando de bomberos (ventilación y control de humos);ud;SCH;;propio;
+VALV-REG;RITE;Válvula de regulación motorizada (2 o 3 vías) con servomotor;ud;;;propio;

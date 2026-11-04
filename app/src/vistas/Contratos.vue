@@ -86,6 +86,35 @@ const pdfContrato = () => intentar(async () => {
   mensaje.value = `PDF guardado en ${ruta}`;
 });
 
+const mesInicio = ref(0);
+const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+const pdfVisitas = () => intentar(async () => {
+  if (!nombreGuardado.value) return;
+  const ruta = await save({ defaultPath: `plan-y-visitas-${nombreGuardado.value}.pdf`, filters: [{ name: "PDF", extensions: ["pdf"] }] });
+  if (!ruta) return;
+  await api.pdfVisitas(nombreGuardado.value, mesInicio.value, ruta);
+  mensaje.value = `PDF guardado en ${ruta}`;
+});
+const pdfCertificado = () => intentar(async () => {
+  if (!nombreGuardado.value || !contrato.value) return;
+  const anio = contrato.value.anio;
+  const ruta = await save({ defaultPath: `certificado-mantenimiento-${anio}-${nombreGuardado.value}.pdf`, filters: [{ name: "PDF", extensions: ["pdf"] }] });
+  if (!ruta) return;
+  await api.pdfCertificado(nombreGuardado.value, anio, ruta);
+  mensaje.value = `PDF guardado en ${ruta}`;
+});
+const tipoActa = ref("3m");
+const pdfActaPci = () => intentar(async () => {
+  if (!nombreGuardado.value) return;
+  const nombres: Record<string, string> = { "3m": "trimestral", "6m": "semestral", "1a": "anual" };
+  const ruta = await save({ defaultPath: `acta-pci-${nombres[tipoActa.value]}-${nombreGuardado.value}.pdf`, filters: [{ name: "PDF", extensions: ["pdf"] }] });
+  if (!ruta) return;
+  await api.pdfActaPci(nombreGuardado.value, tipoActa.value, false, ruta);
+  mensaje.value = `PDF guardado en ${ruta}`;
+});
+const hayPci = computed(() => contrato.value?.instalaciones.some((i) => i.familia === "PCI") ?? false);
+const hayRite = computed(() => contrato.value?.instalaciones.some((i) => i.familia === "RITE") ?? false);
+
 const borrar = () => intentar(async () => {
   if (!nombreGuardado.value || !confirm(`¿Borrar el contrato «${nombreGuardado.value}» y sus valoraciones?`)) return;
   await api.borrarContrato(nombreGuardado.value);
@@ -126,6 +155,7 @@ const margenClase = (v: Valoracion) =>
         <div class="fila" style="margin-top: 8px">
           <label class="campo">Km ida<input class="num" type="number" v-model.number="contrato.desplazamiento.km_ida" /></label>
           <label class="campo">Minutos ida<input class="num" type="number" v-model.number="contrato.desplazamiento.minutos_ida" /></label>
+          <label class="campo">Aparcamiento €/salida<input class="num" type="number" v-model.number="contrato.desplazamiento.aparcamiento" placeholder="del año" /></label>
           <label class="campo">Margen % (vacío = el del año)<input class="num" type="number" v-model.number="contrato.margen_pct" /></label>
           <label class="campo">Precio actual €/año<input class="num" type="number" v-model.number="contrato.precio_actual_anual" /></label>
         </div>
@@ -172,6 +202,14 @@ const margenClase = (v: Valoracion) =>
         <button class="primario" @click="valorar">Guardar y valorar</button>
         <button v-if="valoracion" @click="pdf">Hoja de costes PDF</button>
         <button v-if="valoracion && contrato.partes" @click="pdfContrato">Contrato PDF</button>
+        <label v-if="valoracion" class="campo" title="Mes de la primera visita del plan">Primera visita
+          <select v-model.number="mesInicio"><option :value="0">fecha del contrato</option><option v-for="(m, i) in MESES" :key="m" :value="i + 1">{{ m }}</option></select></label>
+        <button v-if="valoracion" @click="pdfVisitas">Plan y hojas de visita PDF</button>
+        <button v-if="valoracion && hayRite" @click="pdfCertificado">Certificado RITE PDF</button>
+        <template v-if="hayPci">
+          <select v-model="tipoActa" title="Mantenimiento de PCI"><option value="3m">trimestral</option><option value="6m">semestral</option><option value="1a">anual</option></select>
+          <button @click="pdfActaPci">Acta PCI PDF</button>
+        </template>
       </div>
 
       <template v-if="valoracion">
@@ -201,6 +239,7 @@ const margenClase = (v: Valoracion) =>
             <tr><td><b>Coste directo</b></td><td></td><td class="der"><b>{{ eur(valoracion.totales.directo) }}</b></td></tr>
             <tr><td>Indirectos + contingencia</td><td></td><td class="der">{{ eur(valoracion.totales.indirectos + valoracion.totales.contingencia) }}</td></tr>
             <tr><td><b>Precio de venta</b></td><td></td><td class="der"><b>{{ eur(valoracion.totales.precio_anual) }}</b></td></tr>
+            <tr v-if="valoracion.totales.limpiezas_anio"><td>Limpiezas aparte (orientativo, no incluido)</td><td></td><td class="der">{{ eur(valoracion.totales.limpiezas_anio) }}</td></tr>
           </tbody>
         </table>
 
@@ -217,6 +256,39 @@ const margenClase = (v: Valoracion) =>
             </tr>
           </tbody>
         </table>
+
+        <template v-if="valoracion.inspecciones.length">
+          <h2>Inspecciones reglamentarias (aparte)</h2>
+          <table>
+            <thead><tr><th>Inspección</th><th>Cada</th><th>Próxima</th><th class="der">Acompañamiento</th><th class="der">Organismo</th></tr></thead>
+            <tbody>
+              <tr v-for="i in valoracion.inspecciones" :key="i.id">
+                <td>{{ i.texto }}<div class="pequeño">{{ i.reglamento }} · {{ i.agente }}</div></td>
+                <td>{{ i.periodicidad_anios }} años</td><td>{{ i.proxima ?? "—" }}</td>
+                <td class="der">{{ eur(i.precio_acompanamiento) }}</td>
+                <td class="der">{{ i.precio_organismo != null ? eur(i.precio_organismo) : "según oferta" }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </template>
+
+        <template v-if="valoracion.limpiezas.length">
+          <h2>Limpiezas que se presupuestan aparte</h2>
+          <p class="pequeño">Las exige la normativa pero no entran en la cuota. Precio orientativo con los costes, indirectos y margen del contrato; sin desplazamiento ni material. Se cambia en «Catálogo y tiempos» (columna Cobro).</p>
+          <table>
+            <thead><tr><th>Equipo</th><th>Limpieza</th><th>Period.</th><th class="der">Veces/año</th><th class="der">Por intervención</th><th class="der">Al año</th></tr></thead>
+            <tbody>
+              <tr v-for="(l, k) in valoracion.limpiezas" :key="k">
+                <td>{{ l.descripcion }} <span class="pequeño">× {{ l.cantidad }}</span></td>
+                <td>{{ l.texto }}</td><td>{{ l.periodicidad }}</td>
+                <td class="der">{{ num(l.veces_anio) }}</td>
+                <td class="der">{{ eur(l.precio_intervencion) }}</td>
+                <td class="der">{{ eur(l.precio_anio) }}</td>
+              </tr>
+              <tr><td colspan="5"><b>Total orientativo al año</b></td><td class="der"><b>{{ eur(valoracion.totales.limpiezas_anio) }}</b></td></tr>
+            </tbody>
+          </table>
+        </template>
       </template>
     </div>
     <div v-else class="panel pequeño">Seleccione un contrato o cree uno nuevo.</div>

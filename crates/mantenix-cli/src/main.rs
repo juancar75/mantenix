@@ -55,6 +55,13 @@ enum Orden {
         #[arg(default_value_t = 1)]
         tecnicos: u32,
     },
+    /// Indica si una operación de un equipo va en la cuota o se presupuesta aparte (limpiezas).
+    Cobro {
+        equipo: String,
+        operacion: String,
+        /// `cuota` o `aparte`.
+        cobro: String,
+    },
     /// Muestra el registro de cambios.
     Historial {
         #[arg(long)]
@@ -100,6 +107,68 @@ enum Orden {
         #[arg(long)]
         pdf: PathBuf,
     },
+    /// Plan anual de mantenimiento y hojas de visita del técnico de un contrato guardado.
+    Visitas {
+        nombre: String,
+        /// Mes de la primera visita (1-12). Si falta, el de la fecha del contrato o el actual.
+        #[arg(long)]
+        mes_inicio: Option<u32>,
+        /// Solo la hoja de esta visita (sin el plan anual).
+        #[arg(long)]
+        visita: Option<u32>,
+        /// JSON con las partes; si falta, se usan las guardadas con el contrato.
+        #[arg(long)]
+        partes: Option<PathBuf>,
+        #[arg(long)]
+        pdf: PathBuf,
+    },
+    /// Certificado anual de mantenimiento del RITE (art. 28) de un contrato guardado.
+    Certificado {
+        nombre: String,
+        /// Año certificado (por defecto, el del contrato).
+        #[arg(long)]
+        anio: Option<u32>,
+        /// JSON opcional con {periodo, visitas, consumos: {...}, aportaciones: {...}}.
+        #[arg(long)]
+        datos: Option<PathBuf>,
+        #[arg(long)]
+        partes: Option<PathBuf>,
+        #[arg(long)]
+        pdf: PathBuf,
+    },
+    /// Acta de mantenimiento de protección contra incendios (RIPCI): certificado y listas de comprobación.
+    ActaPci {
+        nombre: String,
+        /// `3m` (trimestral), `6m` (semestral) o `1a` (anual).
+        #[arg(long, default_value = "3m")]
+        tipo: String,
+        /// Incluir también los equipos que mantiene una subcontrata.
+        #[arg(long)]
+        todos: bool,
+        #[arg(long)]
+        partes: Option<PathBuf>,
+        #[arg(long)]
+        pdf: PathBuf,
+    },
+    /// Anota en el registro de mantenimiento una visita, aviso o reparación desde JSON.
+    Registrar { fichero: PathBuf },
+    /// Estado de las visitas del plan de un contrato (hechas, pendientes, atrasadas) y su registro.
+    Registro {
+        nombre: String,
+        /// Parte de una entrada del registro en PDF (su identificador).
+        #[arg(long)]
+        parte: Option<String>,
+        #[arg(long)]
+        pdf: Option<PathBuf>,
+    },
+    /// Calendario de mantenimiento de todos los contratos; con --ics, fichero para Outlook o Teams.
+    Calendario {
+        /// Día del mes en que se prevén las visitas (se pasa al primer laborable).
+        #[arg(long, default_value_t = 5)]
+        dia: u32,
+        #[arg(long)]
+        ics: Option<PathBuf>,
+    },
     /// Genera el PDF de un contrato desde su JSON de datos (la empresa y las operaciones salen de la base).
     Contrato {
         datos: PathBuf,
@@ -131,7 +200,19 @@ fn main() -> Result<()> {
             if db::inicializar(&mut c, &normativa, &empresa)? {
                 println!("Base creada en {} (empresa: {}).", cli.db.display(), empresa.display());
             } else {
-                println!("La base {} ya tenía datos; no se toca.", cli.db.display());
+                let t = db::actualizar_normativa(&mut c, &normativa, &empresa)?;
+                if t > 0 {
+                    println!("{t} operaciones o filas de la tabla 3.1 puestas al día con la normativa.");
+                }
+                let n = db::actualizar_catalogo(&mut c, &normativa, &empresa)?;
+                if n > 0 {
+                    println!(
+                        "La base {} ya tenía datos: {n} equipos nuevos añadidos al catálogo.",
+                        cli.db.display()
+                    );
+                } else {
+                    println!("La base {} ya tenía datos; no se toca.", cli.db.display());
+                }
             }
         }
         Orden::Importar { inventario } => {
@@ -163,6 +244,14 @@ fn main() -> Result<()> {
         } => {
             db::fijar_tiempo(&c, &equipo, &operacion, minutos, tecnicos)?;
             println!("{equipo} · {operacion} = {minutos} min × {tecnicos}");
+        }
+        Orden::Cobro {
+            equipo,
+            operacion,
+            cobro,
+        } => {
+            db::fijar_cobro(&c, &equipo, &operacion, &cobro)?;
+            println!("{equipo} · {operacion} → {cobro}");
         }
         Orden::Historial { tabla, limite } => {
             for h in db::historial(&c, tabla.as_deref(), limite)? {
@@ -259,6 +348,134 @@ fn main() -> Result<()> {
             std::fs::write(&pdf, bytes)?;
             println!("PDF: {}", pdf.display());
         }
+        Orden::Visitas {
+            nombre,
+            mes_inicio,
+            visita,
+            partes,
+            pdf,
+        } => {
+            let b = Biblioteca::desde_db(&c)?;
+            let (_, k) = db::cargar_contrato(&c, &nombre)?;
+            let v = valorar(&b, &k)?;
+            let partes = match partes {
+                Some(p) => leer_json(&p)?,
+                None => k.partes.clone(),
+            };
+            let mes = mes_inicio
+                .or_else(|| {
+                    partes["contrato"]["lugar_fecha"]
+                        .as_str()
+                        .and_then(mantenix_core::plan::mes_de_texto)
+                })
+                .unwrap_or(1);
+            let plan = mantenix_core::plan::plan(&k, &v, mes);
+            let bytes = mantenix_informes::hojas_visita(&plan, &partes, &db::empresa(&c)?, visita.unwrap_or(0))?;
+            std::fs::write(&pdf, bytes)?;
+            println!(
+                "{} visitas desde {}. PDF: {}",
+                plan.n_visitas,
+                mantenix_core::plan::MESES[(mes.clamp(1, 12) - 1) as usize],
+                pdf.display()
+            );
+        }
+        Orden::Certificado {
+            nombre,
+            anio,
+            datos,
+            partes,
+            pdf,
+        } => {
+            let b = Biblioteca::desde_db(&c)?;
+            let (_, k) = db::cargar_contrato(&c, &nombre)?;
+            let v = valorar(&b, &k)?;
+            let partes = match partes {
+                Some(p) => leer_json(&p)?,
+                None => k.partes.clone(),
+            };
+            let extra = match datos {
+                Some(p) => leer_json(&p)?,
+                None => mantenix_core::registro::extra_certificado(
+                    &db::listar_registros(&c, &nombre)?,
+                    anio.unwrap_or(k.anio),
+                ),
+            };
+            let cert = mantenix_core::documento::datos_certificado(&b, &k, &v, anio.unwrap_or(k.anio), &extra);
+            let bytes = mantenix_informes::certificado_rite(&cert, &partes, &db::empresa(&c)?)?;
+            std::fs::write(&pdf, bytes)?;
+            println!("PDF: {}", pdf.display());
+        }
+        Orden::ActaPci {
+            nombre,
+            tipo,
+            todos,
+            partes,
+            pdf,
+        } => {
+            let b = Biblioteca::desde_db(&c)?;
+            let (_, k) = db::cargar_contrato(&c, &nombre)?;
+            let partes = match partes {
+                Some(p) => leer_json(&p)?,
+                None => k.partes.clone(),
+            };
+            let acta = mantenix_core::documento::datos_acta_ripci(&b, &k, &tipo, todos);
+            let n = acta["sistemas"].as_array().map(|a| a.len()).unwrap_or(0);
+            let bytes = mantenix_informes::acta_ripci(&acta, &partes, &db::empresa(&c)?)?;
+            std::fs::write(&pdf, bytes)?;
+            println!("{n} sistemas. PDF: {}", pdf.display());
+        }
+        Orden::Registrar { fichero } => {
+            let r: mantenix_core::registro::Registro = serde_json::from_value(leer_json(&fichero)?)?;
+            let id = db::guardar_registro(&c, &r)?;
+            println!("Registrada {} del {} en «{}» ({id}).", r.tipo, r.fecha, r.contrato);
+        }
+        Orden::Registro { nombre, parte, pdf } => {
+            let b = Biblioteca::desde_db(&c)?;
+            let (_, k) = db::cargar_contrato(&c, &nombre)?;
+            let v = valorar(&b, &k)?;
+            let plan = mantenix_core::plan::plan(&k, &v, mantenix_core::plan::mes_inicio(&k));
+            let regs = db::listar_registros(&c, &nombre)?;
+            let hoy = chrono_hoy();
+            for e in mantenix_core::registro::estado(&plan, &regs, hoy) {
+                println!(
+                    "  Visita {:>2} ({:<10}) {:<9} {}{}",
+                    e.numero,
+                    e.mes_nombre,
+                    e.estado,
+                    e.fecha.unwrap_or_default(),
+                    if e.defectos > 0 {
+                        format!(" · {} defectos", e.defectos)
+                    } else {
+                        String::new()
+                    }
+                );
+            }
+            for r in regs.iter().filter(|r| r.tipo != "preventiva") {
+                println!("  {} {} {}", r.fecha, r.tipo, r.defectos);
+            }
+            if let (Some(id), Some(pdf)) = (parte, pdf) {
+                let r = regs
+                    .iter()
+                    .find(|r| r.id == id)
+                    .ok_or_else(|| anyhow::anyhow!("No existe el registro {id}"))?;
+                let bytes =
+                    mantenix_informes::parte_visita(&plan, &k.partes, &db::empresa(&c)?, r.numero.max(1), Some(r))?;
+                std::fs::write(&pdf, bytes)?;
+                println!("PDF: {}", pdf.display());
+            }
+        }
+        Orden::Calendario { dia, ics } => {
+            let b = Biblioteca::desde_db(&c)?;
+            let ev = mantenix_core::calendario::de_todos(&c, &b, dia, chrono_hoy())?;
+            for e in &ev {
+                println!("  {} {:<11} {:<9} {}", e.fecha, e.tipo, e.estado, e.titulo);
+            }
+            if let Some(f) = ics {
+                let empresa = db::empresa(&c)?["razon_social"].as_str().unwrap_or("").to_string();
+                std::fs::write(&f, mantenix_core::calendario::ics(&ev, &empresa))?;
+                println!("{} eventos. ICS: {}", ev.len(), f.display());
+            }
+        }
         Orden::Contrato { datos, pdf } => {
             let b = Biblioteca::desde_db(&c)?;
             let bytes = mantenix_informes::contrato(&leer_json(&datos)?, &db::empresa(&c)?, b.operaciones.values())?;
@@ -315,4 +532,14 @@ fn imprimir_resumen(v: &mantenix_core::Valoracion) {
     for a in &v.avisos {
         println!("  ⚠ {a}");
     }
+}
+
+/// (año, mes) de hoy, sin dependencias: días desde 1970 → fecha civil.
+fn chrono_hoy() -> (u32, u32) {
+    let dias = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs() / 86_400)
+        .unwrap_or(0) as i64;
+    let (a, m, _) = mantenix_core::registro::fecha_civil(dias);
+    (a, m)
 }

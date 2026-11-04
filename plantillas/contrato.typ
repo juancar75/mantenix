@@ -202,8 +202,11 @@ Cualquier equipo que se añada o retire durante la vigencia del contrato se comu
 
 #for o in otros [
   == #o.titulo
-  #block(sticky: true, above: 0.9em, below: 0.4em, text(weight: "bold", fill: azul)[#o.periodicidad])
-  #for t in o.operaciones [- #t]
+  #if "nota" in o { par(text(style: "italic")[#o.nota]) }
+  #for g in o.at("grupos", default: ((periodicidad: o.at("periodicidad", default: ""), operaciones: o.at("operaciones", default: ())),)) [
+    #block(sticky: true, above: 0.9em, below: 0.4em, text(weight: "bold", fill: azul)[#g.periodicidad])
+    #for t in g.operaciones [- #t]
+  ]
 ]
 
 = Visitas
@@ -246,20 +249,39 @@ El importe anual del presente contrato asciende a *#datos.economia.importe_anual
 
 El pago se realizará #datos.condiciones.forma_pago.
 
+#let limpiezas = datos.at("limpiezas", default: ())
+#if limpiezas.len() > 0 [
+  Las operaciones de limpieza señaladas en el programa de mantenimiento como _(se presupuesta aparte)_ *no están incluidas en el importe anual*. Cuando en las revisiones se compruebe que son necesarias, la empresa mantenedora presentará el presupuesto correspondiente y se ejecutarán una vez aceptado.
+]
+
 #if av != none [
   = Avisos de avería
 
   La empresa mantenedora atenderá los avisos de avería comunicados por el titular en un plazo máximo de #datos.condiciones.plazo_respuesta_averias, y de #datos.condiciones.plazo_urgencias.
 
-  #if av.modalidad == "bolsa" [
-    El importe del contrato incluye *#av.incluidos avisos al año*, que comprenden el desplazamiento y la mano de obra de diagnóstico y reparación en horario normal. Los avisos que excedan de ese número se facturarán aparte según la tarifa de correctivo vigente#if av.precio_hora_oficial != none [ (hora de oficial #av.precio_hora_oficial, hora de oficial y ayudante #av.precio_hora_pareja, desplazamiento #av.precio_salida por salida, IVA no incluido)]. Los avisos no consumidos no se acumulan al año siguiente.
-  ] else if av.modalidad == "incluidos" [
-    El importe del contrato incluye el desplazamiento y la mano de obra de diagnóstico y reparación en horario normal de los avisos de avería.
+  #if av.modalidad == "bolsa" or av.modalidad == "incluidos" [
+    El importe del contrato incluye la atención de los avisos de avería, que comprende el desplazamiento y la mano de obra de diagnóstico y reparación en horario normal.
   ] else [
     Los avisos de avería se facturarán aparte según la tarifa de correctivo vigente#if av.precio_hora_oficial != none [ (hora de oficial #av.precio_hora_oficial, hora de oficial y ayudante #av.precio_hora_pareja, desplazamiento #av.precio_salida por salida, IVA no incluido)].
   ]
 
   En todos los casos, los materiales y repuestos se facturarán aparte, previa aceptación del presupuesto correspondiente, salvo urgencia para la seguridad de las personas o de la instalación. Las intervenciones fuera del horario establecido tendrán el recargo que indique la tarifa vigente.
+]
+
+#let inspecciones = datos.at("inspecciones", default: ())
+#if inspecciones.len() > 0 [
+  = Inspecciones reglamentarias
+
+  Las inspecciones y revisiones periódicas que exigen los reglamentos de seguridad industrial son obligación del titular y *no están incluidas en el importe anual*. La empresa mantenedora avisará al titular con antelación suficiente, coordinará la inspección con el organismo de control (OCA/EICI), la distribuidora o la empresa habilitada que corresponda y, previa aceptación de su presupuesto, la acompañará y subsanará los defectos que se señalen. Inspecciones aplicables a las instalaciones del contrato:
+
+  #show table: set par(justify: false)
+  #table(columns: (2.4fr, 1.6fr, 1.8cm), align: (left, left, center), stroke: 0.4pt + luma(200),
+    table.header[*Inspección*][*Quién la hace*][*Próxima*],
+    ..inspecciones.map(i => (
+      [#text(9pt, i.texto) \ #text(8pt, fill: luma(90))[#i.reglamento · #i.periodicidad]],
+      text(8.5pt, i.agente), text(9pt, i.proxima),
+    )).flatten(),
+  )
 ]
 
 = Condiciones generales
@@ -268,7 +290,7 @@ El pago se realizará #datos.condiciones.forma_pago.
 + *Duración.* El contrato tendrá una duración de #datos.condiciones.duracion y se prorrogará tácitamente por periodos iguales. Cualquiera de las partes podrá resolverlo comunicándolo por escrito con una antelación mínima de #datos.condiciones.preaviso.
 + *Revisión de precios.* #datos.condiciones.revision_precios
 + *Reparaciones.* Las reparaciones y sustituciones necesarias se realizarán previa aceptación por escrito del presupuesto correspondiente. Los materiales se facturarán según la tarifa vigente de la empresa mantenedora.
-+ *Exclusiones.* Quedan fuera del importe: los materiales y repuestos, el refrigerante, los productos químicos y de tratamiento, #if hay-pci [las operaciones de periodicidad superior a un año, las recargas de extintores por uso, las sustituciones por fin de vida útil, ]las inspecciones periódicas por organismo de control que en su caso resulten exigibles y las actuaciones fuera del horario establecido.
++ *Exclusiones.* Quedan fuera del importe: los materiales y repuestos, el refrigerante, los productos químicos y de tratamiento, #if limpiezas.len() > 0 [las limpiezas que se presupuestan aparte, ]las operaciones de periodicidad superior a un año, #if hay-pci [las recargas de extintores por uso, las sustituciones por fin de vida útil, ]las inspecciones y revisiones reglamentarias periódicas (organismo de control, distribuidora o empresa habilitada) que en su caso resulten exigibles y las actuaciones fuera del horario establecido.
 + *Horario.* Los trabajos se realizarán #m.horario.
 + *Subcontratación.* La empresa mantenedora podrá encargar parte de las operaciones a empresas habilitadas para ello, respondiendo ante el titular del cumplimiento del contrato.
 + *Obligaciones del titular.* Facilitar el acceso a las instalaciones, comunicar cualquier anomalía o modificación de los locales, no manipular los equipos, realizar las operaciones que el RITE y el RIPCI atribuyen al usuario y conservar la documentación del mantenimiento.

@@ -11,11 +11,13 @@ export interface LineaEquipo { codigo: string; cantidad: number; descripcion: st
 export interface Instalacion { familia: string; titulo: string; potencia_kw: number | null; temporada_meses: number; equipos: LineaEquipo[] }
 export interface Contrato {
   nombre: string; anio: number; uso: string; visitas_contratadas: number | null;
-  desplazamiento: { km_ida: number; minutos_ida: number };
+  desplazamiento: { km_ida: number; minutos_ida: number; aparcamiento?: number | null };
   instalaciones: Instalacion[]; margen_pct: number | null; precio_actual_anual: number | null;
   avisos?: AvisosContrato;
   /** Datos del documento: cliente, edificio, referencia, firmantes, condiciones. */
   partes?: Record<string, any> | null;
+  /** Inspecciones reglamentarias (OCA/EICI…) que se avisan y valoran aparte. */
+  inspecciones?: InspeccionContrato[];
 }
 export interface AvisosContrato { modalidad: string; bolsa: number | null; antiguedad: string; servicio_24h: boolean; horas_por_aviso: number }
 
@@ -27,18 +29,41 @@ export interface LineaValorada {
 export interface Totales {
   horas_equipos: number; horas_desplazamiento: number; mano_obra: number; consumibles: number; desplazamiento: number;
   subcontrata: number; avisos: number; directo: number; indirectos: number; contingencia: number; coste_total: number; margen_pct: number;
-  precio_anual: number; precio_visita: number; precio_actual_anual: number | null; margen_precio_actual_pct: number | null;
+  precio_anual: number; precio_visita: number; limpiezas_anio: number; precio_actual_anual: number | null; margen_precio_actual_pct: number | null;
 }
+export interface Limpieza {
+  instalacion: string; codigo: string; descripcion: string; cantidad: number; operacion_id: string; texto: string;
+  periodicidad: string; veces_anio: number; horas_intervencion: number; coste_intervencion: number; precio_intervencion: number; precio_anio: number;
+}
+export interface InspeccionPeriodica { id: string; reglamento: string; instalacion: string; condicion: string; periodicidad_anios: number; agente: string; texto: string; fuente: string; verificado: string }
+export interface InspeccionContrato { id: string; ultima: number | null; precio_organismo: number | null }
+export interface InspeccionValorada { id: string; reglamento: string; texto: string; agente: string; periodicidad_anios: number; ultima: number | null; proxima: number | null; horas_acompanamiento: number; precio_acompanamiento: number; precio_organismo: number | null; precio_total: number }
+export interface OperacionVisita { operacion_id: string; texto: string; periodicidad: string; nota: string }
+export interface EquipoVisita { instalacion: string; descripcion: string; cantidad: number; operaciones: OperacionVisita[] }
+export interface MedidasVisita { tipo: string; generadores: string[]; magnitudes: string[] }
+export interface VisitaPlan { numero: number; mes: number; mes_nombre: string; equipos: EquipoVisita[]; medidas: MedidasVisita[]; contadores: boolean; subcontrata: string[]; horas: number }
+export interface Plan { contrato: string; anio: number; n_visitas: number; visitas: VisitaPlan[] }
+export interface EstadoVisita { numero: number; mes: number; mes_nombre: string; estado: string; fecha: string | null; registro: string | null; defectos: number }
+export interface ResultadoOp { operacion_id: string; equipo: string; texto: string; resultado: string; nota: string }
+export interface Registro {
+  id: string; contrato: string; anio: number; numero: number; tipo: string; fecha: string; tecnico: string; entrada: string; salida: string;
+  resultados: ResultadoOp[]; medidas: { generador: string; valores: Record<string, string> }[]; contadores: Record<string, number>;
+  defectos: string; material: string; observaciones: string;
+}
+export interface PlanVista { plan: Plan; estado: EstadoVisita[]; registros: Registro[]; hoy: string }
+export interface Evento { fecha: string; contrato: string; tipo: string; titulo: string; detalle: string; estado: string }
 export interface Valoracion {
   nombre: string; anio: number; visitas: number; visitas_minimas: number; visitas_subcontrata: number;
   regimenes: { instalacion: string; descripcion: string; visitas_minimas: number }[];
   lineas: LineaValorada[]; subcontrata_visita_suma: number; subcontrata_visita_facturada: number;
   operaciones_aparte: { sistema: string; operacion_id: string; periodicidad: string; texto: string }[];
+  limpiezas: Limpieza[];
+  inspecciones: InspeccionValorada[];
   totales: Totales; avisos: string[];
   avisos_averia: { modalidad: string; estimados: number; incluidos: number; coste_aviso: number; coste_anual: number };
 }
 
-export interface TiempoVista { operacion_id: string; texto: string; periodicidad: string; referencia: string; fuente: string; verificado: string; minutos: number; tecnicos: number; estado: string }
+export interface TiempoVista { operacion_id: string; texto: string; periodicidad: string; referencia: string; fuente: string; verificado: string; minutos: number; tecnicos: number; estado: string; cobro: string }
 export interface EquipoVista { codigo: string; familia: string; descripcion: string; unidad: string; modo_defecto: string; partida_subcontrata: string; tiempos: TiempoVista[] }
 export interface FilaTarifa { codigo: string; familia: string; descripcion: string; unidad: string; origen: string; minutos_revision: number; coste_revision: number; precio_revision: number; coste_anual_regimen: number; precio_anual_regimen: number }
 export interface Tarifa { anio: number; coste_hora_oficial: number; coste_hora_ayudante: number; recargo_pct: number; margen_pct: number; filas: FilaTarifa[] }
@@ -89,6 +114,16 @@ export const api = {
   valorar: (nombre: string) => invoke<Valoracion>("valorar_contrato", { nombre }),
   pdfHojaCostes: (nombre: string, ruta: string) => invoke<void>("pdf_hoja_costes", { nombre, ruta }),
   pdfContrato: (nombre: string, ruta: string) => invoke<void>("pdf_contrato", { nombre, ruta }),
+  pdfVisitas: (nombre: string, mesInicio: number, ruta: string) => invoke<void>("pdf_visitas", { nombre, mesInicio, ruta }),
+  planContrato: (nombre: string) => invoke<PlanVista>("plan_contrato", { nombre }),
+  guardarRegistro: (registro: Registro) => invoke<string>("guardar_registro", { registro }),
+  borrarRegistro: (id: string) => invoke<void>("borrar_registro", { id }),
+  pdfParte: (nombre: string, id: string, ruta: string) => invoke<void>("pdf_parte", { nombre, id, ruta }),
+  fijarMesInicio: (nombre: string, mes: number) => invoke<void>("fijar_mes_inicio", { nombre, mes }),
+  calendario: (dia: number) => invoke<Evento[]>("calendario", { dia }),
+  exportarIcs: (dia: number, ruta: string) => invoke<number>("exportar_ics", { dia, ruta }),
+  pdfActaPci: (nombre: string, tipo: string, todos: boolean, ruta: string) => invoke<void>("pdf_acta_pci", { nombre, tipo, todos, ruta }),
+  pdfCertificado: (nombre: string, anio: number, ruta: string) => invoke<void>("pdf_certificado", { nombre, anio, ruta }),
 
   listarPresupuestos: () => invoke<ResumenPresupuesto[]>("listar_presupuestos"),
   cargarPresupuesto: (numero: string) => invoke<Presupuesto>("cargar_presupuesto", { numero }),
@@ -115,6 +150,10 @@ export const api = {
   catalogo: () => invoke<EquipoVista[]>("catalogo"),
   fijarTiempo: (equipo: string, operacion: string, minutos: number, tecnicos: number) =>
     invoke<void>("fijar_tiempo", { equipo, operacion, minutos, tecnicos }),
+  inspeccionesCatalogo: () => invoke<InspeccionPeriodica[]>("inspecciones_catalogo"),
+  inspeccionesSugeridas: (contrato: Contrato) => invoke<string[]>("inspecciones_sugeridas", { contrato }),
+  fijarCobro: (equipo: string, operacion: string, cobro: string) =>
+    invoke<void>("fijar_cobro", { equipo, operacion, cobro }),
 
   parametros: (anio: number) => invoke<[string, number][]>("parametros", { anio }),
   fijarParametro: (anio: number, nombre: string, valor: number) => invoke<void>("fijar_parametro", { anio, nombre, valor }),

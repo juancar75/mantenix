@@ -181,6 +181,21 @@ pub fn periodo_pago(visitas: u32) -> &'static str {
 }
 
 /// Texto de la periodicidad de una operación RITE en el contrato.
+/// Marca de las operaciones que exige la normativa pero se presupuestan aparte (limpiezas).
+const APARTE: &str = "(se presupuesta aparte)";
+
+fn periodicidad_ventilacion(p: &str) -> (u32, String) {
+    match p.trim() {
+        "visita" => (0, "En cada visita".into()),
+        "3m" => (1, "Cada tres meses".into()),
+        "6m" => (2, "Cada seis meses".into()),
+        "t" | "1a" => (3, "Anual".into()),
+        "2a" => (4, "Cada dos años (fuera de la cuota anual)".into()),
+        "5a" => (5, "Cada cinco años (fuera de la cuota anual)".into()),
+        otro => (9, format!("Periodicidad {otro}")),
+    }
+}
+
 fn periodicidad_rite(p: &str, veces: f64) -> (u32, String) {
     match p {
         "S" => (0, "Semanal".into()),
@@ -265,6 +280,20 @@ pub fn datos_contrato(b: &Biblioteca, k: &Contrato, v: &Valoracion, partes: &Val
                 }
             }
         }
+        // Limpiezas obligatorias que se presupuestan aparte: aparecen en el programa, marcadas.
+        for lp in v
+            .limpiezas
+            .iter()
+            .filter(|l| l.instalacion == ins.titulo && l.veces_anio > 0.0)
+        {
+            let g = grupos
+                .entry(periodicidad_rite(&lp.periodicidad, lp.veces_anio))
+                .or_default();
+            let t = format!("{} {APARTE}", lp.texto);
+            if !g.contains(&t) {
+                g.push(t);
+            }
+        }
         rite.push(json!({
             "titulo": if ins.titulo.is_empty() { "Instalaciones térmicas".to_string() } else { ins.titulo.clone() },
             "potencia_kw": ins.potencia_kw,
@@ -274,6 +303,12 @@ pub fn datos_contrato(b: &Biblioteca, k: &Contrato, v: &Valoracion, partes: &Val
             "grupos": grupos.into_iter().map(|((_, t), ops)| json!({"periodicidad": t, "operaciones": ops})).collect::<Vec<_>>(),
         }));
     }
+
+    let hay_codigo = |codigo: &str| {
+        k.instalaciones
+            .iter()
+            .any(|i| i.equipos.iter().any(|l| l.codigo == codigo && l.cantidad > 0.0))
+    };
 
     // Protección contra incendios y otros sistemas
     let mut sistemas: BTreeMap<String, (Vec<String>, Vec<Value>, bool)> = BTreeMap::new();
@@ -285,6 +320,7 @@ pub fn datos_contrato(b: &Biblioteca, k: &Contrato, v: &Valoracion, partes: &Val
             let modo = l.modo.clone().unwrap_or_else(|| eq.modo_defecto.clone());
             match eq.sistema_ripci.as_str() {
                 "CO" => otros.entry("CO").or_default().push(fila),
+                "VENT" => otros.entry("VENT").or_default().push(fila),
                 "AE" => otros.entry("AE").or_default().push(fila),
                 "" => otros.entry("OTRO").or_default().push(fila),
                 sub => {
@@ -310,24 +346,72 @@ pub fn datos_contrato(b: &Biblioteca, k: &Contrato, v: &Valoracion, partes: &Val
                 "modo": if *sub { "subcontrata" } else { "propio" }, "equipos": equipos,
             });
             if c == "SCH" {
-                s["norma_adicional"] = json!("Según la Guía técnica de aplicación del RIPCI, en emplazamientos subterráneos el mantenimiento se realizará conforme a la norma UNE 23584.");
+                let mut nota = String::from("Conforme al anexo I del RIPCI, el mantenimiento de los sistemas de control de humos en edificios de una planta, multiplanta con atrios o con escaleras y en emplazamientos subterráneos se realizará además según la norma UNE 23584.");
+                if hay_codigo("SCH-BOMB") {
+                    nota.push_str(" Se comprobará en cada revisión que el cuadro de mando de bomberos tiene prioridad sobre la maniobra normal y que cada mando actúa sobre los ventiladores y compuertas que le corresponden.");
+                }
+                if hay_codigo("SOBREP-KIT") {
+                    nota.push_str(" En los sistemas de presión diferencial de escaleras (UNE-EN 12101-6 y UNE 23584) se medirán anualmente la presión diferencial con puertas cerradas y la velocidad del aire en la puerta abierta.");
+                }
+                s["norma_adicional"] = json!(nota);
             }
             s
         })
         .collect();
-    let co_op = b
-        .operaciones
-        .get("CO-REV")
-        .map(|o| o.texto.clone())
-        .unwrap_or_else(|| "Comprobación de detectores y central de CO con gas de ensayo y de la puesta en marcha de la ventilación por niveles.".into());
     let mut otros_json = Vec::new();
-    if let Some(eq) = otros.remove("CO") {
+    let co = otros.remove("CO");
+    let vent = otros.remove("VENT");
+    if co.is_some() || vent.is_some() {
+        let mut equipos = co.clone().unwrap_or_default();
+        equipos.extend(vent.clone().unwrap_or_default());
+        // Operaciones de los equipos de ventilación y CO: CTE DB HS 3 (tabla 7.1) y fabricante.
+        let mut grupos: BTreeMap<u32, (String, Vec<String>)> = BTreeMap::new();
+        let mut poner = |p: &str, t: String| {
+            let (orden, etiqueta) = periodicidad_ventilacion(p);
+            let g = grupos.entry(orden).or_insert_with(|| (etiqueta, Vec::new()));
+            if !g.1.contains(&t) {
+                g.1.push(t);
+            }
+        };
+        for ins in k.instalaciones.iter().filter(|i| i.familia != "RITE") {
+            for l in ins.equipos.iter().filter(|l| l.cantidad > 0.0) {
+                let Some(eq) = b.catalogo.get(&l.codigo) else { continue };
+                if eq.sistema_ripci != "CO" && eq.sistema_ripci != "VENT" {
+                    continue;
+                }
+                for t in b.tiempos_de(&l.codigo) {
+                    if let Some(op) = b.operaciones.get(&t.operacion_id) {
+                        let texto = if t.cobro == "aparte" {
+                            format!("{} {APARTE}", op.texto)
+                        } else {
+                            op.texto.clone()
+                        };
+                        poner(&op.periodicidad, texto);
+                    }
+                }
+            }
+        }
+        if co.is_some() {
+            poner(
+                "visita",
+                "Comprobación de la puesta en marcha de los ventiladores por niveles de CO y de la señalización de alarma.".into(),
+            );
+        }
+        if !hay_codigo("VENT-CUADRO") {
+            poner(
+                "visita",
+                "Revisión del cuadro eléctrico de ventilación: contactores, protecciones térmicas y maniobra, conforme al REBT.".into(),
+            );
+        }
+        let titulo = if hay_codigo("VENT-CT") {
+            "Ventilación del garaje y de cuartos técnicos (CTE DB HS 3)"
+        } else {
+            "Ventilación del garaje (CTE DB HS 3)"
+        };
         otros_json.push(json!({
-            "titulo": "Ventilación del garaje por monóxido de carbono (CTE DB HS 3)",
-            "equipos": eq, "periodicidad": "En cada visita",
-            "operaciones": [co_op,
-                "Comprobación de la puesta en marcha de los ventiladores por niveles de CO y de la señalización de alarma.",
-                "Revisión del cuadro eléctrico de ventilación: contactores, protecciones térmicas y maniobra, conforme al REBT."],
+            "titulo": titulo, "equipos": equipos,
+            "nota": "Operaciones de mantenimiento y conservación de la tabla 7.1 del DB HS 3 del Código Técnico de la Edificación, completadas con las del fabricante.",
+            "grupos": grupos.into_values().map(|(p, ops)| json!({"periodicidad": p, "operaciones": ops})).collect::<Vec<_>>(),
         }));
     }
     if let Some(eq) = otros.remove("AE") {
@@ -385,7 +469,11 @@ pub fn datos_contrato(b: &Biblioteca, k: &Contrato, v: &Valoracion, partes: &Val
     for o in &otros_json {
         let t = o["titulo"].as_str().unwrap_or("");
         if t.starts_with("Ventilación") {
-            titulos.push("ventilación del garaje");
+            titulos.push(if t.contains("cuartos técnicos") {
+                "ventilación del garaje y de cuartos técnicos"
+            } else {
+                "ventilación del garaje"
+            });
         } else if t.starts_with("Alumbrado") {
             titulos.push("alumbrado de emergencia");
         } else {
@@ -418,6 +506,35 @@ pub fn datos_contrato(b: &Biblioteca, k: &Contrato, v: &Valoracion, partes: &Val
     o.insert("sistemas".into(), json!(sistemas_json));
     o.entry("excluir_operaciones").or_insert_with(|| json!([]));
     o.insert("otros_sistemas".into(), json!(otros_json));
+    // Limpiezas que se presupuestan aparte, agrupadas por operación, con precio orientativo.
+    let mut limpiezas: BTreeMap<String, (f64, f64)> = BTreeMap::new();
+    for l in &v.limpiezas {
+        let e = limpiezas.entry(l.texto.clone()).or_default();
+        e.0 += l.precio_intervencion;
+        e.1 += l.precio_anio;
+    }
+    o.insert(
+        "limpiezas".into(),
+        json!(limpiezas
+            .into_iter()
+            .map(|(t, (pi, pa))| json!({"texto": t, "precio_intervencion": euros(pi), "precio_anio": euros(pa)}))
+            .collect::<Vec<_>>()),
+    );
+    o.insert("limpiezas_anio".into(), json!(euros(v.totales.limpiezas_anio)));
+    o.insert(
+        "inspecciones".into(),
+        json!(v
+            .inspecciones
+            .iter()
+            .map(|i| json!({
+                "texto": i.texto, "reglamento": i.reglamento, "agente": i.agente,
+                "periodicidad": format!("Cada {} años", i.periodicidad_anios),
+                "proxima": i.proxima.map(|a| a.to_string()).unwrap_or_else(|| "Según la última".into()),
+                "acompanamiento": euros(i.precio_acompanamiento),
+                "organismo": i.precio_organismo.map(euros).unwrap_or_else(|| "Según oferta".into()),
+            }))
+            .collect::<Vec<_>>()),
+    );
     o.insert(
         "visitas".into(),
         json!({"anuales": v.visitas, "descripcion": descripcion_visitas}),
@@ -479,4 +596,120 @@ mod tests {
         assert_eq!(periodo_pago(4), "trimestral");
         assert_eq!(periodo_pago(12), "mensual");
     }
+}
+
+/// Datos del certificado anual de mantenimiento del RITE (art. 28) para un contrato: instalaciones
+/// térmicas con su inventario, visitas, si el director de mantenimiento es preceptivo y los
+/// consumos y aportaciones (de `extra`, si se han recogido; si no, en blanco para rellenar).
+pub fn datos_certificado(b: &Biblioteca, k: &Contrato, v: &Valoracion, anio: u32, extra: &Value) -> Value {
+    let rite: Vec<_> = k.instalaciones.iter().filter(|i| i.familia == "RITE").collect();
+    let potencia: f64 = rite.iter().map(|i| i.potencia_kw.unwrap_or(0.0)).sum();
+    let hay_frio = rite
+        .iter()
+        .flat_map(|i| &i.equipos)
+        .any(|l| ["ENFRIADORA", "BC-GEO", "ROOFTOP", "VRF-EXT", "SPLIT-EXT", "TORRE"].contains(&l.codigo.as_str()));
+    let desc = |codigo: &str, d: &str| {
+        if d.is_empty() {
+            b.catalogo
+                .get(codigo)
+                .map(|e| e.descripcion.clone())
+                .unwrap_or_else(|| codigo.into())
+        } else {
+            d.to_string()
+        }
+    };
+    json!({
+        "anio": anio,
+        "periodo": extra.get("periodo").and_then(Value::as_str).map(str::to_string)
+            .unwrap_or_else(|| format!("1 de enero a 31 de diciembre de {anio}")),
+        "instalaciones": rite.iter().map(|i| json!({
+            "titulo": if i.titulo.is_empty() { "Instalación térmica".to_string() } else { i.titulo.clone() },
+            "potencia_kw": i.potencia_kw.unwrap_or(0.0),
+            "equipos": i.equipos.iter().map(|l| json!([desc(&l.codigo, &l.descripcion), l.cantidad])).collect::<Vec<_>>(),
+        })).collect::<Vec<_>>(),
+        "visitas": extra.get("visitas").and_then(Value::as_u64).unwrap_or(v.visitas as u64),
+        // Art. 26.6 c): más de 5.000 kW en calor o 1.000 kW en frío. Sin potencias separadas,
+        // se toma la total; con generadores de frío, el umbral de 1.000 kW.
+        "director": potencia > 5000.0 || (potencia > 1000.0 && hay_frio),
+        "consumos": extra.get("consumos").cloned().unwrap_or(json!({})),
+        "aportaciones": extra.get("aportaciones").cloned().unwrap_or(json!({})),
+    })
+}
+
+/// Periodicidades del RIPCI que entran en un mantenimiento: el trimestral hace las de 3 meses; el
+/// semestral, las de 3 y 6 meses; el anual, las de 3 y 6 meses y las anuales (tablas I, II y III).
+pub fn periodicidades_acta(tipo: &str) -> &'static [&'static str] {
+    match tipo {
+        "6m" => &["3m", "6m"],
+        "1a" => &["3m", "6m", "1a"],
+        _ => &["3m"],
+    }
+}
+
+/// Datos del acta de mantenimiento del RIPCI (art. 17.e, art. 21.2 y anexo II, punto 5):
+/// certificado con la información general y listas de comprobación por sistema con las
+/// operaciones que tocan en el mantenimiento `tipo` (`3m`, `6m` o `1a`).
+///
+/// Solo entran los equipos que mantiene la propia empresa (`modo` propio), salvo que `todos` sea
+/// verdadero: las revisiones de una subcontrata llevan el acta de la subcontrata.
+pub fn datos_acta_ripci(b: &Biblioteca, k: &Contrato, tipo: &str, todos: bool) -> Value {
+    let pers = periodicidades_acta(tipo);
+    let mut sistemas: BTreeMap<String, (Vec<String>, Vec<Value>)> = BTreeMap::new();
+    for ins in k.instalaciones.iter().filter(|i| i.familia != "RITE") {
+        for l in ins.equipos.iter().filter(|l| l.cantidad > 0.0) {
+            let Some(eq) = b.catalogo.get(&l.codigo) else { continue };
+            let modo = l.modo.clone().unwrap_or_else(|| eq.modo_defecto.clone());
+            if (!todos && modo != "propio") || ["", "CO", "VENT", "AE"].contains(&eq.sistema_ripci.as_str()) {
+                continue;
+            }
+            let s = sistemas
+                .entry(sistema_ripci(&eq.sistema_ripci).to_string())
+                .or_default();
+            if !s.0.contains(&eq.sistema_ripci) {
+                s.0.push(eq.sistema_ripci.clone());
+            }
+            let d = if l.descripcion.is_empty() {
+                eq.descripcion.clone()
+            } else {
+                l.descripcion.clone()
+            };
+            s.1.push(json!({"descripcion": d, "cantidad": l.cantidad}));
+        }
+    }
+    let orden = ["EXT", "DET", "BIE", "HID", "CS", "ABAST", "SFE", "SCH", "SEN"];
+    let mut claves: Vec<_> = sistemas.keys().cloned().collect();
+    claves.sort_by_key(|c| orden.iter().position(|o| o == c).unwrap_or(99));
+    let lista: Vec<Value> = claves
+        .iter()
+        .map(|c| {
+            let (subs, productos) = &sistemas[c];
+            let mut ops: Vec<_> = b
+                .operaciones
+                .values()
+                .filter(|o| {
+                    o.id.starts_with("RIPCI")
+                        && o.tipo == "preventivo"
+                        && pers.contains(&o.periodicidad.as_str())
+                        && (subs.contains(&o.sistema) || o.sistema == *c)
+                })
+                .collect();
+            ops.sort_by(|a, b| a.id.cmp(&b.id));
+            json!({
+                "codigo": c, "titulo": titulo_sistema(c), "productos": productos,
+                "operaciones": ops.iter().map(|o| json!({"id": o.id, "texto": o.texto, "periodicidad": o.periodicidad})).collect::<Vec<_>>(),
+            })
+        })
+        .collect();
+    let ultima_inspeccion = k
+        .inspecciones
+        .iter()
+        .find(|i| i.id == "INSP-RIPCI")
+        .and_then(|i| i.ultima)
+        .map(|a| a.to_string());
+    json!({
+        "tipo": tipo,
+        "tipo_texto": match tipo { "6m" => "semestral", "1a" => "anual", _ => "trimestral" },
+        "sistemas": lista,
+        "ultima_inspeccion": ultima_inspeccion,
+    })
 }

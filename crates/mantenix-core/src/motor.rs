@@ -65,6 +65,35 @@ pub struct OperacionAparte {
     pub texto: String,
 }
 
+/// Operación periódica que no entra en la cuota y se presupuesta aparte (limpiezas).
+#[derive(Debug, Clone, Serialize)]
+pub struct LimpiezaAparte {
+    /// Título de la instalación.
+    pub instalacion: String,
+    /// Código del equipo.
+    pub codigo: String,
+    /// Descripción del equipo.
+    pub descripcion: String,
+    /// Unidades.
+    pub cantidad: f64,
+    /// Identificador de la operación.
+    pub operacion_id: String,
+    /// Texto de la operación.
+    pub texto: String,
+    /// Código de periodicidad.
+    pub periodicidad: String,
+    /// Intervenciones al año que exige la normativa.
+    pub veces_anio: f64,
+    /// Horas-hombre de una intervención (todas las unidades).
+    pub horas_intervencion: f64,
+    /// Coste de una intervención: mano de obra y consumibles (€).
+    pub coste_intervencion: f64,
+    /// Precio orientativo de una intervención, con indirectos, contingencia y margen (€).
+    pub precio_intervencion: f64,
+    /// Precio orientativo al año (€).
+    pub precio_anio: f64,
+}
+
 /// Régimen normativo aplicado a una instalación.
 #[derive(Debug, Clone, Serialize)]
 pub struct Regimen {
@@ -108,6 +137,8 @@ pub struct Totales {
     pub precio_anual: f64,
     /// Precio de venta por visita (€).
     pub precio_visita: f64,
+    /// Precio orientativo anual de las limpiezas que se presupuestan aparte (€, no incluido).
+    pub limpiezas_anio: f64,
     /// Precio al que está vendido el contrato (€/año), para comparar.
     pub precio_actual_anual: Option<f64>,
     /// Margen sobre venta que deja el precio actual con los costes calculados.
@@ -139,6 +170,10 @@ pub struct Valoracion {
     pub subcontrata_visita_facturada: f64,
     /// Operaciones de periodicidad superior a un año (fuera de la cuota).
     pub operaciones_aparte: Vec<OperacionAparte>,
+    /// Limpiezas periódicas que se presupuestan aparte, con precio orientativo.
+    pub limpiezas: Vec<LimpiezaAparte>,
+    /// Inspecciones reglamentarias (OCA/EICI…) del contrato, valoradas aparte.
+    pub inspecciones: Vec<crate::inspecciones::InspeccionValorada>,
     /// Parámetros económicos usados.
     pub parametros: BTreeMap<String, f64>,
     /// Totales económicos.
@@ -263,6 +298,8 @@ pub fn valorar(b: &Biblioteca, c: &Contrato) -> Result<Valoracion, Error> {
     }
 
     let mut lineas = Vec::new();
+    let mut limpiezas: Vec<LimpiezaAparte> = Vec::new();
+    let factor_precio = (1.0 + (ind_pct + cont_pct) / 100.0) / (1.0 - (margen_pct / 100.0).min(0.99));
     let mut aparte: BTreeMap<String, OperacionAparte> = BTreeMap::new();
     let mut hay_propio = false;
     let mut visitas_sub = 0u32;
@@ -336,6 +373,7 @@ pub fn valorar(b: &Biblioteca, c: &Contrato) -> Result<Valoracion, Error> {
                     .meses_tabla_3_1(&eq.equipo_tabla_3_1, potencia, viviendas)
                     .map(|m| (12.0 / m).min(1.0))
                     .unwrap_or(1.0);
+                let biomasa = l.codigo == "CALD-BIO";
                 let tiempos: Vec<_> = b.tiempos_de(&l.codigo).collect();
                 if tiempos.is_empty() {
                     avisos.push(format!(
@@ -355,9 +393,25 @@ pub fn valorar(b: &Biblioteca, c: &Contrato) -> Result<Valoracion, Error> {
                         continue;
                     }
                     let base = veces_anio(&op.periodicidad, ins.temporada_meses, visitas);
-                    let mut veces = if rite_le70 && op.periodicidad == "t" {
-                        // ≤70 kW: las operaciones de temporada siguen la frecuencia de la tabla 3.1
-                        // (una vez al año, o cada 2-4 años según equipo y uso).
+                    if base == 0.0 && op.periodicidad.trim().ends_with('a') {
+                        // Operaciones de varios años (p. ej. CTE DB HS 3 cada 5 años): fuera de la cuota.
+                        aparte.entry(op.id.clone()).or_insert(OperacionAparte {
+                            sistema: if op.sistema.is_empty() {
+                                eq.familia.clone()
+                            } else {
+                                op.sistema.clone()
+                            },
+                            operacion_id: op.id.clone(),
+                            periodicidad: op.periodicidad.clone(),
+                            texto: op.texto.clone(),
+                        });
+                        continue;
+                    }
+                    let mut veces = if rite_le70 && !biomasa && op.periodicidad != "visita" && op.periodicidad != "S" {
+                        // ≤70 kW (IT 3.3, tablas 3.1 y 3.2): todas las operaciones se hacen en la
+                        // revisión periódica de la tabla 3.1 (una vez al año, o cada 2-4 años según
+                        // equipo y uso); las periodicidades de la tabla 3.3 son solo para >70 kW,
+                        // salvo la biomasa, que sigue la tabla 3.3 en cualquier potencia.
                         rev_t31
                     } else {
                         base
@@ -368,6 +422,27 @@ pub fn valorar(b: &Biblioteca, c: &Contrato) -> Result<Valoracion, Error> {
                     }
                     let horas = t.minutos / 60.0 * l.cantidad * veces;
                     let coste = horas * (coste_of + (t.tecnicos.saturating_sub(1)) as f64 * coste_ay);
+                    if t.cobro == "aparte" {
+                        // Limpiezas: no entran en la cuota; se da un precio orientativo por intervención.
+                        let h1 = t.minutos / 60.0 * l.cantidad;
+                        let c1 = h1 * (coste_of + (t.tecnicos.saturating_sub(1)) as f64 * coste_ay)
+                            + t.consumibles_eur * l.cantidad;
+                        limpiezas.push(LimpiezaAparte {
+                            instalacion: ins.titulo.clone(),
+                            codigo: l.codigo.clone(),
+                            descripcion: linea.descripcion.clone(),
+                            cantidad: l.cantidad,
+                            operacion_id: op.id.clone(),
+                            texto: op.texto.clone(),
+                            periodicidad: op.periodicidad.clone(),
+                            veces_anio: r2(veces),
+                            horas_intervencion: r2(h1 * t.tecnicos as f64),
+                            coste_intervencion: r2(c1),
+                            precio_intervencion: r2(c1 * factor_precio),
+                            precio_anio: r2(c1 * factor_precio * veces),
+                        });
+                        continue;
+                    }
                     linea.horas_anio += horas * t.tecnicos as f64;
                     linea.mano_obra += coste;
                     linea.consumibles += t.consumibles_eur * l.cantidad * veces;
@@ -389,6 +464,40 @@ pub fn valorar(b: &Biblioteca, c: &Contrato) -> Result<Valoracion, Error> {
         }
     }
 
+    // Instalaciones térmicas con generadores pero sin los elementos de la sala: faltarían
+    // operaciones del RITE (niveles y estanquidad de circuitos, vasos, seguridad, aislamiento,
+    // regulación).
+    for ins in c.instalaciones.iter().filter(|i| i.familia == "RITE") {
+        let hay = |cods: &[&str]| {
+            ins.equipos
+                .iter()
+                .any(|l| l.cantidad > 0.0 && cods.contains(&l.codigo.as_str()))
+        };
+        if !hay(&["CALD-GAS", "CALD-GASOLEO", "CALD-BIO", "ENFRIADORA", "BC-GEO"]) {
+            continue;
+        }
+        let faltan: Vec<&str> = [
+            (&["CIRC-HIDR"][..], "circuitos hidráulicos"),
+            (&["VASO-EXP"][..], "vasos de expansión"),
+            (&["CONTROL"][..], "regulación"),
+        ]
+        .iter()
+        .filter(|(c, _)| !hay(c))
+        .map(|(_, n)| *n)
+        .collect();
+        if !faltan.is_empty() {
+            avisos.push(format!(
+                "{}: hay generadores pero faltan {} en el inventario; no se valoran sus operaciones del RITE.",
+                if ins.titulo.is_empty() {
+                    "Instalación térmica"
+                } else {
+                    &ins.titulo
+                },
+                faltan.join(", ")
+            ));
+        }
+    }
+
     // Avisos de avería: estimación por equipo y coste de los incluidos en la cuota.
     let mut estimados = 0.0;
     for ins in &c.instalaciones {
@@ -401,9 +510,15 @@ pub fn valorar(b: &Biblioteca, c: &Contrato) -> Result<Valoracion, Error> {
     estimados *=
         crate::avisos::factor_antiguedad(&av.antiguedad) * crate::avisos::factor_uso(viviendas, av.servicio_24h);
     let estimados = r2(estimados);
+    // Aparcamiento por salida (zona ORA, parking): del contrato o del parámetro del año.
+    let aparcamiento = c
+        .desplazamiento
+        .aparcamiento
+        .unwrap_or_else(|| p("aparcamiento_salida").unwrap_or(0.0));
     let coste_aviso = av.horas_por_aviso * coste_of
         + 2.0 * c.desplazamiento.minutos_ida / 60.0 * coste_of
-        + 2.0 * c.desplazamiento.km_ida * coste_km;
+        + 2.0 * c.desplazamiento.km_ida * coste_km
+        + aparcamiento;
     let incluidos = match av.modalidad.as_str() {
         "aparte" => 0,
         "incluidos" => estimados.ceil() as u32,
@@ -412,7 +527,7 @@ pub fn valorar(b: &Biblioteca, c: &Contrato) -> Result<Valoracion, Error> {
     let coste_avisos = incluidos as f64 * coste_aviso;
     if av.modalidad == "bolsa" && av.bolsa.is_some_and(|n| (n as f64) < estimados) {
         avisos.push(format!(
-            "La bolsa de {} avisos es menor que los {estimados} estimados: el exceso se facturará aparte.",
+            "Se valoran {} avisos y se estiman {estimados}: si salen los estimados, el margen baja.",
             av.bolsa.unwrap_or(0)
         ));
     }
@@ -426,7 +541,7 @@ pub fn valorar(b: &Biblioteca, c: &Contrato) -> Result<Valoracion, Error> {
     let (horas_desp, coste_desp) = if hay_propio {
         let h = visitas as f64 * (2.0 * c.desplazamiento.minutos_ida + fijo_min) / 60.0;
         let km = visitas as f64 * 2.0 * c.desplazamiento.km_ida;
-        (h, h * coste_of + km * coste_km)
+        (h, h * coste_of + km * coste_km + visitas as f64 * aparcamiento)
     } else {
         (0.0, 0.0)
     };
@@ -435,6 +550,23 @@ pub fn valorar(b: &Biblioteca, c: &Contrato) -> Result<Valoracion, Error> {
             .push("Desplazamiento sin indicar (km y minutos de ida): solo se cuenta el tiempo fijo por visita.".into());
     }
 
+    let limpiezas_anio: f64 = limpiezas.iter().map(|l| l.precio_anio).sum();
+
+    // Inspecciones reglamentarias: fuera de la cuota; acompañamiento al precio de la hora de
+    // oficial de presupuestos (o, si no está, al coste con indirectos y margen).
+    let horas_insp = p("horas_inspeccion").unwrap_or(3.0);
+    let precio_hora = p("precio_hora_oficial").unwrap_or(coste_of * factor_precio);
+    let inspecciones = crate::inspecciones::valorar(c, horas_insp, precio_hora);
+    for id in crate::inspecciones::sugeridas(b, c) {
+        if !c.inspecciones.iter().any(|i| i.id == id) {
+            if let Some(i) = crate::inspecciones::buscar(&id) {
+                avisos.push(format!(
+                    "Posible inspección reglamentaria no incluida: {} — {} (cada {} años; {}).",
+                    i.reglamento, i.texto, i.periodicidad_anios, i.condicion
+                ));
+            }
+        }
+    }
     let mano_obra: f64 = lineas.iter().map(|l| l.mano_obra).sum();
     let consumibles: f64 = lineas.iter().map(|l| l.consumibles).sum();
     let horas_equipos: f64 = lineas.iter().map(|l| l.horas_anio).sum();
@@ -458,6 +590,7 @@ pub fn valorar(b: &Biblioteca, c: &Contrato) -> Result<Valoracion, Error> {
         ("contingencia_pct", cont_pct),
         ("margen_pct", margen_pct),
         ("minimo_visita_subcontrata", minimo_sub),
+        ("aparcamiento_salida", aparcamiento),
     ] {
         parametros.insert(k.to_string(), v);
     }
@@ -474,6 +607,8 @@ pub fn valorar(b: &Biblioteca, c: &Contrato) -> Result<Valoracion, Error> {
         subcontrata_visita_suma: r2(sub_suma),
         subcontrata_visita_facturada: r2(sub_fact),
         operaciones_aparte: aparte.into_values().collect(),
+        limpiezas,
+        inspecciones,
         parametros,
         avisos_averia: AvisosValorados {
             modalidad: av.modalidad.clone(),
@@ -497,6 +632,7 @@ pub fn valorar(b: &Biblioteca, c: &Contrato) -> Result<Valoracion, Error> {
             margen_pct,
             precio_anual: r2(precio_anual),
             precio_visita: r2(precio_anual / visitas.max(1) as f64),
+            limpiezas_anio: r2(limpiezas_anio),
             precio_actual_anual: c.precio_actual_anual,
             margen_precio_actual_pct: margen_actual,
         },

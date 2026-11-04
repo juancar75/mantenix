@@ -26,13 +26,17 @@
 #![warn(missing_docs)]
 
 pub mod avisos;
+pub mod calendario;
 pub mod datos;
 pub mod db;
 pub mod documento;
 pub mod empresa;
+pub mod inspecciones;
 pub mod modelo;
 pub mod motor;
+pub mod plan;
 pub mod presupuesto;
+pub mod registro;
 pub mod tarifa;
 
 pub use datos::Biblioteca;
@@ -117,10 +121,21 @@ mod tests {
         let v = valorar(&b, &c).unwrap();
         let t = &v.totales;
         assert!((t.precio_anual - t.coste_total / 0.75).abs() < 0.02);
-        // Split interior ≤12 kW, otros usos: tabla 3.1 = cada 2 años → evaporador (t) 0,5 veces/año;
-        // filtros (m) y revisión (2t) limitados a la única visita contratada: 10 + 20×0,5 + 15 = 35 min
-        let esperado_mo = 35.0 / 60.0 * 28.72;
+        // Split interior ≤12 kW, otros usos: tabla 3.1 = revisión cada 2 años → todas las
+        // operaciones 0,5 veces/año: filtros 10 + revisión 15 = 25 min × 0,5 = 12,5 min.
+        // La limpieza del evaporador (20 min) se presupuesta aparte.
+        let esperado_mo = 12.5 / 60.0 * 28.72;
         assert!((t.mano_obra - esperado_mo).abs() < 0.02, "{}", t.mano_obra);
+        assert_eq!(v.limpiezas.len(), 1);
+        let l = &v.limpiezas[0];
+        assert_eq!(l.operacion_id, "RITE-T33-01");
+        assert_eq!(l.veces_anio, 0.5);
+        let precio = 20.0 / 60.0 * 28.72 * 1.17 / 0.75;
+        assert!(
+            (l.precio_intervencion - precio).abs() < 0.02,
+            "{}",
+            l.precio_intervencion
+        );
     }
 
     #[test]
@@ -269,6 +284,13 @@ mod tests {
         assert!((v.avisos_averia.coste_aviso - coste_aviso).abs() < 0.01);
         assert!((v.totales.avisos - 4.0 * coste_aviso).abs() < 0.05);
 
+        // Aparcamiento: se suma en cada salida (visitas y avisos).
+        let mut cp = c.clone();
+        cp.desplazamiento.aparcamiento = Some(5.0);
+        let vp = valorar(&b, &cp).unwrap();
+        assert!((vp.avisos_averia.coste_aviso - coste_aviso - 5.0).abs() < 0.01);
+        assert!((vp.totales.desplazamiento - v.totales.desplazamiento - 5.0 * v.visitas as f64).abs() < 0.01);
+
         c.avisos.modalidad = "aparte".into();
         let v2 = valorar(&b, &c).unwrap();
         assert_eq!(v2.totales.avisos, 0.0);
@@ -279,7 +301,7 @@ mod tests {
         c.avisos.antiguedad = "antigua".into();
         let v3 = valorar(&b, &c).unwrap();
         assert_eq!(v3.avisos_averia.incluidos, 2);
-        assert!(v3.avisos.iter().any(|a| a.contains("bolsa")));
+        assert!(v3.avisos.iter().any(|a| a.contains("margen baja")));
     }
 
     #[test]
@@ -334,5 +356,317 @@ mod tests {
             "la semilla de ejemplo trae precios de venta"
         );
         assert!(recargo.is_some());
+    }
+
+    #[test]
+    fn catalogo_nuevo_llega_a_bases_existentes() {
+        let mut c = db::abrir(std::path::Path::new(":memory:")).unwrap();
+        db::inicializar(&mut c, &normativa(), &ejemplo()).unwrap();
+        // Simula una base creada antes de los equipos nuevos.
+        for cod in ["SOBREP-KIT", "VENT-GAR", "BC-GEO"] {
+            c.execute("DELETE FROM tiempo WHERE codigo_equipo=?1", [cod]).unwrap();
+            c.execute("DELETE FROM equipo WHERE codigo=?1", [cod]).unwrap();
+        }
+        c.execute("DELETE FROM operacion WHERE id='SOBREP-MED'", []).unwrap();
+        // y antes de la tabla 7.1 del DB HS 3
+        c.execute("DELETE FROM tiempo WHERE operacion_id LIKE 'CTE-HS3-%'", [])
+            .unwrap();
+        c.execute("DELETE FROM operacion WHERE id LIKE 'CTE-HS3-%'", [])
+            .unwrap();
+        c.execute(
+            "UPDATE tiempo SET minutos=99 WHERE codigo_equipo='UTA' AND operacion_id='RITE-T33-19'",
+            [],
+        )
+        .unwrap();
+        assert_eq!(db::actualizar_catalogo(&mut c, &normativa(), &ejemplo()).unwrap(), 3);
+        assert_eq!(db::actualizar_catalogo(&mut c, &normativa(), &ejemplo()).unwrap(), 0);
+        let b = Biblioteca::desde_db(&c).unwrap();
+        assert_eq!(b.tiempos.len(), biblioteca().tiempos.len());
+        assert_eq!(
+            b.tiempos_de("UTA")
+                .find(|t| t.operacion_id == "RITE-T33-19")
+                .unwrap()
+                .minutos,
+            99.0,
+            "no pisa lo editado"
+        );
+    }
+
+    #[test]
+    fn ventilacion_y_sobrepresion_en_el_contrato() {
+        let b = biblioteca();
+        let k: Contrato = serde_json::from_str(
+            r#"{"nombre":"vs","anio":2026,"visitas_contratadas":4,"desplazamiento":{"km_ida":10,"minutos_ida":20},
+            "instalaciones":[
+              {"familia":"RITE","potencia_kw":120,"equipos":[{"codigo":"BC-GEO","cantidad":1},{"codigo":"SUELO-RAD","cantidad":3},
+                {"codigo":"DEP-INERCIA","cantidad":1},{"codigo":"DESHUM","cantidad":1},{"codigo":"CORTINA","cantidad":2},
+                {"codigo":"HUMID","cantidad":1},{"codigo":"INTERC-PL","cantidad":1},{"codigo":"EMISOR","cantidad":10}]},
+              {"familia":"PCI","equipos":[{"codigo":"SOBREP-KIT","cantidad":2},{"codigo":"VENT-GAR","cantidad":4},
+                {"codigo":"VENT-CT","cantidad":3},{"codigo":"VENT-CUADRO","cantidad":2},{"codigo":"SCH-BOMB","cantidad":1},{"codigo":"CO-CENTRAL","cantidad":1,"modo":"propio"},{"codigo":"CO-DET","cantidad":6,"modo":"propio"}]}]}"#,
+        )
+        .unwrap();
+        let v = valorar(&b, &k).unwrap();
+        assert!(
+            !v.avisos
+                .iter()
+                .any(|a| a.contains("sin tiempos") || a.contains("no existe")),
+            "{:?}",
+            v.avisos
+        );
+        for l in &v.lineas {
+            assert!(l.horas_anio > 0.0, "{} sin horas", l.codigo);
+        }
+        let d = documento::datos_contrato(&b, &k, &v, &serde_json::json!({}));
+        let otros = d["otros_sistemas"].as_array().unwrap();
+        assert_eq!(otros.len(), 1);
+        assert!(otros[0]["titulo"].as_str().unwrap().contains("cuartos técnicos"));
+        assert_eq!(otros[0]["equipos"].as_array().unwrap().len(), 5);
+        let sch = d["sistemas"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|s| s["codigo"] == "SCH")
+            .unwrap();
+        assert!(sch["norma_adicional"].as_str().unwrap().contains("12101-6"));
+        assert!(sch["norma_adicional"].as_str().unwrap().contains("UNE 23584"));
+        assert!(sch["norma_adicional"].as_str().unwrap().contains("bomberos"));
+        let grupos: Vec<&str> = otros[0]["grupos"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|g| g["periodicidad"].as_str().unwrap())
+            .collect();
+        assert_eq!(
+            grupos,
+            [
+                "En cada visita",
+                "Anual",
+                "Cada dos años (fuera de la cuota anual)",
+                "Cada cinco años (fuera de la cuota anual)"
+            ]
+        );
+        // Las de cada 5 años del DB HS 3 no entran en la cuota: van aparte.
+        assert!(v.operaciones_aparte.iter().any(|o| o.operacion_id == "CTE-HS3-02"));
+        // Limpiezas (DB HS 3, baterías…) fuera de la cuota, marcadas en el contrato y con precio.
+        assert!(v.limpiezas.iter().any(|l| l.operacion_id == "CTE-HS3-01"));
+        assert!(v
+            .limpiezas
+            .iter()
+            .any(|l| l.operacion_id == "RITE-T33-02" && l.codigo == "DESHUM"));
+        assert!(v.totales.limpiezas_anio > 0.0);
+        assert!(!d["limpiezas"].as_array().unwrap().is_empty());
+        let anual = otros[0]["grupos"][1]["operaciones"].as_array().unwrap();
+        assert!(anual
+            .iter()
+            .all(|t| t.as_str().unwrap().ends_with("(se presupuesta aparte)")));
+        assert_eq!(b.operaciones.keys().filter(|k| k.starts_with("CTE-HS3")).count(), 8);
+    }
+
+    #[test]
+    fn inspecciones_reglamentarias_aparte() {
+        let b = biblioteca();
+        assert_eq!(inspecciones::catalogo().len(), 11);
+        let mut k: Contrato = serde_json::from_str(
+            r#"{"nombre":"ins","anio":2026,"uso":"viviendas","desplazamiento":{"km_ida":10,"minutos_ida":20},
+            "instalaciones":[
+              {"familia":"RITE","potencia_kw":200,"equipos":[{"codigo":"CALD-GAS","cantidad":2}]},
+              {"familia":"PCI","equipos":[{"codigo":"EXT-POLVO","cantidad":10},{"codigo":"BIE-25","cantidad":4},{"codigo":"CO-DET","cantidad":4,"modo":"propio"}]}]}"#,
+        )
+        .unwrap();
+        let sug = inspecciones::sugeridas(&b, &k);
+        for id in [
+            "INSP-RITE-PARC",
+            "INSP-RIPCI",
+            "INSP-REBT-RIESGO",
+            "INSP-REBT-ZC",
+            "INSP-GAS-RED",
+        ] {
+            assert!(sug.iter().any(|s| s == id), "{id} en {sug:?}");
+        }
+        let v = valorar(&b, &k).unwrap();
+        assert!(v.avisos.iter().any(|a| a.contains("Posible inspección")));
+        let precio = v.totales.precio_anual;
+        k.inspecciones = vec![inspecciones::InspeccionContrato {
+            id: "INSP-RITE-PARC".into(),
+            ultima: Some(2023),
+            precio_organismo: Some(350.0),
+        }];
+        let v = valorar(&b, &k).unwrap();
+        assert_eq!(v.totales.precio_anual, precio, "no entra en la cuota");
+        let i = &v.inspecciones[0];
+        assert_eq!(i.proxima, Some(2027)); // RITE IT 4.3.1: cada 4 años
+                                           // 3 h × precio hora oficial de presupuestos (45 €) + organismo
+        assert_eq!(i.precio_acompanamiento, 135.0);
+        assert_eq!(i.precio_total, 485.0);
+        let d = documento::datos_contrato(&b, &k, &v, &serde_json::json!({}));
+        assert_eq!(d["inspecciones"].as_array().unwrap().len(), 1);
+    }
+
+    #[test]
+    fn plan_de_visitas_y_certificado() {
+        let b = biblioteca();
+        let k: Contrato = serde_json::from_str(
+            r#"{"nombre":"sala","anio":2026,"uso":"viviendas","desplazamiento":{"km_ida":10,"minutos_ida":20},
+            "instalaciones":[{"familia":"RITE","titulo":"Calefacción","potencia_kw":300,"equipos":[
+              {"codigo":"CALD-GAS","cantidad":2},{"codigo":"BOMBA","cantidad":4},{"codigo":"CIRC-HIDR","cantidad":2},
+              {"codigo":"VASO-EXP","cantidad":1},{"codigo":"VALV-REG","cantidad":1},{"codigo":"CONTROL","cantidad":1}]}]}"#,
+        )
+        .unwrap();
+        let v = valorar(&b, &k).unwrap();
+        assert!(!v.avisos.iter().any(|a| a.contains("faltan")), "{:?}", v.avisos);
+        let p = plan::plan(&k, &v, 10);
+        assert_eq!(p.n_visitas, 12);
+        assert_eq!(p.visitas[0].mes_nombre, "octubre");
+        assert_eq!(p.visitas[3].mes_nombre, "enero");
+        let fila = |id: &str| p.filas.iter().find(|f| f.texto == b.operaciones[id].texto).unwrap();
+        assert_eq!(fila("RITE-T33-30").visitas, vec![1, 7]); // 2t: inicio y mitad
+        assert_eq!(fila("RITE-T33-12").visitas, vec![1]); // t: inicio de temporada
+        assert_eq!(fila("RITE-T33-08").visitas.len(), 12); // m
+                                                           // Medidas de calor (70-1000 kW): cada tres meses; contadores en todas.
+        let con_medidas: Vec<u32> = p
+            .visitas
+            .iter()
+            .filter(|v| !v.medidas.is_empty())
+            .map(|v| v.numero)
+            .collect();
+        assert_eq!(con_medidas, vec![1, 4, 7, 10]);
+        assert!(p.visitas.iter().all(|v| v.contadores));
+        let horas: f64 = p.visitas.iter().map(|v| v.horas).sum();
+        assert!(
+            (horas - v.totales.horas_equipos).abs() < 0.2,
+            "{horas} vs {}",
+            v.totales.horas_equipos
+        );
+        let c = documento::datos_certificado(&b, &k, &v, 2026, &serde_json::json!({}));
+        assert_eq!(c["director"], false);
+        assert_eq!(c["visitas"], 12);
+        assert_eq!(plan::mes_de_texto("Madrid, 3 de noviembre de 2026"), Some(11));
+    }
+
+    #[test]
+    fn acta_ripci_por_tipo_de_mantenimiento() {
+        let b = biblioteca();
+        let k: Contrato = serde_json::from_str(
+            r#"{"nombre":"pci","anio":2026,"instalaciones":[{"familia":"PCI","equipos":[
+              {"codigo":"EXT-POLVO","cantidad":10,"modo":"propio"},{"codigo":"DET-OPT","cantidad":20,"modo":"propio"},
+              {"codigo":"DET-PULS","cantidad":4,"modo":"propio"},{"codigo":"BIE-25","cantidad":4},
+              {"codigo":"CO-DET","cantidad":5,"modo":"propio"}]}]}"#,
+        )
+        .unwrap();
+        let n_ops = |a: &serde_json::Value, cod: &str| {
+            a["sistemas"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .find(|s| s["codigo"] == cod)
+                .map(|s| s["operaciones"].as_array().unwrap().len())
+        };
+        let t = documento::datos_acta_ripci(&b, &k, "3m", false);
+        // BIE va por subcontrata (modo por defecto) y CO no es RIPCI: no entran.
+        assert_eq!(t["sistemas"].as_array().unwrap().len(), 2);
+        assert!(n_ops(&t, "BIE").is_none());
+        let a = documento::datos_acta_ripci(&b, &k, "1a", true);
+        assert!(n_ops(&a, "BIE").is_some());
+        assert!(n_ops(&a, "DET").unwrap() > n_ops(&t, "DET").unwrap());
+        // El anual incluye las de tres y seis meses y las anuales, nunca las de varios años.
+        let det = a["sistemas"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|s| s["codigo"] == "DET")
+            .unwrap();
+        assert!(det["operaciones"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|o| ["3m", "6m", "1a"].contains(&o["periodicidad"].as_str().unwrap())));
+    }
+
+    #[test]
+    fn normativa_corregida_llega_a_bases_existentes() {
+        let mut c = db::abrir(std::path::Path::new(":memory:")).unwrap();
+        db::inicializar(&mut c, &normativa(), &ejemplo()).unwrap();
+        // Base antigua: texto recortado y periodicidad distinta.
+        c.execute(
+            "UPDATE operacion SET texto='Purgado', periodicidad='t' WHERE id='RITE-T33-41'",
+            [],
+        )
+        .unwrap();
+        // Una operación que un usuario cambió a propósito: se respeta.
+        db::fijar_usuario(&c, "juancar").unwrap();
+        c.execute("UPDATE operacion SET texto='Texto propio' WHERE id='RITE-T33-42'", [])
+            .unwrap();
+        assert_eq!(db::actualizar_normativa(&mut c, &normativa(), &ejemplo()).unwrap(), 1);
+        let t = |id: &str| -> (String, String) {
+            c.query_row("SELECT texto, periodicidad FROM operacion WHERE id=?1", [id], |r| {
+                Ok((r.get(0)?, r.get(1)?))
+            })
+            .unwrap()
+        };
+        assert_eq!(
+            t("RITE-T33-41"),
+            ("Purgado del campo de captación".to_string(), "2t".to_string())
+        );
+        assert_eq!(t("RITE-T33-42").0, "Texto propio");
+        assert_eq!(db::actualizar_normativa(&mut c, &normativa(), &ejemplo()).unwrap(), 0);
+    }
+
+    #[test]
+    fn registro_de_visitas_estado_y_consumos() {
+        use registro::{Registro, Resultado};
+        let b = biblioteca();
+        let mut c = db::abrir(std::path::Path::new(":memory:")).unwrap();
+        db::inicializar(&mut c, &normativa(), &ejemplo()).unwrap();
+        let k: Contrato = serde_json::from_str(
+            r#"{"nombre":"sala","anio":2026,"desplazamiento":{"km_ida":5,"minutos_ida":10},
+            "partes":{"contrato":{"lugar_fecha":"Madrid, 3 de octubre de 2026"}},
+            "instalaciones":[{"familia":"RITE","potencia_kw":200,"equipos":[{"codigo":"CALD-GAS","cantidad":1},
+              {"codigo":"CIRC-HIDR","cantidad":1},{"codigo":"VASO-EXP","cantidad":1},{"codigo":"CONTROL","cantidad":1}]}]}"#,
+        )
+        .unwrap();
+        assert_eq!(plan::mes_inicio(&k), 10);
+        let v = valorar(&b, &k).unwrap();
+        let p = plan::plan(&k, &v, plan::mes_inicio(&k));
+        let r1 = Registro {
+            contrato: "sala".into(),
+            anio: 2026,
+            numero: 1,
+            tipo: "preventiva".into(),
+            fecha: "2026-10-05".into(),
+            resultados: vec![Resultado {
+                operacion_id: "RITE-T33-08".into(),
+                resultado: "D".into(),
+                ..Default::default()
+            }],
+            contadores: [("combustible".to_string(), 1000.0)].into(),
+            ..Default::default()
+        };
+        let id = db::guardar_registro(&c, &r1).unwrap();
+        let r2 = Registro {
+            numero: 3,
+            fecha: "2026-12-04".into(),
+            resultados: vec![],
+            contadores: [("combustible".to_string(), 1850.5)].into(),
+            ..r1.clone()
+        };
+        db::guardar_registro(&c, &r2).unwrap();
+        let regs = db::listar_registros(&c, "sala").unwrap();
+        assert_eq!(regs.len(), 2);
+        let e = registro::estado(&p, &regs, (2026, 12));
+        assert_eq!(e[0].estado, "hecha");
+        assert_eq!(e[0].defectos, 1);
+        assert_eq!(e[1].estado, "atrasada"); // noviembre sin hacer
+        assert_eq!(e[2].estado, "hecha");
+        assert_eq!(e[3].estado, "pendiente"); // enero de 2027
+        assert_eq!(registro::consumos(&regs, 2026)["combustible"], 850.5);
+        let x = registro::extra_certificado(&regs, 2026);
+        assert_eq!(x["visitas"], 2);
+        assert_eq!(x["consumos"]["combustible"], "850,50");
+        // El registro no se borra con el contrato.
+        db::guardar_contrato(&mut c, &k).unwrap();
+        db::borrar_contrato(&c, "sala").unwrap();
+        assert_eq!(db::listar_registros(&c, "sala").unwrap().len(), 2);
+        db::borrar_registro(&c, &id).unwrap();
+        assert_eq!(registro::fecha_civil(20_000), (2024, 10, 4));
     }
 }

@@ -30,6 +30,10 @@ pub struct Contrato {
     /// forma que espera [`crate::documento::datos_contrato`]). Vacío si aún no se han rellenado.
     #[serde(default)]
     pub partes: serde_json::Value,
+    /// Inspecciones reglamentarias periódicas (OCA/EICI, distribuidora…) que se avisan y
+    /// valoran aparte.
+    #[serde(default)]
+    pub inspecciones: Vec<crate::inspecciones::InspeccionContrato>,
 }
 
 /// Cómo se atienden los avisos de avería y con qué datos se estiman.
@@ -89,6 +93,9 @@ pub struct Desplazamiento {
     #[serde(default)]
     /// Minutos de ida desde la base.
     pub minutos_ida: f64,
+    /// Aparcamiento por salida (€). Si falta, el parámetro del año `aparcamiento_salida`.
+    #[serde(default)]
+    pub aparcamiento: Option<f64>,
 }
 
 /// Instalación (RITE, PCI…) con sus equipos.

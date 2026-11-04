@@ -11,3 +11,5 @@ anio;parametro;valor;unidad
 2026;precio_hora_pareja;75;€/h
 2026;precio_salida;30;€
 2026;recargo_material_pct;30;%
+2026;aparcamiento_salida;0;€
+2026;horas_inspeccion;3;h
