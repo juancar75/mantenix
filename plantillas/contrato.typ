@@ -251,13 +251,7 @@ El pago se realizará #datos.condiciones.forma_pago.
 
 #let limpiezas = datos.at("limpiezas", default: ())
 #if limpiezas.len() > 0 [
-  Las operaciones de limpieza señaladas en el programa de mantenimiento como _(se presupuesta aparte)_ son obligatorias según la normativa, pero *no están incluidas en el importe anual*. La empresa mantenedora presentará el presupuesto correspondiente antes de realizarlas y se ejecutarán, una vez aceptado, aprovechando la visita en que corresponda. Como referencia, su importe orientativo es el siguiente (IVA no incluido; el material, aparte):
-
-  #table(columns: (1fr, auto, auto), align: (left, right, right), stroke: 0.4pt + luma(200),
-    table.header[*Limpieza*][*Por intervención*][*Al año*],
-    ..limpiezas.map(l => (text(9pt, l.texto), l.precio_intervencion, l.precio_anio)).flatten(),
-    table.cell(colspan: 2, align: right)[*Total orientativo al año*], [*#datos.limpiezas_anio*],
-  )
+  Las operaciones de limpieza señaladas en el programa de mantenimiento como _(se presupuesta aparte)_ *no están incluidas en el importe anual*. Cuando en las revisiones se compruebe que son necesarias, la empresa mantenedora presentará el presupuesto correspondiente y se ejecutarán una vez aceptado.
 ]
 
 #if av != none [
@@ -278,14 +272,14 @@ El pago se realizará #datos.condiciones.forma_pago.
 #if inspecciones.len() > 0 [
   = Inspecciones reglamentarias
 
-  Las inspecciones y revisiones periódicas que exigen los reglamentos de seguridad industrial son obligación del titular y *no están incluidas en el importe anual*. La empresa mantenedora avisará al titular con antelación suficiente, coordinará la inspección con el organismo de control (OCA/EICI), la distribuidora o la empresa habilitada que corresponda, la acompañará con sus técnicos y presupuestará la subsanación de los defectos que se señalen. El acompañamiento se facturará al importe indicado y el precio del organismo se repercutirá sin recargo (IVA no incluido):
+  Las inspecciones y revisiones periódicas que exigen los reglamentos de seguridad industrial son obligación del titular y *no están incluidas en el importe anual*. La empresa mantenedora avisará al titular con antelación suficiente, coordinará la inspección con el organismo de control (OCA/EICI), la distribuidora o la empresa habilitada que corresponda y, previa aceptación de su presupuesto, la acompañará y subsanará los defectos que se señalen. Inspecciones aplicables a las instalaciones del contrato:
 
   #show table: set par(justify: false)
-  #table(columns: (2.2fr, 1.5fr, 1.8cm, 2.1cm, 2.3cm), align: (left, left, center, right, right), stroke: 0.4pt + luma(200),
-    table.header[*Inspección*][*Quién la hace*][*Próxima*][*Acompañ.*][*Organismo*],
+  #table(columns: (2.4fr, 1.6fr, 1.8cm), align: (left, left, center), stroke: 0.4pt + luma(200),
+    table.header[*Inspección*][*Quién la hace*][*Próxima*],
     ..inspecciones.map(i => (
       [#text(9pt, i.texto) \ #text(8pt, fill: luma(90))[#i.reglamento · #i.periodicidad]],
-      text(8.5pt, i.agente), text(9pt, i.proxima), i.acompanamiento, text(9pt, i.organismo),
+      text(8.5pt, i.agente), text(9pt, i.proxima),
     )).flatten(),
   )
 ]
