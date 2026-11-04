@@ -88,6 +88,20 @@ async function sugerirInspecciones() {
 const desc = (codigo: string) => catalogo.value.find((e) => e.codigo === codigo)?.descripcion ?? codigo;
 const total = (q: Record<string, number>) => Object.values(q).reduce((a, n) => a + (Number(n) || 0), 0);
 
+// ── Sala de máquinas: si hay generadores, el RITE exige revisar circuitos, vasos y regulación ──
+const GENERADORES = ["CALD-GAS", "CALD-GASOLEO", "CALD-BIO", "ENFRIADORA", "BC-GEO"];
+const ELEMENTOS_SALA = [
+  { codigo: "CIRC-HIDR", nombre: "circuitos hidráulicos (uno por circuito: primario, cada secundario, ACS)" },
+  { codigo: "VASO-EXP", nombre: "vasos de expansión" },
+  { codigo: "BOMBA", nombre: "bombas (una bomba doble son dos)" },
+  { codigo: "VALV-REG", nombre: "válvulas de tres vías o motorizadas" },
+  { codigo: "CONTROL", nombre: "regulación (centralita o sistema de control)" },
+];
+const conGeneradores = computed(() => f.rite.hay && GENERADORES.some((c) => (f.rite.cantidades[c] ?? 0) > 0));
+const faltaSala = computed(() => conGeneradores.value
+  ? ELEMENTOS_SALA.filter((e) => !((f.rite.cantidades[e.codigo] ?? 0) > 0)) : []);
+let avisoSalaVisto = false;
+
 // ── Validación de cada paso ─────────────────────────────────────────────────
 const falta = computed<string[]>(() => {
   const r: string[] = [];
@@ -108,6 +122,12 @@ const falta = computed<string[]>(() => {
 function siguiente() {
   error.value = "";
   if (falta.value.length) { error.value = `Falta ${falta.value.join(" y ")}.`; return; }
+  if (paso.value === 3 && faltaSala.value.length && !avisoSalaVisto) {
+    avisoSalaVisto = true;
+    error.value = `Hay generadores pero no ha indicado ${faltaSala.value.map((e) => e.nombre.split(" (")[0]).join(", ")}. `
+      + "Sin ellos el contrato no incluye sus operaciones del RITE. Si de verdad no hay, pulse «Siguiente» otra vez.";
+    return;
+  }
   if (paso.value === 6) { calcular(); return; }
   paso.value++;
   if (paso.value === 6) sugerirInspecciones();
@@ -270,6 +290,12 @@ function empezarOtro() {
       </div>
       <p class="ayuda">Potencia: sume la potencia de placa de todas las calderas, o la de calefacción de todas las bombas de calor
         o enfriadoras (la mayor de calor o frío). Con más de 70 kW el contrato es obligatorio y lleva certificado anual.</p>
+      <div v-if="faltaSala.length" class="aviso-sala">
+        <b>Sala de máquinas:</b> con calderas o enfriadoras hay que contar también lo que las acompaña, porque el RITE
+        exige revisarlo (niveles y estanquidad de circuitos, vasos, elementos de seguridad, aislamiento, regulación). Falta:
+        <ul><li v-for="e in faltaSala" :key="e.codigo">{{ e.nombre }}
+          <input class="num" type="number" min="0" v-model.number="f.rite.cantidades[e.codigo]" placeholder="0" /></li></ul>
+      </div>
       <div v-for="g in GRUPOS_RITE" :key="g.titulo" class="grupo">
         <h3>{{ g.titulo }}</h3>
         <p class="ayuda">{{ g.ayuda }}</p>
@@ -424,6 +450,10 @@ function empezarOtro() {
 
 <style scoped>
 .insp td { vertical-align: top; }
+.aviso-sala { background: #fff6e0; border: 1px solid #e8c56b; border-radius: 6px; padding: 8px 12px; margin: 8px 0; }
+.aviso-sala ul { margin: 6px 0 0; padding-left: 18px; }
+.aviso-sala li { margin: 3px 0; }
+.aviso-sala input { margin-left: 8px; width: 70px; }
 .insp tr.con td { background: var(--azul-claro); }
 .pasos { list-style: none; display: flex; flex-wrap: wrap; gap: 6px; padding: 0; margin: 0 0 14px; }
 .pasos li { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--gris); padding: 4px 10px 4px 4px; border-radius: 14px; background: white; border: 1px solid var(--borde); }
